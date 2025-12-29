@@ -65,16 +65,7 @@ export const handleEnter = (content: string, selection: Selection): InputResult 
   const isEmptyListItem = beforeCursor.trim() === prefix.trim() && afterCursor.trim() === "";
 
   if (isEmptyListItem) {
-    if (beforeCursor.startsWith("    ")) {
-      return {
-        content: content.slice(0, lineStart) + beforeCursor.slice(4) + content.slice(start),
-        cursor: start - 4,
-      };
-    }
-    return {
-      content: content.slice(0, lineStart) + content.slice(start),
-      cursor: lineStart,
-    };
+    return unindentOrRemoveList(content, start);
   }
 
   const newPrefix = prefix.includes("[x]") ? prefix.replace("[x]", "[ ]") : prefix;
@@ -82,6 +73,41 @@ export const handleEnter = (content: string, selection: Selection): InputResult 
   return {
     content: content.slice(0, start) + "\n" + newPrefix + content.slice(end),
     cursor: start + 1 + newPrefix.length,
+  };
+};
+
+export const handleBackspaceAtListStart = (content: string, selection: Selection): InputResult | null => {
+  const { start, end } = selection;
+  if (start !== end) return null;
+
+  const { start: lineStart, line } = getLineRange(content, start);
+  const match = line.match(LIST_PATTERN);
+  if (!match) return null;
+
+  const prefix = match[1];
+  const cursorInLine = start - lineStart;
+
+  if (cursorInLine !== prefix.length) return null;
+
+  return unindentOrRemoveList(content, start);
+};
+
+const unindentOrRemoveList = (content: string, cursor: number): InputResult => {
+  const { start: lineStart, end: lineEnd, line } = getLineRange(content, cursor);
+
+  if (line.startsWith(INDENT)) {
+    return {
+      content: content.slice(0, lineStart) + line.slice(INDENT_SIZE) + content.slice(lineEnd),
+      cursor: cursor - INDENT_SIZE,
+    };
+  }
+
+  const match = line.match(LIST_PATTERN);
+  const prefixLength = match ? match[1].length : 0;
+
+  return {
+    content: content.slice(0, lineStart) + line.slice(prefixLength) + content.slice(lineEnd),
+    cursor: lineStart,
   };
 };
 

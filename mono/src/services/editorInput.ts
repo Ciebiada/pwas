@@ -1,4 +1,4 @@
-import { handleEnter, handleTab, INDENT } from "./markdownInput";
+import { handleBackspaceAtListStart, handleEnter, handleTab, INDENT } from "./markdownInput";
 
 type Selection = { start: number; end: number };
 type EditResult = { content: string; cursor: number };
@@ -106,13 +106,24 @@ export const processBeforeInput = (
       return handleEnter(content, selection);
 
     case "deleteByCut":
-    case "deleteContentBackward":
       if (end > start) {
         return { content: insert(content, start, end, ""), cursor: start };
       } else if (start > 0) {
         return { content: insert(content, start - 1, start, ""), cursor: start - 1 };
       }
       return null;
+
+    case "deleteContentBackward": {
+      const listResult = handleBackspaceAtListStart(content, selection);
+      if (listResult) return listResult;
+
+      if (end > start) {
+        return { content: insert(content, start, end, ""), cursor: start };
+      } else if (start > 0) {
+        return { content: insert(content, start - 1, start, ""), cursor: start - 1 };
+      }
+      return null;
+    }
 
     case "deleteSoftLineBackward": {
       const lineStart = content.lastIndexOf("\n", start - 1) + 1;
