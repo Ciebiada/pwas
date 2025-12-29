@@ -11,7 +11,7 @@ import { createDexieSignalQuery } from "../services/solid-dexie";
 
 export const EditNote = () => {
   const navigate = useNavigate();
-  const noteId = parseInt(useParams().id);
+  const noteId = parseInt(useParams().id ?? "0");
   const [modalOpen, setModalOpen] = createSignal(false);
   let editorApi: EditorAPI;
   let lastSeenSync = 0;
