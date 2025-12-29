@@ -10,7 +10,7 @@ export default defineConfig({
     solidPlugin(),
     VitePWA({
       registerType: "autoUpdate",
-      injectRegister: "auto",
+      injectRegister: null,
       manifest: {
         name: "Mono",
         short_name: "Mono",
@@ -33,8 +33,5 @@ export default defineConfig({
   },
   build: {
     target: "esnext",
-  },
-  optimizeDeps: {
-    exclude: ["rams"],
   },
 });

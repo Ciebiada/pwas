@@ -12,6 +12,7 @@ import { GoogleDriveCallback } from "./pages/GoogleDriveCallback";
 import "rams/reset.css";
 import "rams/theme.css";
 import "rams/typography.css";
+import "./pwa";
 
 const root = document.getElementById("root");
 

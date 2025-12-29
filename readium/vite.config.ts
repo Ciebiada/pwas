@@ -7,6 +7,7 @@ export default defineConfig({
     solid(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: null,
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
         name: 'Readium',
@@ -28,7 +29,4 @@ export default defineConfig({
       }
     })
   ],
-  optimizeDeps: {
-    exclude: ['rams']
-  },
 })
