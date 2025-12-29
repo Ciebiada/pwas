@@ -1,0 +1,35 @@
+.about-container {
+    padding: calc(16px + env(safe-area-inset-top)) 16px 16px;
+    padding-top: calc(64px + env(safe-area-inset-top));
+    max-width: 680px;
+    margin: 0 auto;
+}
+
+.about-container h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 32px;
+    color: var(--text-color);
+}
+
+.about-content section {
+    margin-bottom: 32px;
+}
+
+.about-content h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-color);
+}
+
+.about-content p {
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--text-secondary-color, #666);
+}
+
+.about-content strong {
+    font-weight: 600;
+    color: var(--text-color);
+}

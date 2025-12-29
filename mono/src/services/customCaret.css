@@ -1,0 +1,26 @@
+.custom-caret {
+  position: absolute;
+  background-color: var(--main-color);
+  pointer-events: none;
+  /* z-index: 100; */
+  opacity: 0;
+  transition:
+    left 0.1s ease-out,
+    top 0.1s ease-out,
+    height 0.1s ease-out,
+    opacity 0.1s ease-out;
+}
+
+.custom-caret.blinking {
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}

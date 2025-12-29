@@ -1,0 +1,5 @@
+.nav-button-text {
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary-color);
+}

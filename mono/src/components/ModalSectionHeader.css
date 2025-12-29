@@ -1,0 +1,8 @@
+.modal-section-header {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-secondary-color);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 16px 0 4px 40px;
+}

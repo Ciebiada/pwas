@@ -1,0 +1,37 @@
+{
+  "name": "goread",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src"
+  },
+  "dependencies": {
+    "@solidjs/router": "^0.15.4",
+    "dexie": "^4.2.1",
+    "jszip": "^3.10.1",
+    "rams": "file:../ui",
+    "solid-js": "^1.9.10"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/jszip": "^3.4.0",
+    "@types/node": "^24.10.1",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-solid": "^0.14.5",
+    "prettier": "^3.7.4",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.50.0",
+    "vite": "^7.2.4",
+    "vite-plugin-pwa": "^1.2.0",
+    "vite-plugin-solid": "^2.11.10",
+    "workbox-window": "^7.4.0"
+  }
+}

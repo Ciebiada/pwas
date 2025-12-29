@@ -1,0 +1,20 @@
+{
+  "name": "rams",
+  "version": "0.0.1",
+  "description": "UI library for Solid.js",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./reset.css": "./src/reset.css",
+    "./theme.css": "./src/theme.css",
+    "./typography.css": "./src/typography.css"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "solid-js": "^1.9.10"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

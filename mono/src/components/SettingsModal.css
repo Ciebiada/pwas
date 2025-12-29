@@ -1,0 +1,57 @@
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  background: var(--element-background-color);
+  border-radius: 20px;
+  margin: 8px 16px;
+  overflow: hidden;
+}
+
+.provider-button {
+  background: transparent !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  padding: 12px 16px !important;
+  /* Matches standard ModalButton padding */
+}
+
+.provider-button:not(:last-child) {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.provider-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.provider-icon-wrapper {
+  width: 24px;
+  height: 24px;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.provider-check {
+  color: var(--main-color);
+}
+
+/* Navigation button styles */
+.nav-button-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-button-text {
+  color: var(--text-secondary-color);
+}
+
+.settings-description {
+  margin: 16px 32px;
+  font-size: 0.8rem;
+  color: var(--text-secondary-color);
+  font-weight: 500;
+}

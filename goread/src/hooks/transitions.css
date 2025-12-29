@@ -1,0 +1,101 @@
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes fade-out {
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes slide-from-right {
+    from {
+        transform: translateX(30px);
+    }
+}
+
+@keyframes slide-to-left {
+    to {
+        transform: translateX(-30px);
+    }
+}
+
+@keyframes slide-from-left {
+    from {
+        transform: translateX(-30px);
+    }
+}
+
+@keyframes slide-to-right {
+    to {
+        transform: translateX(30px);
+    }
+}
+
+@keyframes full-slide-from-right {
+    from {
+        transform: translateX(100%);
+    }
+}
+
+@keyframes full-slide-to-left {
+    to {
+        transform: translateX(-100%);
+    }
+}
+
+@keyframes full-slide-from-left {
+    from {
+        transform: translateX(-100%);
+    }
+}
+
+@keyframes full-slide-to-right {
+    to {
+        transform: translateX(100%);
+    }
+}
+
+::view-transition-old(root) {
+    animation: 300ms cubic-bezier(0.22, 0.61, 0.36, 1) both full-slide-to-left;
+}
+
+::view-transition-new(root) {
+    animation: 300ms cubic-bezier(0.22, 0.61, 0.36, 1) both full-slide-from-right;
+}
+
+:active-view-transition-type(back-transition)::view-transition-old(root) {
+    animation: 300ms cubic-bezier(0.22, 0.61, 0.36, 1) both full-slide-to-right;
+}
+
+:active-view-transition-type(back-transition)::view-transition-new(root) {
+    animation: 300ms cubic-bezier(0.22, 0.61, 0.36, 1) both full-slide-from-left;
+}
+
+@media (min-width: 500px) {
+    ::view-transition-old(root) {
+        animation:
+            90ms cubic-bezier(0.4, 0, 1, 1) both fade-out,
+            300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-to-left;
+    }
+
+    ::view-transition-new(root) {
+        animation:
+            210ms cubic-bezier(0, 0, 0.2, 1) 90ms both fade-in,
+            300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-right;
+    }
+
+    :active-view-transition-type(back-transition)::view-transition-old(root) {
+        animation:
+            90ms cubic-bezier(0.4, 0, 1, 1) both fade-out,
+            300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-to-right;
+    }
+
+    :active-view-transition-type(back-transition)::view-transition-new(root) {
+        animation:
+            210ms cubic-bezier(0, 0, 0.2, 1) 90ms both fade-in,
+            300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-left;
+    }
+}

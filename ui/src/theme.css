@@ -1,0 +1,79 @@
+:root {
+  /* Default: Dark Theme */
+  --bg-color: black;
+  --bg-secondary-color: hsl(0, 0%, 15%);
+  --text-strong-color: white;
+  --text-color: hsl(0, 0%, 95%);
+  --text-secondary-color: hsl(0, 0%, 50%);
+  --main-color: #e2b714;
+  --green-color: #34c759;
+  --danger-color: #ff3b30;
+
+  --element-background-color: #2c2c2e;
+  --modal-background-color: #1c1c1e;
+  --border-color: rgba(255, 255, 255, 0.1);
+}
+
+html {
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+
+  /* Apply light theme variables ONLY if no explicit theme is set OR system is explicitly selected */
+  :root:not([data-theme]),
+  :root[data-theme="system"] {
+    --bg-color: white;
+    --bg-secondary-color: #eeeeef;
+    --text-strong-color: black;
+    --text-color: black;
+    --text-secondary-color: #747479;
+    --element-background-color: white;
+    --modal-background-color: hsl(0, 0%, 95%);
+    --border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  html:not([data-theme]),
+  html[data-theme="system"] {
+    color-scheme: light;
+  }
+}
+
+:root[data-theme="light"] {
+  --bg-color: white;
+  --bg-secondary-color: #eeeeef;
+  --text-color: black;
+  --text-secondary-color: #747479;
+  --element-background-color: white;
+  --modal-background-color: hsl(0, 0%, 95%);
+  --border-color: rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="dark"] {
+  --bg-color: black;
+  --bg-secondary-color: hsl(0, 0%, 15%);
+  --text-color: hsl(0, 0%, 95%);
+  --text-secondary-color: hsl(0, 0%, 50%);
+  --element-background-color: #2c2c2e;
+  --modal-background-color: hsl(0, 0%, 15%);
+  --border-color: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="sepia"] {
+  --bg-color: #f6f1d1;
+  --bg-secondary-color: #efead4;
+  --text-color: #5f4b32;
+  --text-secondary-color: #79664e;
+  --element-background-color: #efead4;
+  --modal-background-color: #f6f1d1;
+  --border-color: rgba(95, 75, 50, 0.1);
+}
+
+html[data-theme="light"],
+html[data-theme="sepia"] {
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
