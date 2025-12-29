@@ -3,7 +3,7 @@ import { createSignal } from 'solid-js';
 export type Theme = 'light' | 'dark' | 'system';
 export type FontFamily = 'Helvetica, sans-serif' | 'Georgia, serif' | 'Courier New, monospace';
 
-const STORE_KEY = 'goread_settings';
+const STORE_KEY = 'readium_settings';
 
 export type Settings = {
     theme: Theme;

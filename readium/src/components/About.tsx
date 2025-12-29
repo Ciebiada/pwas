@@ -14,7 +14,7 @@ export const About = () => {
             </Header>
             <div class="page-container">
                 <div class="page-title">
-                    <h1>About Goread</h1>
+                    <h1>About Readium</h1>
                 </div>
                 <div class="about-content">
                     <p>Description under development. Please come back later.</p>

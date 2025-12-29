@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'Go Read',
-        short_name: 'Go Read',
+        name: 'Readium',
+        short_name: 'Readium',
         description: 'A read-it-later app',
         theme_color: '#ffffff',
         icons: [

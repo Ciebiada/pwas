@@ -3,11 +3,11 @@
   "private": true,
   "scripts": {
     "build:mono": "npm run build --workspace=mono",
-    "build:goread": "npm run build --workspace=goread"
+    "build:readium": "npm run build --workspace=readium"
   },
   "workspaces": [
     "mono",
-    "goread",
+    "readium",
     "ui"
   ]
 }

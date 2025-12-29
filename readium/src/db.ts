@@ -10,15 +10,15 @@ export type Book = {
     locations?: string; // Cached locations JSON
 };
 
-export class GoReadDB extends Dexie {
+export class ReadiumDB extends Dexie {
     books!: Table<Book>;
 
     constructor() {
-        super('GoReadDB');
+        super('ReadiumDB');
         this.version(1).stores({
             books: '++id, title, author',
         });
     }
 }
 
-export const db = new GoReadDB();
+export const db = new ReadiumDB();
