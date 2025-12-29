@@ -7,7 +7,7 @@ type RendererOptions = {
     fontSize: number;
     fontFamily: string;
     margin: number;
-    theme: 'light' | 'dark' | 'sepia';
+    theme: 'light' | 'dark';
 };
 
 export class EpubRenderer {
@@ -327,7 +327,7 @@ export class EpubRenderer {
             }
             // Even if complete, decoding might still be happening if not awaited earlier
             if ('decode' in img) {
-                promises.push(img.decode().catch(() => {}));
+                promises.push(img.decode().catch(() => { }));
             }
         });
 
@@ -566,7 +566,6 @@ export class EpubRenderer {
         const colors = {
             light: { color: '#000000', background: '#ffffff' },
             dark: { color: '#dedede', background: '#000000' },
-            sepia: { color: '#5f4b32', background: '#f6f1d1' },
         };
 
         const themeColors = colors[theme];
@@ -736,8 +735,8 @@ export class EpubRenderer {
         const globalProgress =
             this.totalBookSize > 0
                 ? ((chapterBaseSize + chapterPercentage * (currentSpineItem.size || 0)) /
-                      this.totalBookSize) *
-                  100
+                    this.totalBookSize) *
+                100
                 : 0;
 
         const displayed = {

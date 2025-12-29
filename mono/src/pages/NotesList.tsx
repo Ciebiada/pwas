@@ -48,8 +48,8 @@ export const NotesList = () => {
           <MoreIcon />
         </HeaderButton>
       </Header>
-      <div class="notes-container">
-        <div class="notes-title">
+      <div class="page-container">
+        <div class="page-title">
           <h1>Notes</h1>
         </div>
         <div class="notes-list">

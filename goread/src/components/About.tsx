@@ -12,8 +12,10 @@ export const About = () => {
                     <BackIcon />
                 </HeaderButton>
             </Header>
-            <div class="about-container">
-                <h1>About Goread</h1>
+            <div class="page-container">
+                <div class="page-title">
+                    <h1>About Goread</h1>
+                </div>
                 <div class="about-content">
                     <p>Description under development. Please come back later.</p>
                 </div>

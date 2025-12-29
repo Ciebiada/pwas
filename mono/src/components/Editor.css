@@ -1,12 +1,14 @@
 .editor {
   outline: none;
   padding: 16px;
-
-  margin-top: calc(68px + env(safe-area-inset-top));
   margin-left: auto;
   margin-right: auto;
-  min-height: 100vh;
   max-width: min(80ch, 900px);
+}
+
+.editor[contenteditable="true"] {
+  margin-top: calc(68px + env(safe-area-inset-top));
+  min-height: 100vh;
 }
 
 .markdown-delimiter,
@@ -18,7 +20,7 @@
   white-space: pre-wrap;
 }
 
-.md-line:first-child {
+.editor[contenteditable="true"] .md-line:first-child {
   font-size: 2.058rem;
   font-weight: 500;
   color: var(--text-strong-color);

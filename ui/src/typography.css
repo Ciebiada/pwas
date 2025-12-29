@@ -19,14 +19,28 @@ html {
 h1 {
   font-size: 2.058rem;
   font-weight: 500;
+  color: var(--text-strong-color);
 }
 
 h2 {
   font-size: 1.618rem;
   font-weight: 500;
+  color: var(--text-strong-color);
 }
 
 h3 {
   font-size: 1.272rem;
   font-weight: 500;
+  color: var(--text-strong-color);
+}
+
+.page-container {
+  margin-top: calc(68px + env(safe-area-inset-top));
+}
+
+.page-title {
+  padding-top: 16px;
+  padding-left: 16px;
+  user-select: none;
+  -webkit-user-select: none;
 }

@@ -7,11 +7,11 @@ import { EditNote } from "./pages/EditNote";
 import { NewNote } from "./pages/NewNote";
 
 import { About } from "./pages/About";
-import "./reset.css";
-import "./theme.css";
-import "./typography.css";
 import { DropboxCallback } from "./pages/DropboxCallback";
 import { GoogleDriveCallback } from "./pages/GoogleDriveCallback";
+import "rams/reset.css";
+import "rams/theme.css";
+import "rams/typography.css";
 
 const root = document.getElementById("root");
 

@@ -1,15 +1,3 @@
-.notes-container {
-  margin-top: calc(68px + env(safe-area-inset-top));
-  min-height: 100dvh;
-}
-
-.notes-title {
-  padding-top: 16px;
-  padding-left: 16px;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
 .notes-list {
   margin-top: 24px;
 }

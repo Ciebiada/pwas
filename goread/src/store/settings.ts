@@ -1,6 +1,6 @@
 import { createSignal } from 'solid-js';
 
-export type Theme = 'light' | 'dark' | 'sepia' | 'system';
+export type Theme = 'light' | 'dark' | 'system';
 export type FontFamily = 'Helvetica, sans-serif' | 'Georgia, serif' | 'Courier New, monospace';
 
 const STORE_KEY = 'goread_settings';
@@ -48,26 +48,13 @@ export const THEMES = {
     dark: {
         body: { color: '#f0f0f0', background: '#000000' },
     },
-    sepia: {
-        body: { color: '#5f4b32', background: '#f6f1d1' },
-    },
 };
 
 export const getThemeRules = (s: Settings) => {
     const themeRules: Record<string, Record<string, string>> = {
         body: {
-            color:
-                s.theme === 'dark'
-                    ? '#dedede !important'
-                    : s.theme === 'sepia'
-                      ? '#5f4b32 !important'
-                      : '#000000 !important',
-            background:
-                s.theme === 'dark'
-                    ? '#000000 !important'
-                    : s.theme === 'sepia'
-                      ? '#f6f1d1 !important'
-                      : '#ffffff !important',
+            color: s.theme === 'dark' ? '#dedede !important' : '#000000 !important',
+            background: s.theme === 'dark' ? '#000000 !important' : '#ffffff !important',
         },
         p: {
             'font-family': s.fontFamily + ' !important',
@@ -93,18 +80,6 @@ export const getThemeRules = (s: Settings) => {
             body: {
                 color: '#dedede !important',
                 background: '#000000 !important',
-            },
-        });
-    } else if (s.theme === 'sepia') {
-        Object.assign(themeRules, {
-            '*': {
-                color: '#5f4b32 !important',
-                'background-color': 'transparent !important',
-                'font-family': s.fontFamily + ' !important',
-            },
-            body: {
-                color: '#5f4b32 !important',
-                background: '#f6f1d1 !important',
             },
         });
     } else {

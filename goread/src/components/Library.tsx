@@ -36,8 +36,8 @@ const Library = (props: { onSelect: (id: number) => void }) => {
                     <MoreIcon />
                 </HeaderButton>
             </Header>
-            <div class="library-container">
-                <div class="library-title">
+            <div class="page-container">
+                <div class="page-title">
                     <h1>My Library</h1>
                 </div>
 

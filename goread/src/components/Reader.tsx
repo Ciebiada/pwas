@@ -53,11 +53,11 @@ const Reader = (props: { onClose: () => void }) => {
         }
     };
 
-    const getEffectiveTheme = (theme: Theme): 'light' | 'dark' | 'sepia' => {
+    const getEffectiveTheme = (theme: Theme): 'light' | 'dark' => {
         if (theme === 'system') {
             return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
-        return theme as 'light' | 'dark' | 'sepia';
+        return theme as 'light' | 'dark';
     };
 
     const updateProgressUI = (location: any) => {
@@ -302,7 +302,6 @@ const Reader = (props: { onClose: () => void }) => {
                         >
                             <option value="system">System</option>
                             <option value="light">Light</option>
-                            <option value="sepia">Sepia</option>
                             <option value="dark">Dark</option>
                         </ModalSelect>
 

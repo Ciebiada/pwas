@@ -2,9 +2,7 @@ import { Header, HeaderButton, BackIcon } from "rams";
 import { useNavigate } from "../hooks/useNavigate";
 import { renderMarkdown } from "../services/markdown";
 
-const ABOUT_CONTENT = `# About Mono
-
-### Private & Secure
+const ABOUT_CONTENT = `### Private & Secure
 Unlike most other note-taking apps, Mono is **open source** and runs entirely in your browser. There is no backend - your notes are synced by calling the official APIs of your storage provider directly from your device. Your data remains under your control.
 
 ### No Proprietary Lock-in
@@ -14,8 +12,7 @@ Mono uses **Markdown**, the industry standard for plain-text notes. You can acce
 Even though Mono is a web app, it is built to be offline-first. You can view, create, and edit notes without an internet connection, and your changes will automatically sync once you're back online.
 
 ### Cross-Platform
-Mono is optimized for both mobile (as a PWA) and desktop. Whether you use iOS, Android, Windows, macOS, or Linux, Mono provides a seamless experience and keeps your notes in sync across all your devices.
-`;
+Mono is optimized for both mobile (as a PWA) and desktop. Whether you use iOS, Android, Windows, macOS, or Linux, Mono provides a seamless experience and keeps your notes in sync across all your devices.`.trim();
 
 export const About = () => {
   const navigate = useNavigate();
@@ -27,7 +24,12 @@ export const About = () => {
           <BackIcon />
         </HeaderButton>
       </Header>
-      <div class="editor">{renderMarkdown(ABOUT_CONTENT, () => { })}</div>
+      <div class="page-container">
+        <div class="page-title">
+          <h1>About Mono</h1>
+        </div>
+        <div class="editor">{renderMarkdown(ABOUT_CONTENT, () => { })}</div>
+      </div>
     </>
   );
 };

@@ -1,9 +1,3 @@
-.app-container {
-    display: flex;
-    flex-direction: column;
-    margin-top: env(safe-area-inset-top);
-}
-
 /* File Upload */
 .upload-zone {
     border: 2px dashed #444;
@@ -21,16 +15,11 @@
     background: var(--element-background-color);
 }
 
-/* Library */
-.library-container {
-    padding: 1rem;
-    padding-top: calc(84px + env(safe-area-inset-top));
-}
-
 .book-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 1rem;
+    padding: 1rem;
 }
 
 .book-item {
@@ -99,14 +88,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-/* #root {
-    min-height: 100dvh;
-} */
-
-html {
-    min-height: calc(100% + env(safe-area-inset-top));
 }
 
 .scroll-lock,
@@ -299,11 +280,6 @@ html {
     color: #fff;
 }
 
-.theme-btn.sepia {
-    background: #f6f1d1;
-    color: #5f4b32;
-}
-
 .control-group {
     display: flex;
     align-items: center;
@@ -325,15 +301,4 @@ html {
 
 .control-group button.active {
     background: rgba(255, 255, 255, 0.2);
-}
-
-.library-title {
-    margin-bottom: 16px;
-}
-
-.library-title h1 {
-    font-size: 34px;
-    font-weight: 700;
-    margin: 0;
-    color: var(--text-color);
 }
