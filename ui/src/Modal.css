@@ -141,6 +141,7 @@ body.modal-open {
   height: 28px;
   font-size: 16px;
   font-weight: 500;
+  color: var(--text-strong-color);
   cursor: pointer;
   background-color: var(--element-background-color);
   flex-shrink: 0;
@@ -197,6 +198,7 @@ body.modal-open {
 .modal-toggle-label {
   font-size: 16px;
   font-weight: 500;
+  color: var(--text-strong-color);
 }
 
 .modal-toggle-switch {

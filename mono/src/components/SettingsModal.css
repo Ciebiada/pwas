@@ -28,7 +28,6 @@
 .provider-icon-wrapper {
   width: 24px;
   height: 24px;
-  color: var(--text-color);
   display: flex;
   align-items: center;
   justify-content: center;
