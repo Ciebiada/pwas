@@ -28,14 +28,20 @@ export const NotesList = () => {
   const getPreview = (content: string) => {
     if (!content) return "Empty note";
 
-    const lines = content.split("\n");
-    for (const line of lines) {
-      const trimmed = line.replace(/^#+\s*/, "").trim();
-      if (trimmed) {
-        return trimmed;
-      }
-    }
-    return "Empty note";
+    return (
+      content
+        .slice(0, 500)
+        .split("\n")
+        .map((line) =>
+          line
+            .replace(/^#+\s*/, "")
+            .replace(/- \[ \]\s*/, "☐ ")
+            .replace(/- \[x\]\s*/i, "☑ ")
+            .trim(),
+        )
+        .filter((line) => line !== "")
+        .join(" ") || "Empty note"
+    );
   };
 
   return (
