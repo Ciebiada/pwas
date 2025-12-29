@@ -134,7 +134,7 @@ export const Editor = ({
     <div
       ref={(e) => (editor = e)}
       classList={{ editor: true, monospace: isMonospaceEnabled() }}
-      contentEditable
+      contentEditable={true}
       spellcheck={false}
       onBeforeInput={handleBeforeInput}
       onKeyDown={handleKeyDown}
