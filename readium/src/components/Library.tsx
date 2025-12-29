@@ -3,8 +3,10 @@ import { db, type Book } from '../db';
 import { Header, HeaderButton, AddIcon, MoreIcon } from 'rams';
 import { SettingsModal } from './SettingsModal';
 import FileUpload from './FileUpload';
+import { useNavigate } from '../hooks/useNavigate';
 
 const Library = (props: { onSelect: (id: number) => void }) => {
+    const navigate = useNavigate();
     const [books, setBooks] = createSignal<Book[]>([]);
     const [settingsOpen, setSettingsOpen] = createSignal(false);
 
@@ -51,7 +53,29 @@ const Library = (props: { onSelect: (id: number) => void }) => {
                         each={books()}
                         fallback={
                             <div class="empty-state">
-                                <p>No books found. Tap + to upload one!</p>
+                                <p>
+                                    Tap{' '}
+                                    <button
+                                        class="empty-state-icon-button"
+                                        onClick={() => document.getElementById('file-input')?.click()}
+                                    >
+                                        <AddIcon />
+                                    </button>{' '}
+                                    to upload a book.
+                                </p>
+                                <p class="empty-state-text">
+                                    Read{' '}
+                                    <a
+                                        href="/about"
+                                        class="empty-state-link"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            navigate('/about');
+                                        }}
+                                    >
+                                        about Readium
+                                    </a>
+                                </p>
                             </div>
                         }
                     >
