@@ -343,7 +343,7 @@ export class EpubRenderer {
       }
       // Even if complete, decoding might still be happening if not awaited earlier
       if ("decode" in img) {
-        promises.push(img.decode().catch(() => {}));
+        promises.push(img.decode().catch(() => { }));
       }
     });
 
@@ -392,12 +392,12 @@ export class EpubRenderer {
     baseHref: string,
   ): Promise<string> {
     const UA_STYLES = `
-            p { margin: 0; text-indent: 1.5em; line-height: 1.6; }
+            p { text-indent: 1.5em; }
             p.first, p.no-indent { text-indent: 0; }
-            h1 { font-size: 1.5em; margin: 0.5em 0; font-weight: bold; line-height: 1.3; }
-            h2 { font-size: 1.4em; margin: 0.5em 0; font-weight: bold; line-height: 1.3; }
-            h3 { font-size: 1.3em; margin: 0.5em 0; font-weight: bold; line-height: 1.3; }
-            h4, h5, h6 { font-size: 1.1em; margin: 0.5em 0; font-weight: bold; line-height: 1.3; }
+            h1 { font-size: 1.5em; font-weight: bold; }
+            h2 { font-size: 1.4em; font-weight: bold; }
+            h3 { font-size: 1.3em; font-weight: bold; }
+            h4, h5, h6 { font-size: 1.1em; font-weight: bold; }
             figure { margin: 0; padding: 0; }
         `;
 
@@ -589,6 +589,7 @@ export class EpubRenderer {
 
     this.contentElement.innerHTML = html;
     this.applyStyles(preserveTransform);
+    this.snapMarginsToGrid();
   }
 
   private applyStyles(preserveTransform: boolean = false) {
@@ -639,11 +640,12 @@ export class EpubRenderer {
       styleEl.id = styleId;
       document.head.appendChild(styleEl);
     }
+    const lineHeight = Math.round(fontSize * 0.16 * 1.6);
+
     styleEl.innerHTML = `
             .epub-content * {
                 font-family: ${fontFamily} !important;
                 color: ${themeColors.color} !important;
-                line-height: 1 !important;
             }
             /* Restore grid rhythm for block containers */
             .epub-content p,
@@ -661,7 +663,7 @@ export class EpubRenderer {
             .epub-content dd,
             .epub-content th,
             .epub-content td {
-                line-height: 1.6em !important;
+                line-height: ${lineHeight}px !important;
             }
             .epub-content img {
                 display: block !important;
@@ -692,6 +694,7 @@ export class EpubRenderer {
 
       // Preserve the current transform while restyling to avoid flashing page 1.
       this.applyStyles(true);
+      this.snapMarginsToGrid();
       await this.waitForLayout();
       this.calculatePages();
 
@@ -704,6 +707,32 @@ export class EpubRenderer {
       this.isBusy = false;
       this.notifyRelocated(false);
     }
+  }
+
+  private snapMarginsToGrid() {
+    if (!this.contentElement) return;
+
+    const fontSize = this.options.fontSize;
+    const gridUnit = Math.round(fontSize * 0.16 * 1.6);
+    const elements = this.contentElement.querySelectorAll(
+      "h1, h2, h3, h4, h5, h6, p, blockquote, div, section, article, ul, ol, li, pre, figure, dt, dd",
+    );
+
+    elements.forEach((el) => {
+      const element = el as HTMLElement;
+      const computed = getComputedStyle(element);
+      const marginTop = parseFloat(computed.marginTop);
+      const marginBottom = parseFloat(computed.marginBottom);
+
+      if (marginTop > 0) {
+        const snapped = Math.round(marginTop / gridUnit) * gridUnit;
+        element.style.marginTop = `${snapped}px`;
+      }
+      if (marginBottom > 0) {
+        const snapped = Math.round(marginBottom / gridUnit) * gridUnit;
+        element.style.marginBottom = `${snapped}px`;
+      }
+    });
   }
 
   private calculatePages() {
@@ -786,9 +815,9 @@ export class EpubRenderer {
     const globalProgress =
       this.totalBookSize > 0
         ? ((chapterBaseSize +
-            chapterPercentage * (currentSpineItem.size || 0)) /
-            this.totalBookSize) *
-          100
+          chapterPercentage * (currentSpineItem.size || 0)) /
+          this.totalBookSize) *
+        100
         : 0;
 
     const displayed = {
