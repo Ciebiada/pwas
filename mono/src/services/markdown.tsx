@@ -1,7 +1,12 @@
 import { JSX } from "solid-js";
 import { Dynamic } from "solid-js/web";
 
-type InlineTokenType = "text" | "strong" | "emphasis" | "strikethrough" | "link";
+type InlineTokenType =
+  | "text"
+  | "strong"
+  | "emphasis"
+  | "strikethrough"
+  | "link";
 type BlockType = "h1" | "h2" | "h3" | "paragraph" | "checkbox" | "list";
 
 type InlineToken = {
@@ -69,7 +74,12 @@ const tryMatchPattern = (text: string): InlineToken | null => {
       if (pattern.createToken) {
         return pattern.createToken(match);
       }
-      return { type: pattern.type, content: match[1], delimiter: pattern.delimiter, raw: match[0] };
+      return {
+        type: pattern.type,
+        content: match[1],
+        delimiter: pattern.delimiter,
+        raw: match[0],
+      };
     }
   }
   return null;
@@ -82,7 +92,9 @@ const parseInlineMarkdown = (text: string): InlineToken[] => {
     const token = tryMatchPattern(text.slice(index));
     if (token) {
       tokens.push(token);
-      index += token.raw ? token.raw.length : token.delimiter!.length * 2 + token.content.length;
+      index += token.raw
+        ? token.raw.length
+        : token.delimiter!.length * 2 + token.content.length;
       continue;
     }
     const lastToken = tokens[tokens.length - 1];
@@ -107,7 +119,9 @@ const wrapWithDelimiters = (content: string, delimiter: string) => (
 const renderInlineToken = (token: InlineToken) => {
   switch (token.type) {
     case "strong":
-      return <strong>{wrapWithDelimiters(token.content, token.delimiter!)}</strong>;
+      return (
+        <strong>{wrapWithDelimiters(token.content, token.delimiter!)}</strong>
+      );
     case "emphasis":
       return <em>{wrapWithDelimiters(token.content, token.delimiter!)}</em>;
     case "strikethrough":
@@ -137,12 +151,14 @@ const renderInlineToken = (token: InlineToken) => {
   }
 };
 
-const renderInlineMarkdown = (text: string) => parseInlineMarkdown(text).map(renderInlineToken);
+const renderInlineMarkdown = (text: string) =>
+  parseInlineMarkdown(text).map(renderInlineToken);
 
 const parseBlockLine = (line: string): BlockToken => {
   for (const pattern of BLOCK_PATTERNS) {
     const match = line.match(pattern.regex);
-    if (match) return { type: pattern.type, prefix: match[1], content: match[2] };
+    if (match)
+      return { type: pattern.type, prefix: match[1], content: match[2] };
   }
   return { type: "paragraph", prefix: "", content: line };
 };
@@ -154,7 +170,11 @@ const renderBlockContent = (block: BlockToken) => (
   </>
 );
 
-const renderHeader = (block: BlockToken, className: string, content: JSX.Element) => {
+const renderHeader = (
+  block: BlockToken,
+  className: string,
+  content: JSX.Element,
+) => {
   const Tag = block.type as "h1" | "h2" | "h3";
   return (
     <Dynamic component={Tag} class={className}>
@@ -182,14 +202,24 @@ const renderListItem = (
         style={{ "user-select": "none", left: `${indentation}ch` }}
         onMouseDown={(e) => isCheckbox && e.preventDefault()}
       >
-        {isCheckbox && <input type="checkbox" checked={isChecked} onChange={() => onCheckboxToggle?.(index)} />}
+        {isCheckbox && (
+          <input
+            type="checkbox"
+            checked={isChecked}
+            onChange={() => onCheckboxToggle?.(index)}
+          />
+        )}
       </label>
       <div class="md-list-content">{content}</div>
     </div>
   );
 };
 
-const renderBlock = (block: BlockToken, index: number, onCheckboxToggle?: (lineIndex: number) => void) => {
+const renderBlock = (
+  block: BlockToken,
+  index: number,
+  onCheckboxToggle?: (lineIndex: number) => void,
+) => {
   const className = `md-line md-${block.type}`;
   const content = renderBlockContent(block);
 
@@ -210,5 +240,12 @@ const renderBlock = (block: BlockToken, index: number, onCheckboxToggle?: (lineI
   }
 };
 
-export const renderMarkdown = (markdown: string, onCheckboxToggle?: (lineIndex: number) => void) =>
-  markdown.split("\n").map((line, index) => renderBlock(parseBlockLine(line), index, onCheckboxToggle));
+export const renderMarkdown = (
+  markdown: string,
+  onCheckboxToggle?: (lineIndex: number) => void,
+) =>
+  markdown
+    .split("\n")
+    .map((line, index) =>
+      renderBlock(parseBlockLine(line), index, onCheckboxToggle),
+    );

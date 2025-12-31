@@ -13,8 +13,16 @@ const getLineRange = (content: string, position: number) => {
   return { start, end, line: content.slice(start, end) };
 };
 
-export const handleListTab = (content: string, selection: Selection, shiftKey: boolean): InputResult | null => {
-  const { start: lineStart, end: lineEnd, line } = getLineRange(content, selection.start);
+export const handleListTab = (
+  content: string,
+  selection: Selection,
+  shiftKey: boolean,
+): InputResult | null => {
+  const {
+    start: lineStart,
+    end: lineEnd,
+    line,
+  } = getLineRange(content, selection.start);
   const match = line.match(LIST_PATTERN);
 
   if (!match) return null;
@@ -22,34 +30,48 @@ export const handleListTab = (content: string, selection: Selection, shiftKey: b
   if (shiftKey) {
     if (!line.startsWith(INDENT)) return null;
     return {
-      content: content.slice(0, lineStart) + line.slice(INDENT_SIZE) + content.slice(lineEnd),
+      content:
+        content.slice(0, lineStart) +
+        line.slice(INDENT_SIZE) +
+        content.slice(lineEnd),
       cursor: selection.start - INDENT_SIZE,
     };
   }
 
   return {
-    content: content.slice(0, lineStart) + INDENT + line + content.slice(lineEnd),
+    content:
+      content.slice(0, lineStart) + INDENT + line + content.slice(lineEnd),
     cursor: selection.start + INDENT_SIZE,
   };
 };
 
-export const handleTab = (content: string, selection: Selection, shiftKey: boolean): InputResult => {
+export const handleTab = (
+  content: string,
+  selection: Selection,
+  shiftKey: boolean,
+): InputResult => {
   const listResult = handleListTab(content, selection, shiftKey);
   if (listResult) return listResult;
 
   return {
-    content: content.slice(0, selection.start) + INDENT + content.slice(selection.end),
+    content:
+      content.slice(0, selection.start) + INDENT + content.slice(selection.end),
     cursor: selection.start + INDENT_SIZE,
   };
 };
 
-export const handleEnter = (content: string, selection: Selection): InputResult => {
+export const handleEnter = (
+  content: string,
+  selection: Selection,
+): InputResult => {
   const { start, end } = selection;
   const { start: lineStart, line: lineContent } = getLineRange(content, start);
   const beforeCursor = lineContent.slice(0, start - lineStart);
   const afterCursor = content.slice(
     start,
-    content.indexOf("\n", start) === -1 ? undefined : content.indexOf("\n", start),
+    content.indexOf("\n", start) === -1
+      ? undefined
+      : content.indexOf("\n", start),
   );
 
   const match = beforeCursor.match(LIST_PATTERN);
@@ -62,13 +84,16 @@ export const handleEnter = (content: string, selection: Selection): InputResult 
   }
 
   const prefix = match[1];
-  const isEmptyListItem = beforeCursor.trim() === prefix.trim() && afterCursor.trim() === "";
+  const isEmptyListItem =
+    beforeCursor.trim() === prefix.trim() && afterCursor.trim() === "";
 
   if (isEmptyListItem) {
     return unindentOrRemoveList(content, start);
   }
 
-  const newPrefix = prefix.includes("[x]") ? prefix.replace("[x]", "[ ]") : prefix;
+  const newPrefix = prefix.includes("[x]")
+    ? prefix.replace("[x]", "[ ]")
+    : prefix;
 
   return {
     content: content.slice(0, start) + "\n" + newPrefix + content.slice(end),
@@ -76,7 +101,10 @@ export const handleEnter = (content: string, selection: Selection): InputResult 
   };
 };
 
-export const handleBackspaceAtListStart = (content: string, selection: Selection): InputResult | null => {
+export const handleBackspaceAtListStart = (
+  content: string,
+  selection: Selection,
+): InputResult | null => {
   const { start, end } = selection;
   if (start !== end) return null;
 
@@ -93,11 +121,18 @@ export const handleBackspaceAtListStart = (content: string, selection: Selection
 };
 
 const unindentOrRemoveList = (content: string, cursor: number): InputResult => {
-  const { start: lineStart, end: lineEnd, line } = getLineRange(content, cursor);
+  const {
+    start: lineStart,
+    end: lineEnd,
+    line,
+  } = getLineRange(content, cursor);
 
   if (line.startsWith(INDENT)) {
     return {
-      content: content.slice(0, lineStart) + line.slice(INDENT_SIZE) + content.slice(lineEnd),
+      content:
+        content.slice(0, lineStart) +
+        line.slice(INDENT_SIZE) +
+        content.slice(lineEnd),
       cursor: cursor - INDENT_SIZE,
     };
   }
@@ -106,7 +141,10 @@ const unindentOrRemoveList = (content: string, cursor: number): InputResult => {
   const prefixLength = match ? match[1].length : 0;
 
   return {
-    content: content.slice(0, lineStart) + line.slice(prefixLength) + content.slice(lineEnd),
+    content:
+      content.slice(0, lineStart) +
+      line.slice(prefixLength) +
+      content.slice(lineEnd),
     cursor: lineStart,
   };
 };

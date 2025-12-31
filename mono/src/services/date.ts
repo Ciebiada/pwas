@@ -1,7 +1,6 @@
 import { Temporal } from "temporal-polyfill";
 
 export const timeFromNow = (timestamp: number = Date.now()) => {
-
   const now = Temporal.Now.instant();
   const past = Temporal.Instant.fromEpochMilliseconds(timestamp);
   const duration = now.since(past);

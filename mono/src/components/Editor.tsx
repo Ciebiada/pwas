@@ -12,7 +12,10 @@ import { renderMarkdown } from "../services/markdown";
 import { splitNote } from "../services/note";
 import { useCustomCaret } from "../services/customCaret";
 import { isIOS } from "../services/platform";
-import { isCustomCaretEnabled, isMonospaceEnabled } from "../services/preferences";
+import {
+  isCustomCaretEnabled,
+  isMonospaceEnabled,
+} from "../services/preferences";
 import "./Editor.css";
 import { debounce } from "../services/debounce";
 
@@ -94,19 +97,25 @@ export const Editor = ({
 
     document.addEventListener("selectionchange", onSelectionChange);
     editor.addEventListener("textInput", onTextInput);
-    if (window.visualViewport) window.visualViewport.addEventListener("resize", fixCursorPosition);
+    if (window.visualViewport)
+      window.visualViewport.addEventListener("resize", fixCursorPosition);
 
     onCleanup(() => {
       document.removeEventListener("selectionchange", onSelectionChange);
       editor.removeEventListener("textInput", onTextInput);
-      if (window.visualViewport) window.visualViewport.removeEventListener("resize", fixCursorPosition);
+      if (window.visualViewport)
+        window.visualViewport.removeEventListener("resize", fixCursorPosition);
     });
   });
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key === "Tab") {
       event.preventDefault();
-      const result = processTab(content(), getSelection(editor), event.shiftKey);
+      const result = processTab(
+        content(),
+        getSelection(editor),
+        event.shiftKey,
+      );
       applyEdit(result.content, result.cursor);
     }
   };
@@ -114,10 +123,18 @@ export const Editor = ({
   const handleBeforeInput = (event: InputEvent) => {
     event.preventDefault();
 
-    const result = processBeforeInput(event.inputType, content(), getSelection(editor), {
-      eventData: event.inputType === "insertFromPaste" ? event.dataTransfer?.getData("text/plain") : event.data,
-      iosReplacementText,
-    });
+    const result = processBeforeInput(
+      event.inputType,
+      content(),
+      getSelection(editor),
+      {
+        eventData:
+          event.inputType === "insertFromPaste"
+            ? event.dataTransfer?.getData("text/plain")
+            : event.data,
+        iosReplacementText,
+      },
+    );
 
     if (result) {
       applyEdit(result.content, result.cursor);

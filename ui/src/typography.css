@@ -44,3 +44,32 @@ h3 {
   user-select: none;
   -webkit-user-select: none;
 }
+
+.page-content {
+  padding: 16px;
+}
+
+a {
+  color: var(--text-color);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: var(--text-strong-color);
+}
+
+.inline-icon-button {
+  all: unset;
+  display: inline-flex;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+  cursor: pointer;
+  color: var(--text-color);
+}
+
+.inline-icon-button:active {
+  transform: scale(1.32);
+  filter: brightness(5);
+}

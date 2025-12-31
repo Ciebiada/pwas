@@ -1,27 +1,24 @@
-import { useNavigate } from '../hooks/useNavigate';
-import { BackIcon, Header, HeaderButton } from 'rams';
-import './About.css';
+import { useNavigate } from "../hooks/useNavigate";
+import { BackIcon, Header, HeaderButton } from "rams";
 
 export const About = () => {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-    return (
-        <>
-            <Header>
-                <HeaderButton onClick={() => navigate('/', { back: true })}>
-                    <BackIcon />
-                </HeaderButton>
-            </Header>
-            <div class="page-container">
-                <div class="page-title">
-                    <h1>About Readium</h1>
-                </div>
-                <div class="about-content">
-                    <p>Description under development. Please come back later.</p>
-                </div>
-            </div>
-        </>
-    );
+  return (
+    <>
+      <Header>
+        <HeaderButton onClick={() => navigate("/", { back: true })}>
+          <BackIcon />
+        </HeaderButton>
+      </Header>
+      <div class="page-container">
+        <div class="page-content">
+          <h1>About Readium</h1>
+          <p>Description under development. Please come back later.</p>
+        </div>
+      </div>
+    </>
+  );
 };
 
 export default About;

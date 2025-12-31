@@ -1,7 +1,15 @@
 import { createSignal, Show, onMount, onCleanup, createEffect } from "solid-js";
 import { useParams } from "@solidjs/router";
 import { Editor, EditorAPI } from "../components/Editor";
-import { Header, HeaderButton, Modal, ModalButton, BackIcon, MoreIcon, ModalPage } from "rams";
+import {
+  Header,
+  HeaderButton,
+  Modal,
+  ModalButton,
+  BackIcon,
+  MoreIcon,
+  ModalPage,
+} from "rams";
 import { useNavigate } from "../hooks/useNavigate";
 import { db } from "../services/db";
 import { syncNote, wasSynced } from "../services/sync";
@@ -88,17 +96,26 @@ export const EditNote = () => {
           <MoreIcon />
         </HeaderButton>
       </Header>
-      <Show when={note()}>
-        <Editor
-          initialContent={`${note()!.name}${note()!.content ? "\n" + note()!.content : ""}`}
-          initialCursor={note()!.cursor}
-          autoFocus
-          onReady={(api) => (editorApi = api)}
-          onChange={handleNoteChange}
-          onCursorChange={handleCursorChange}
-        />
-      </Show>
-      <Modal open={modalOpen} setOpen={setModalOpen} title="Note Actions" onClose={() => setModalOpen(false)}>
+      <div class="page-container">
+        <div class="page-content">
+          <Show when={note()}>
+            <Editor
+              initialContent={`${note()!.name}${note()!.content ? "\n" + note()!.content : ""}`}
+              initialCursor={note()!.cursor}
+              autoFocus
+              onReady={(api) => (editorApi = api)}
+              onChange={handleNoteChange}
+              onCursorChange={handleCursorChange}
+            />
+          </Show>
+        </div>
+      </div>
+      <Modal
+        open={modalOpen}
+        setOpen={setModalOpen}
+        title="Note Actions"
+        onClose={() => setModalOpen(false)}
+      >
         <ModalPage id="root">
           <ModalButton danger onClick={handleDelete}>
             Delete Note

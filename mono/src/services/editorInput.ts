@@ -1,4 +1,9 @@
-import { handleBackspaceAtListStart, handleEnter, handleTab, INDENT } from "./markdownInput";
+import {
+  handleBackspaceAtListStart,
+  handleEnter,
+  handleTab,
+  INDENT,
+} from "./markdownInput";
 
 type Selection = { start: number; end: number };
 type EditResult = { content: string; cursor: number };
@@ -19,14 +24,23 @@ const PATTERN_SHORTCUTS: PatternShortcut[] = [
   { pattern: /^(\s*)- \[\]$/, replace: (m) => m[1] + "- [ ] " },
   { pattern: /^(\s*)- [xX]$/, replace: (m) => m[1] + "- [ ] " },
   { pattern: /^(\s*)- \[[ x]\] -$/, replace: (m) => m[1] + "- " },
-  { pattern: /^(\s*)- \[[ x]\] \[\]$/, replace: (m) => m[1] + INDENT + "- [ ] " },
-  { pattern: /^(\s*)- \[[ x]\] [xX]$/, replace: (m) => m[1] + INDENT + "- [ ] " },
+  {
+    pattern: /^(\s*)- \[[ x]\] \[\]$/,
+    replace: (m) => m[1] + INDENT + "- [ ] ",
+  },
+  {
+    pattern: /^(\s*)- \[[ x]\] [xX]$/,
+    replace: (m) => m[1] + INDENT + "- [ ] ",
+  },
 ];
 
 const insert = (content: string, start: number, end: number, text: string) =>
   content.slice(0, start) + text + content.slice(end);
 
-const tryExpandShortcut = (content: string, cursor: number): EditResult | null => {
+const tryExpandShortcut = (
+  content: string,
+  cursor: number,
+): EditResult | null => {
   const lineStart = content.lastIndexOf("\n", cursor - 1) + 1;
   const linePrefix = content.slice(lineStart, cursor);
 
@@ -53,8 +67,11 @@ const tryExpandShortcut = (content: string, cursor: number): EditResult | null =
   return null;
 };
 
-export const processTab = (content: string, selection: Selection, shiftKey: boolean): EditResult =>
-  handleTab(content, selection, shiftKey);
+export const processTab = (
+  content: string,
+  selection: Selection,
+  shiftKey: boolean,
+): EditResult => handleTab(content, selection, shiftKey);
 
 export const processBeforeInput = (
   inputType: string,
@@ -74,7 +91,10 @@ export const processBeforeInput = (
         const textWithoutNewline = data.eventData.slice(0, -1);
         const afterInsert = insert(content, start, end, textWithoutNewline);
         const cursorAfterInsert = start + textWithoutNewline.length;
-        return handleEnter(afterInsert, { start: cursorAfterInsert, end: cursorAfterInsert });
+        return handleEnter(afterInsert, {
+          start: cursorAfterInsert,
+          end: cursorAfterInsert,
+        });
       }
 
       if (data.eventData === " " && start === end) {
@@ -109,7 +129,10 @@ export const processBeforeInput = (
       if (end > start) {
         return { content: insert(content, start, end, ""), cursor: start };
       } else if (start > 0) {
-        return { content: insert(content, start - 1, start, ""), cursor: start - 1 };
+        return {
+          content: insert(content, start - 1, start, ""),
+          cursor: start - 1,
+        };
       }
       return null;
 
@@ -120,7 +143,10 @@ export const processBeforeInput = (
       if (end > start) {
         return { content: insert(content, start, end, ""), cursor: start };
       } else if (start > 0) {
-        return { content: insert(content, start - 1, start, ""), cursor: start - 1 };
+        return {
+          content: insert(content, start - 1, start, ""),
+          cursor: start - 1,
+        };
       }
       return null;
     }
@@ -129,7 +155,10 @@ export const processBeforeInput = (
       const lineStart = content.lastIndexOf("\n", start - 1) + 1;
       const deleteLength = start - lineStart;
       if (deleteLength > 0) {
-        return { content: insert(content, lineStart, start, ""), cursor: lineStart };
+        return {
+          content: insert(content, lineStart, start, ""),
+          cursor: lineStart,
+        };
       }
       return null;
     }

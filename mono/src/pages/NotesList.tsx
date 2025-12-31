@@ -13,7 +13,12 @@ export const NotesList = () => {
   const [modalOpen, setModalOpen] = createSignal(false);
 
   const notes = createDexieArrayQuery(
-    async () => await db.notes.where("status").notEqual("pending-delete").reverse().sortBy("lastModified"),
+    async () =>
+      await db.notes
+        .where("status")
+        .notEqual("pending-delete")
+        .reverse()
+        .sortBy("lastModified"),
   );
 
   onMount(() => {
@@ -65,16 +70,18 @@ export const NotesList = () => {
               <div class="content">
                 <p>
                   Tap{" "}
-                  <button class="empty-state-icon-button" onClick={() => navigate("/new")}>
+                  <button
+                    class="inline-icon-button"
+                    onClick={() => navigate("/new")}
+                  >
                     <AddIcon />
                   </button>{" "}
                   to create a note.
                 </p>
-                <p class="empty-state-text">
+                <p>
                   Read{" "}
                   <a
                     href="/about"
-                    class="empty-state-link"
                     onClick={(e) => {
                       e.preventDefault();
                       navigate("/about");
@@ -87,12 +94,19 @@ export const NotesList = () => {
             }
           >
             {(note) => (
-              <button class="note-item" onClick={() => navigate(`/note/${note.id}`)}>
+              <button
+                class="note-item"
+                onClick={() => navigate(`/note/${note.id}`)}
+              >
                 <div class="note-item-content">
                   <div class="note-item-name">{note.name}</div>
-                  <div class="note-item-preview">{getPreview(note.content)}</div>
+                  <div class="note-item-preview">
+                    {getPreview(note.content)}
+                  </div>
                 </div>
-                <div class="note-item-date">{timeFromNow(note.lastModified)}</div>
+                <div class="note-item-date">
+                  {timeFromNow(note.lastModified)}
+                </div>
               </button>
             )}
           </For>

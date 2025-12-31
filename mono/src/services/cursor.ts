@@ -17,7 +17,11 @@ export const fixCursorPositionForZeroWidthSpace = () => {
   if (!selection || !selection.isCollapsed) return;
 
   const anchor = selection.anchorNode;
-  if (anchor?.nodeType === Node.TEXT_NODE && anchor.textContent === ZERO_WIDTH_SPACE && selection.anchorOffset === 1) {
+  if (
+    anchor?.nodeType === Node.TEXT_NODE &&
+    anchor.textContent === ZERO_WIDTH_SPACE &&
+    selection.anchorOffset === 1
+  ) {
     const range = document.createRange();
     range.setStart(anchor, 0);
     range.collapse(true);
@@ -26,7 +30,8 @@ export const fixCursorPositionForZeroWidthSpace = () => {
   }
 };
 
-const countWithoutZeroWidthSpaces = (text: string): number => text.replaceAll(ZERO_WIDTH_SPACE, "").length;
+const countWithoutZeroWidthSpaces = (text: string): number =>
+  text.replaceAll(ZERO_WIDTH_SPACE, "").length;
 
 const findActualOffset = (text: string, targetOffset: number): number => {
   let actualOffset = 0;
@@ -39,9 +44,15 @@ const findActualOffset = (text: string, targetOffset: number): number => {
 };
 
 const getTextOffsetInContainer = (container: Node, offset: number): number =>
-  countWithoutZeroWidthSpaces((container.textContent || "").substring(0, offset));
+  countWithoutZeroWidthSpaces(
+    (container.textContent || "").substring(0, offset),
+  );
 
-const getOffsetInElement = (element: HTMLElement, container: Node, offset: number): number => {
+const getOffsetInElement = (
+  element: HTMLElement,
+  container: Node,
+  offset: number,
+): number => {
   let accumulated = 0;
   const childNodes = element.childNodes;
 
@@ -51,7 +62,11 @@ const getOffsetInElement = (element: HTMLElement, container: Node, offset: numbe
       if (child === container) {
         return accumulated + getTextOffsetInContainer(container, offset);
       }
-      const walker = document.createTreeWalker(child, NodeFilter.SHOW_TEXT, null);
+      const walker = document.createTreeWalker(
+        child,
+        NodeFilter.SHOW_TEXT,
+        null,
+      );
       let node: Node | null;
       while ((node = walker.nextNode())) {
         if (node === container) {
@@ -69,7 +84,10 @@ const getOffsetInElement = (element: HTMLElement, container: Node, offset: numbe
   return accumulated;
 };
 
-const getRangeAtOffset = (element: HTMLElement, offset: number): Range | null => {
+const getRangeAtOffset = (
+  element: HTMLElement,
+  offset: number,
+): Range | null => {
   let accumulated = 0;
   const childNodes = element.childNodes;
 
@@ -82,7 +100,11 @@ const getRangeAtOffset = (element: HTMLElement, offset: number): Range | null =>
       const range = document.createRange();
       const offsetInBlock = offset - accumulated;
       try {
-        const walker = document.createTreeWalker(child, NodeFilter.SHOW_TEXT, null);
+        const walker = document.createTreeWalker(
+          child,
+          NodeFilter.SHOW_TEXT,
+          null,
+        );
         let node: Node | null;
         let nodeOffset = 0;
         while ((node = walker.nextNode())) {
@@ -90,7 +112,8 @@ const getRangeAtOffset = (element: HTMLElement, offset: number): Range | null =>
           const filteredLength = countWithoutZeroWidthSpaces(text);
           if (nodeOffset + filteredLength >= offsetInBlock) {
             // Skip hidden nodes (e.g. markdown prefix) at boundary to prefer visible nodes
-            const isHidden = node.parentElement?.classList.contains("markdown-prefix");
+            const isHidden =
+              node.parentElement?.classList.contains("markdown-prefix");
             if (isHidden && nodeOffset + filteredLength === offsetInBlock) {
               nodeOffset += filteredLength;
               continue;
@@ -121,23 +144,34 @@ const getRangeAtOffset = (element: HTMLElement, offset: number): Range | null =>
   return range;
 };
 
-export const scrollCursorIntoView = (selection: Selection, behavior: ScrollBehavior) => {
+export const scrollCursorIntoView = (
+  selection: Selection,
+  behavior: ScrollBehavior,
+) => {
   const range = selection.getRangeAt(0);
   const rect = range.getBoundingClientRect();
   const viewport = window.visualViewport;
 
-  if (!viewport || (rect.top >= SCROLL_MARGIN_PX && rect.bottom <= viewport.height - SCROLL_MARGIN_PX)) {
+  if (
+    !viewport ||
+    (rect.top >= SCROLL_MARGIN_PX &&
+      rect.bottom <= viewport.height - SCROLL_MARGIN_PX)
+  ) {
     return;
   }
 
-  range.commonAncestorContainer.parentElement?.scrollIntoView({ behavior, block: "center" });
+  range.commonAncestorContainer.parentElement?.scrollIntoView({
+    behavior,
+    block: "center",
+  });
 };
 
 export const getSelection = (element: HTMLElement): CursorPosition => {
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0) return { start: 0, end: 0 };
   const range = selection.getRangeAt(0);
-  if (!element.contains(range.commonAncestorContainer)) return { start: 0, end: 0 };
+  if (!element.contains(range.commonAncestorContainer))
+    return { start: 0, end: 0 };
   return {
     start: getOffsetInElement(element, range.startContainer, range.startOffset),
     end: getOffsetInElement(element, range.endContainer, range.endOffset),
@@ -176,7 +210,11 @@ export const setSelection = (
   else scrollCursorIntoView(selection, "smooth");
 };
 
-export const calculateCursorPosition = (currentContent: string, newContent: string, currentCursor: number): number => {
+export const calculateCursorPosition = (
+  currentContent: string,
+  newContent: string,
+  currentCursor: number,
+): number => {
   const dmp = new DiffMatchPatch();
   const diffs = dmp.diff_main(currentContent, newContent);
 

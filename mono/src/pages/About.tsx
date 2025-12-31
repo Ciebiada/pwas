@@ -25,10 +25,12 @@ export const About = () => {
         </HeaderButton>
       </Header>
       <div class="page-container">
-        <div class="page-title">
-          <h1>About Mono</h1>
+        <div class="page-content">
+          <div class="editor">
+            <h1>About Mono</h1>
+            {renderMarkdown(ABOUT_CONTENT, () => {})}
+          </div>
         </div>
-        <div class="editor">{renderMarkdown(ABOUT_CONTENT, () => { })}</div>
       </div>
     </>
   );
