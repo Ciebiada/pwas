@@ -1,4 +1,4 @@
-import { createSignal, onCleanup, onMount } from "solid-js";
+import { createSignal, mergeProps, onCleanup, onMount } from "solid-js";
 import {
   getSelection,
   setSelection,
