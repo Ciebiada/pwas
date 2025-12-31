@@ -646,6 +646,7 @@ export class EpubRenderer {
             .epub-content * {
                 font-family: ${fontFamily} !important;
                 color: ${themeColors.color} !important;
+                line-height: 1 !important;
             }
             /* Restore grid rhythm for block containers */
             .epub-content p,
