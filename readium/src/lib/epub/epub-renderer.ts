@@ -343,7 +343,7 @@ export class EpubRenderer {
       }
       // Even if complete, decoding might still be happening if not awaited earlier
       if ("decode" in img) {
-        promises.push(img.decode().catch(() => { }));
+        promises.push(img.decode().catch(() => {}));
       }
     });
 
@@ -816,9 +816,9 @@ export class EpubRenderer {
     const globalProgress =
       this.totalBookSize > 0
         ? ((chapterBaseSize +
-          chapterPercentage * (currentSpineItem.size || 0)) /
-          this.totalBookSize) *
-        100
+            chapterPercentage * (currentSpineItem.size || 0)) /
+            this.totalBookSize) *
+          100
         : 0;
 
     const displayed = {

@@ -33,15 +33,9 @@ type EditorProps = {
   onCursorChange?: (cursor: number) => void;
 };
 
-export const Editor = ({
-  initialContent,
-  initialCursor = 0,
-  autoFocus,
-  onReady,
-  onChange,
-  onCursorChange,
-}: EditorProps) => {
-  const [content, setContent] = createSignal(initialContent);
+export const Editor = (_props: EditorProps) => {
+  const props = mergeProps({ initialCursor: 0 }, _props);
+  const [content, setContent] = createSignal(props.initialContent);
 
   let editor: HTMLDivElement;
   let iosReplacementText = "";
@@ -52,7 +46,7 @@ export const Editor = ({
 
   const emitChange = () => {
     const { name, content: noteContent } = splitNote(content());
-    onChange?.(name, noteContent);
+    props.onChange?.(name, noteContent);
   };
 
   const applyEdit = (newContent: string, cursor: number) => {
@@ -62,7 +56,7 @@ export const Editor = ({
   };
 
   onMount(() => {
-    onReady?.({
+    props.onReady?.({
       focus: () => editor.focus(),
       replaceContent: (name: string, noteContent: string) => {
         const newContent = name + (noteContent ? "\n" + noteContent : "");
@@ -76,9 +70,9 @@ export const Editor = ({
       },
     });
 
-    setSelection(editor, initialCursor, { scroll: true });
+    setSelection(editor, props.initialCursor, { scroll: true });
 
-    if (autoFocus && !isIOS) {
+    if (props.autoFocus && !isIOS) {
       editor.focus();
     } else {
       editor.blur();
@@ -87,7 +81,7 @@ export const Editor = ({
     const onSelectionChange = () => {
       if (document.activeElement !== editor) return;
       if (isIOS) fixCursorPositionForZeroWidthSpace();
-      onCursorChange?.(getSelection(editor).start);
+      props.onCursorChange?.(getSelection(editor).start);
     };
     const onTextInput = (event: any) => (iosReplacementText = event.data);
     const fixCursorPosition = debounce(() => {

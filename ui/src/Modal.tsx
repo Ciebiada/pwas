@@ -306,7 +306,7 @@ export const ModalToggle = (props: ModalToggleProps) => {
           checked={props.checked()}
           onChange={(e) => props.onChange(e.currentTarget.checked)}
         />
-        <span class="modal-toggle-slider"></span>
+        <span class="modal-toggle-slider" />
       </label>
     </div>
   );
@@ -321,18 +321,34 @@ type ModalSelectProps = {
 };
 
 export const ModalSelect = (props: ModalSelectProps) => {
+  let selectRef: HTMLSelectElement | undefined;
+  const [displayText, setDisplayText] = createSignal("");
+
+  const updateDisplayText = () => {
+    if (selectRef) {
+      const selected = selectRef.options[selectRef.selectedIndex];
+      setDisplayText(selected?.textContent || String(props.value));
+    }
+  };
+
+  createEffect(() => {
+    void props.value;
+    updateDisplayText();
+  });
+
   return (
     <div class="modal-select-wrapper">
       <div class="modal-button">
         <span>{props.label}</span>
         <div class="modal-select-content">
           <span class="modal-select-value">
-            {props.displayValue ?? props.value}
+            {props.displayValue ?? displayText()}
           </span>
           <ChevronUpDownIcon />
         </div>
       </div>
       <select
+        ref={selectRef}
         class="modal-native-select"
         value={props.value}
         onChange={(e) => props.onChange(e.currentTarget.value)}

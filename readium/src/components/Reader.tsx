@@ -315,10 +315,6 @@ const Reader = (props: { onClose: () => void }) => {
             <ModalSelect
               label="Theme"
               value={settings().theme}
-              displayValue={
-                settings().theme.charAt(0).toUpperCase() +
-                settings().theme.slice(1)
-              }
               onChange={(val: string) => updateSettings({ theme: val as any })}
             >
               <option value="system">System</option>
@@ -329,9 +325,6 @@ const Reader = (props: { onClose: () => void }) => {
             <ModalSelect
               label="Font"
               value={settings().fontFamily}
-              displayValue={settings()
-                .fontFamily.split(",")[0]
-                .replace(/'/g, "")}
               onChange={(val: string) => updateSettings({ fontFamily: val })}
             >
               <option value="Literata, Georgia, serif">Literata</option>
@@ -348,17 +341,11 @@ const Reader = (props: { onClose: () => void }) => {
             <ModalSelect
               label="Margin"
               value={settings().margin}
-              displayValue={
-                settings().margin === 10
-                  ? "Narrow"
-                  : settings().margin === 20
-                    ? "Normal"
-                    : "Wide"
-              }
               onChange={(val: string) =>
                 updateSettings({ margin: parseInt(val) })
               }
             >
+              <option value="0">None</option>
               <option value="10">Narrow</option>
               <option value="20">Normal</option>
               <option value="40">Wide</option>
