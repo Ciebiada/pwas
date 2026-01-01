@@ -15,10 +15,6 @@
   background: var(--element-background-color);
 }
 
-.library {
-  margin-top: 24px;
-}
-
 .book-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));

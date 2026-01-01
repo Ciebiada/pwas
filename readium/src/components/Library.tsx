@@ -57,53 +57,50 @@ const Library = (props: { onSelect: (id: number) => void }) => {
         <div style={{ display: "none" }}>
           <FileUpload onUpload={loadBooks} />
         </div>
-
-        <div class="library">
-          <div class="page-content">
-            <Show
-              when={books().length > 0}
-              fallback={
-                <div>
-                  <p>
-                    Tap{" "}
-                    <button
-                      class="inline-icon-button"
-                      onClick={() =>
-                        document.getElementById("file-input")?.click()
-                      }
-                    >
-                      <AddIcon />
-                    </button>{" "}
-                    to upload a book.
-                  </p>
-                  <p>
-                    Read{" "}
-                    <a
-                      href="/about"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        navigate("/about");
-                      }}
-                    >
-                      about Readium
-                    </a>
-                  </p>
-                </div>
-              }
-            >
-              <div class="book-grid">
-                <For each={books()}>
-                  {(book) => (
-                    <BookItem
-                      book={book}
-                      onSelect={props.onSelect}
-                      onDelete={deleteBook}
-                    />
-                  )}
-                </For>
+        <div class="page-content">
+          <Show
+            when={books().length > 0}
+            fallback={
+              <div>
+                <p>
+                  Tap{" "}
+                  <button
+                    class="inline-icon-button"
+                    onClick={() =>
+                      document.getElementById("file-input")?.click()
+                    }
+                  >
+                    <AddIcon />
+                  </button>{" "}
+                  to upload a book.
+                </p>
+                <p>
+                  Read{" "}
+                  <a
+                    href="/about"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate("/about");
+                    }}
+                  >
+                    about Readium
+                  </a>
+                </p>
               </div>
-            </Show>
-          </div>
+            }
+          >
+            <div class="book-grid">
+              <For each={books()}>
+                {(book) => (
+                  <BookItem
+                    book={book}
+                    onSelect={props.onSelect}
+                    onDelete={deleteBook}
+                  />
+                )}
+              </For>
+            </div>
+          </Show>
         </div>
       </div>
       <SettingsModal open={settingsOpen} setOpen={setSettingsOpen} />

@@ -1,5 +1,5 @@
 import { timeFromNow } from "../services/date";
-import { Header, HeaderButton, PlusIcon, MoreIcon, AddIcon } from "rams";
+import { Header, HeaderButton, MoreIcon, AddIcon } from "rams";
 import { createDexieArrayQuery } from "../services/solid-dexie";
 import { useNavigate } from "../hooks/useNavigate";
 import { db } from "../services/db";
@@ -63,54 +63,48 @@ export const NotesList = () => {
         <div class="page-title">
           <h1>Notes</h1>
         </div>
-        <div class="notes-list">
-          <For
-            each={notes}
-            fallback={
-              <div class="content">
-                <p>
-                  Tap{" "}
-                  <button
-                    class="inline-icon-button"
-                    onClick={() => navigate("/new")}
-                  >
-                    <AddIcon />
-                  </button>{" "}
-                  to create a note.
-                </p>
-                <p>
-                  Read{" "}
-                  <a
-                    href="/about"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      navigate("/about");
-                    }}
-                  >
-                    about Mono
-                  </a>
-                </p>
+        <For
+          each={notes}
+          fallback={
+            <div class="content">
+              <p>
+                Tap{" "}
+                <button
+                  class="inline-icon-button"
+                  onClick={() => navigate("/new")}
+                >
+                  <AddIcon />
+                </button>{" "}
+                to create a note.
+              </p>
+              <p>
+                Read{" "}
+                <a
+                  href="/about"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate("/about");
+                  }}
+                >
+                  about Mono
+                </a>
+              </p>
+            </div>
+          }
+        >
+          {(note) => (
+            <button
+              class="note-item"
+              onClick={() => navigate(`/note/${note.id}`)}
+            >
+              <div class="note-item-content">
+                <div class="note-item-name">{note.name}</div>
+                <div class="note-item-preview">{getPreview(note.content)}</div>
               </div>
-            }
-          >
-            {(note) => (
-              <button
-                class="note-item"
-                onClick={() => navigate(`/note/${note.id}`)}
-              >
-                <div class="note-item-content">
-                  <div class="note-item-name">{note.name}</div>
-                  <div class="note-item-preview">
-                    {getPreview(note.content)}
-                  </div>
-                </div>
-                <div class="note-item-date">
-                  {timeFromNow(note.lastModified)}
-                </div>
-              </button>
-            )}
-          </For>
-        </div>
+              <div class="note-item-date">{timeFromNow(note.lastModified)}</div>
+            </button>
+          )}
+        </For>
       </div>
       <SettingsModal open={modalOpen} setOpen={setModalOpen} />
     </>
