@@ -20,7 +20,11 @@ const Library = (props: { onSelect: (id: number) => void }) => {
   // Function to refresh list
   const loadBooks = async () => {
     const all = await db.books.toArray();
-    setBooks(all);
+    // Sort by lastOpened descending. Books without lastOpened (old books) go to the bottom.
+    const sorted = all.sort(
+      (a, b) => (b.lastOpened || 0) - (a.lastOpened || 0),
+    );
+    setBooks(sorted);
   };
 
   onMount(() => {

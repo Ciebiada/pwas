@@ -42,6 +42,7 @@ const FileUpload = (props: { onUpload: () => void }) => {
         data: arrayBuffer,
         cover: coverBuffer,
         progress: 0,
+        lastOpened: Date.now(),
       });
 
       props.onUpload();

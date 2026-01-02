@@ -8,6 +8,7 @@ export type Book = {
   data: Blob | ArrayBuffer;
   progress: string | number; // CFI string (preferred) or legacy location index (number)
   locations?: string; // Cached locations JSON
+  lastOpened?: number;
 };
 
 export class ReadiumDB extends Dexie {
@@ -15,8 +16,8 @@ export class ReadiumDB extends Dexie {
 
   constructor() {
     super("ReadiumDB");
-    this.version(1).stores({
-      books: "++id, title, author",
+    this.version(2).stores({
+      books: "++id, title, author, lastOpened",
     });
   }
 }

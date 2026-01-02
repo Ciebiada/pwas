@@ -116,6 +116,9 @@ const Reader = (props: { onClose: () => void }) => {
         return;
       }
 
+      // Update last opened timestamp
+      db.books.update(bookId(), { lastOpened: Date.now() });
+
       const arrayBuffer =
         bookData.data instanceof ArrayBuffer
           ? bookData.data
