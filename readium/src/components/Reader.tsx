@@ -11,6 +11,7 @@ import {
   ModalPage,
   ModalSelect,
   ModalSlider,
+  ModalToggle,
   BackIcon,
 } from "rams";
 
@@ -129,6 +130,7 @@ const Reader = (props: { onClose: () => void }) => {
         fontFamily: settings().fontFamily,
         margin: settings().margin,
         theme: getEffectiveTheme(settings().theme),
+        invertImages: settings().invertImages,
       });
 
       renderer.setOnRelocated((location) => {
@@ -219,6 +221,7 @@ const Reader = (props: { onClose: () => void }) => {
       fontFamily: s.fontFamily,
       margin: s.margin,
       theme: effectiveTheme,
+      invertImages: s.invertImages,
     });
 
     // Sync data-theme attribute for rams CSS
@@ -358,6 +361,11 @@ const Reader = (props: { onClose: () => void }) => {
               step={5}
               displayValue={`${settings().fontSize}%`}
               onChange={(val: number) => updateSettings({ fontSize: val })}
+            />
+            <ModalToggle
+              label="Invert Images"
+              checked={() => settings().invertImages}
+              onChange={(val: boolean) => updateSettings({ invertImages: val })}
             />
           </ModalPage>
         </Modal>

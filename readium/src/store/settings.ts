@@ -13,6 +13,7 @@ export type Settings = {
   fontSize: number;
   margin: number;
   fontFamily: string;
+  invertImages: boolean;
 };
 
 const defaultSettings: Settings = {
@@ -20,6 +21,7 @@ const defaultSettings: Settings = {
   fontSize: 100,
   margin: 20,
   fontFamily: "Literata, Georgia, serif",
+  invertImages: false,
 };
 
 const getStoredSettings = (): Settings => {

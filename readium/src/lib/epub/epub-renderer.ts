@@ -8,6 +8,7 @@ type RendererOptions = {
   fontFamily: string;
   margin: number;
   theme: "light" | "dark";
+  invertImages: boolean;
 };
 
 export class EpubRenderer {
@@ -674,6 +675,7 @@ export class EpubRenderer {
                 break-inside: avoid;
                 box-sizing: border-box;
                 object-fit: contain;
+                ${this.options.invertImages ? "filter: invert(1) hue-rotate(180deg);" : ""}
             }
             .epub-content svg {
                 display: block !important;
@@ -681,6 +683,7 @@ export class EpubRenderer {
                 max-width: 100% !important;
                 max-height: ${this.options.container.clientHeight}px !important;
                 break-inside: avoid;
+                ${this.options.invertImages ? "filter: invert(1) hue-rotate(180deg);" : ""}
             }
         `;
   }
