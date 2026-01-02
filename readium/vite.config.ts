@@ -13,7 +13,9 @@ export default defineConfig({
         name: "Readium",
         short_name: "Readium",
         description: "A read-it-later app",
-        theme_color: "#ffffff",
+        theme_color: "#000000",
+        background_color: "#000000",
+        display: "standalone",
         icons: [
           {
             src: "pwa-192x192.png",

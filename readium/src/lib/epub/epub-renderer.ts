@@ -722,8 +722,11 @@ export class EpubRenderer {
     elements.forEach((el) => {
       const element = el as HTMLElement;
       const computed = getComputedStyle(element);
+
       const marginTop = parseFloat(computed.marginTop);
       const marginBottom = parseFloat(computed.marginBottom);
+      const paddingTop = parseFloat(computed.paddingTop);
+      const paddingBottom = parseFloat(computed.paddingBottom);
 
       if (marginTop > 0) {
         const snapped = Math.round(marginTop / gridUnit) * gridUnit;
@@ -732,6 +735,24 @@ export class EpubRenderer {
       if (marginBottom > 0) {
         const snapped = Math.round(marginBottom / gridUnit) * gridUnit;
         element.style.marginBottom = `${snapped}px`;
+      }
+      if (paddingTop > 0) {
+        const snapped = Math.round(paddingTop / gridUnit) * gridUnit;
+        element.style.paddingTop = `${snapped}px`;
+      }
+      if (paddingBottom > 0) {
+        const snapped = Math.round(paddingBottom / gridUnit) * gridUnit;
+        element.style.paddingBottom = `${snapped}px`;
+      }
+    });
+
+    const images = this.contentElement.querySelectorAll("img, svg");
+    images.forEach((el) => {
+      const element = el as HTMLElement;
+      const rect = element.getBoundingClientRect();
+      if (rect.height > 0) {
+        const snappedHeight = Math.round(rect.height / gridUnit) * gridUnit;
+        element.style.height = `${snappedHeight}px`;
       }
     });
   }
