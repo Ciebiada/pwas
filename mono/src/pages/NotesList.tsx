@@ -42,6 +42,7 @@ export const NotesList = () => {
             .replace(/^#+\s*/, "")
             .replace(/- \[ \]\s*/, "☐ ")
             .replace(/- \[x\]\s*/i, "☑ ")
+            .replace(/- \s*/, "• ")
             .trim(),
         )
         .filter((line) => line !== "")

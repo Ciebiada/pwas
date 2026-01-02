@@ -3,6 +3,7 @@ import {
   handleEnter,
   handleTab,
   INDENT,
+  renumberOrderedList,
 } from "./markdownInput";
 
 type Selection = { start: number; end: number };
@@ -12,6 +13,9 @@ const SIMPLE_SHORTCUTS: Record<string, string> = {
   "[]": "- [ ] ",
   x: "- [ ] ",
   X: "- [ ] ",
+  "*": "* ",
+  "-": "- ",
+  "1.": "1. ",
 };
 
 type PatternShortcut = {
@@ -20,18 +24,31 @@ type PatternShortcut = {
 };
 
 const PATTERN_SHORTCUTS: PatternShortcut[] = [
-  { pattern: /^(\s*)- -$/, replace: (m) => m[1] + INDENT + "- " },
-  { pattern: /^(\s*)- \[\]$/, replace: (m) => m[1] + "- [ ] " },
-  { pattern: /^(\s*)- [xX]$/, replace: (m) => m[1] + "- [ ] " },
-  { pattern: /^(\s*)- \[[ x]\] -$/, replace: (m) => m[1] + "- " },
+  { pattern: /^(\s*)[-*] [-*]$/, replace: (m) => m[1] + INDENT + "- " },
+  { pattern: /^(\s*)[-*] \[\]$/, replace: (m) => m[1] + "- [ ] " },
+  { pattern: /^(\s*)[-*] [xX]$/, replace: (m) => m[1] + "- [ ] " },
+  { pattern: /^(\s*)[-*] \[[ x]\] [-*]$/, replace: (m) => m[1] + "- " },
   {
-    pattern: /^(\s*)- \[[ x]\] \[\]$/,
+    pattern: /^(\s*)[-*] \[[ x]\] \[\]$/,
     replace: (m) => m[1] + INDENT + "- [ ] ",
   },
   {
-    pattern: /^(\s*)- \[[ x]\] [xX]$/,
+    pattern: /^(\s*)[-*] \[[ x]\] [xX]$/,
     replace: (m) => m[1] + INDENT + "- [ ] ",
   },
+  // Convert Bullet/Checkbox -> Ordered
+  { pattern: /^(\s*)[-*] 1\.$/, replace: (m) => m[1] + "1. " },
+  { pattern: /^(\s*)[-*] \[[ x]\] 1\.$/, replace: (m) => m[1] + "1. " },
+
+  // Convert Ordered -> Bullet
+  { pattern: /^(\s*)\d+\. [-*]$/, replace: (m) => m[1] + "- " },
+
+  // Convert Ordered -> Checkbox
+  { pattern: /^(\s*)\d+\. \[\]$/, replace: (m) => m[1] + "- [ ] " },
+  { pattern: /^(\s*)\d+\. [xX]$/, replace: (m) => m[1] + "- [ ] " },
+
+  // Indent Ordered (1. 1. -> indent 1.)
+  { pattern: /^(\s*)\d+\. 1\.$/, replace: (m) => m[1] + INDENT + "1. " },
 ];
 
 const insert = (content: string, start: number, end: number, text: string) =>
@@ -99,7 +116,9 @@ export const processBeforeInput = (
 
       if (data.eventData === " " && start === end) {
         const expanded = tryExpandShortcut(content, start);
-        if (expanded) return expanded;
+        if (expanded) {
+          return renumberOrderedList(expanded.content, expanded.cursor);
+        }
       }
 
       return {
@@ -125,28 +144,27 @@ export const processBeforeInput = (
     case "insertParagraph":
       return handleEnter(content, selection);
 
-    case "deleteByCut":
+    case "deleteByCut": {
       if (end > start) {
-        return { content: insert(content, start, end, ""), cursor: start };
+        const afterDelete = insert(content, start, end, "");
+        return renumberOrderedList(afterDelete, start);
       } else if (start > 0) {
-        return {
-          content: insert(content, start - 1, start, ""),
-          cursor: start - 1,
-        };
+        const afterDelete = insert(content, start - 1, start, "");
+        return renumberOrderedList(afterDelete, start - 1);
       }
       return null;
+    }
 
     case "deleteContentBackward": {
       const listResult = handleBackspaceAtListStart(content, selection);
       if (listResult) return listResult;
 
       if (end > start) {
-        return { content: insert(content, start, end, ""), cursor: start };
+        const afterDelete = insert(content, start, end, "");
+        return renumberOrderedList(afterDelete, start);
       } else if (start > 0) {
-        return {
-          content: insert(content, start - 1, start, ""),
-          cursor: start - 1,
-        };
+        const afterDelete = insert(content, start - 1, start, "");
+        return renumberOrderedList(afterDelete, start - 1);
       }
       return null;
     }
@@ -155,10 +173,8 @@ export const processBeforeInput = (
       const lineStart = content.lastIndexOf("\n", start - 1) + 1;
       const deleteLength = start - lineStart;
       if (deleteLength > 0) {
-        return {
-          content: insert(content, lineStart, start, ""),
-          cursor: lineStart,
-        };
+        const afterDelete = insert(content, lineStart, start, "");
+        return renumberOrderedList(afterDelete, lineStart);
       }
       return null;
     }
@@ -168,10 +184,8 @@ export const processBeforeInput = (
       const wordMatch = beforeCursor.match(/\S+\s*$/);
       if (wordMatch) {
         const deleteLength = wordMatch[0].length;
-        return {
-          content: insert(content, start - deleteLength, start, ""),
-          cursor: start - deleteLength,
-        };
+        const afterDelete = insert(content, start - deleteLength, start, "");
+        return renumberOrderedList(afterDelete, start - deleteLength);
       }
       return null;
     }

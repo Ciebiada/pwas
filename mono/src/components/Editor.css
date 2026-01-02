@@ -32,7 +32,8 @@
 }
 
 .md-checkbox,
-.md-list {
+.md-list,
+.md-orderedList {
   display: flex;
   position: relative;
   align-items: flex-start;
@@ -52,10 +53,17 @@
   justify-content: center;
   align-items: center;
   flex-shrink: 0;
-  /* margin-right: 0.2rem; */
   position: absolute;
   left: 0;
   top: 0;
+}
+
+.md-ordered-marker {
+  color: var(--text-secondary-color);
+}
+
+.md-ordered-number::before {
+  content: attr(data-content);
 }
 
 .md-checkbox .md-list-marker::after {

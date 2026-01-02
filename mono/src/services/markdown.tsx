@@ -7,7 +7,14 @@ type InlineTokenType =
   | "emphasis"
   | "strikethrough"
   | "link";
-type BlockType = "h1" | "h2" | "h3" | "paragraph" | "checkbox" | "list";
+type BlockType =
+  | "h1"
+  | "h2"
+  | "h3"
+  | "paragraph"
+  | "checkbox"
+  | "list"
+  | "orderedList";
 
 type InlineToken = {
   type: InlineTokenType;
@@ -63,8 +70,9 @@ const BLOCK_PATTERNS = [
   { type: "h2" as const, regex: /^(## )(.*)/ },
   { type: "h1" as const, regex: /^(# )(.*)/ },
   { type: "h1" as const, regex: /^(# )(.*)/ },
-  { type: "checkbox" as const, regex: /^(\s*- \[(?:x| )\] )(.*)/ },
-  { type: "list" as const, regex: /^(\s*- )(.*)/ },
+  { type: "checkbox" as const, regex: /^(\s*[-*] \[(?:x| )\] )(.*)/ },
+  { type: "orderedList" as const, regex: /^(\s*\d+\. )(.*)/ },
+  { type: "list" as const, regex: /^(\s*[-*] )(.*)/ },
 ];
 
 const tryMatchPattern = (text: string): InlineToken | null => {
@@ -192,23 +200,32 @@ const renderListItem = (
 ) => {
   const indentation = block.prefix.match(/^\s*/)?.[0].length || 0;
   const isCheckbox = block.type === "checkbox";
+  const isOrdered = block.type === "orderedList";
   const isChecked = block.prefix.includes("[x]");
 
   return (
     <div class={className} style={{ "padding-left": `${indentation}ch` }}>
       <label
-        class={isCheckbox ? "md-list-marker" : "md-list-marker md-list-bullet"}
+        class={
+          isCheckbox
+            ? "md-list-marker"
+            : isOrdered
+              ? "md-list-marker md-ordered-marker"
+              : "md-list-marker md-list-bullet"
+        }
         contentEditable={false}
         style={{ "user-select": "none", left: `${indentation}ch` }}
         onMouseDown={(e) => isCheckbox && e.preventDefault()}
       >
-        {isCheckbox && (
+        {isCheckbox ? (
           <input
             type="checkbox"
             checked={isChecked}
             onChange={() => onCheckboxToggle?.(index)}
           />
-        )}
+        ) : isOrdered ? (
+          <span class="md-ordered-number" data-content={block.prefix.trim()} />
+        ) : null}
       </label>
       <div class="md-list-content">{content}</div>
     </div>
@@ -230,6 +247,7 @@ const renderBlock = (
       return renderHeader(block, className, content);
     case "checkbox":
     case "list":
+    case "orderedList":
       return renderListItem(block, index, className, content, onCheckboxToggle);
     default:
       return block.content ? (
