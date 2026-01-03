@@ -13,6 +13,11 @@ export const getLineRange = (content: string, position: number) => {
   return { start, end, line: content.slice(start, end) };
 };
 
+export const lineEnd = (content: string, start: number) => {
+  const index = content.indexOf("\n", start);
+  return index === -1 ? content.length : index;
+};
+
 export const insert = (
   content: string,
   start: number,

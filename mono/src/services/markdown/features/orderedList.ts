@@ -1,5 +1,5 @@
-import { renumberOrderedList } from "../orderedList";
-import { INDENT, INDENT_SIZE, insert } from "../utils";
+import { INDENT, INDENT_SIZE, insert, lineEnd } from "../utils";
+import { handleEmptyLineEnter, handleIndentBackspace } from "./helpers";
 import { MarkdownFeature } from "./types";
 
 export const OrderedListFeature: MarkdownFeature = {
@@ -48,20 +48,17 @@ export const OrderedListFeature: MarkdownFeature = {
   },
 
   onEnter(content, selection, match, lineRange) {
-    const { start: lineStart } = lineRange;
+    const emptyLineResult = handleEmptyLineEnter(
+      content,
+      selection,
+      match,
+      lineRange,
+      this.onBackspace!.bind(this),
+    );
+    if (emptyLineResult) return emptyLineResult;
+
     const indent = match[1];
     const num = parseInt(match[2]);
-    const prefix = match[0];
-
-    const isAfterPrefix = selection.start === lineStart + prefix.length;
-    const textAfter = content
-      .slice(selection.start, lineEnd(content, lineStart))
-      .trim();
-
-    if (isAfterPrefix && textAfter === "") {
-      return this.onBackspace!(content, selection, match, lineRange);
-    }
-
     const newPrefix = `${indent}${num + 1}. `;
     const result = {
       content:
@@ -76,18 +73,13 @@ export const OrderedListFeature: MarkdownFeature = {
   },
 
   onBackspace(content, selection, match, lineRange) {
-    const { start: lineStart, line } = lineRange;
-
-    if (line.startsWith(INDENT)) {
-      const result = {
-        content:
-          content.slice(0, lineStart) +
-          line.slice(INDENT_SIZE) +
-          content.slice(lineEnd(content, lineStart)),
-        cursor: selection.start - INDENT_SIZE,
-      };
-
-      const renumbered = renumberOrderedList(result.content, result.cursor);
+    const indentResult = handleIndentBackspace(content, selection, lineRange);
+    if (indentResult) {
+      const { start: lineStart } = lineRange;
+      const renumbered = renumberOrderedList(
+        indentResult.content,
+        indentResult.cursor,
+      );
       const nextLinePos = renumbered.content.indexOf("\n", lineStart) + 1;
       if (nextLinePos > 0 && nextLinePos < renumbered.content.length) {
         const final = renumberOrderedList(renumbered.content, nextLinePos);
@@ -96,6 +88,7 @@ export const OrderedListFeature: MarkdownFeature = {
       return renumbered;
     }
 
+    const { start: lineStart, line } = lineRange;
     const prefixLength = match[0].length;
     const result = {
       content:
@@ -160,7 +153,101 @@ export const OrderedListFeature: MarkdownFeature = {
   },
 };
 
-const lineEnd = (content: string, start: number) => {
-  const index = content.indexOf("\n", start);
-  return index === -1 ? content.length : index;
+export const renumberOrderedList = (
+  content: string,
+  cursor: number,
+): { content: string; cursor: number } => {
+  const lineRange = {
+    start: content.lastIndexOf("\n", cursor - 1) + 1,
+    end: lineEnd(content, cursor),
+  };
+  const currentLineText = content.slice(lineRange.start, lineRange.end);
+
+  if (!/^(\s*)(\d+\.\s)/.test(currentLineText)) {
+    const nextLineStart = lineRange.end + 1;
+    if (nextLineStart < content.length) {
+      const nextLineEnd = lineEnd(content, nextLineStart);
+      const nextLineText = content.slice(nextLineStart, nextLineEnd);
+      if (!/^(\s*)(\d+\.\s)/.test(nextLineText)) {
+        return { content, cursor };
+      }
+    } else {
+      return { content, cursor };
+    }
+  }
+
+  const lines = content.split("\n");
+  const lineIndex = content.slice(0, cursor).split("\n").length - 1;
+  let currentCursor = cursor;
+
+  const updateLine = (idx: number, newContent: string) => {
+    const oldLength = lines[idx].length;
+    const newLength = newContent.length;
+    if (idx <= lineIndex) {
+      currentCursor += newLength - oldLength;
+    }
+    lines[idx] = newContent;
+  };
+
+  const currentLine = lines[lineIndex];
+  const currentMatch = currentLine.match(/^(\s*)(\d+\.\s)/);
+
+  if (!currentMatch) {
+    const nextLine = lines[lineIndex + 1];
+    const nextMatch = nextLine?.match(/^(\s*)(\d+\.\s)/);
+    if (!nextMatch) return { content, cursor };
+
+    const indent = nextMatch[1];
+    let expectedNum = 1;
+
+    for (let i = lineIndex + 1; i < lines.length; i++) {
+      const match = lines[i].match(/^(\s*)(\d+)\.\s(.*)/);
+      if (!match || lines[i].trim() === "") break;
+
+      const currentIndent = match[1];
+      if (currentIndent.length < indent.length) break;
+      if (currentIndent.length > indent.length) continue;
+
+      updateLine(i, `${indent}${expectedNum}. ${match[3]}`);
+      expectedNum++;
+    }
+    return { content: lines.join("\n"), cursor: currentCursor };
+  }
+
+  const indent = currentMatch[1];
+  let startIdx = lineIndex;
+  while (startIdx > 0) {
+    const prevLine = lines[startIdx - 1];
+    const indentMatch = prevLine.match(/^(\s*)/);
+    const prevIndentLen = indentMatch ? indentMatch[1].length : 0;
+
+    if (prevIndentLen > indent.length) {
+      startIdx--;
+      continue;
+    }
+    if (prevLine.trim() === "" || prevIndentLen < indent.length) break;
+
+    if (/^\s*\d+\.\s/.test(prevLine)) {
+      startIdx--;
+    } else {
+      break;
+    }
+  }
+
+  let expectedNum = parseInt(lines[startIdx].match(/\d+/)?.[0] || "1");
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    if (lines[i].trim() === "") break;
+
+    const match = lines[i].match(/^(\s*)(\d+)\.\s(.*)/);
+    if (!match) break;
+
+    const currentIndent = match[1];
+    if (currentIndent.length < indent.length) break;
+    if (currentIndent.length > indent.length) continue;
+
+    expectedNum++;
+    updateLine(i, `${indent}${expectedNum}. ${match[3]}`);
+  }
+
+  return { content: lines.join("\n"), cursor: currentCursor };
 };

@@ -5,7 +5,7 @@ import {
   handleTab,
 } from "./markdown/input";
 import { insert } from "./markdown/utils";
-import { renumberOrderedList } from "./markdown/orderedList";
+import { renumberOrderedList } from "./markdown/features/orderedList";
 
 type Selection = { start: number; end: number };
 type EditResult = { content: string; cursor: number };

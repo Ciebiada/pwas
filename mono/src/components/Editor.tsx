@@ -7,7 +7,7 @@ import {
   scrollCursorIntoView,
 } from "../services/cursor";
 import { processBeforeInput, processTab } from "../services/editorInput";
-import { toggleCheckbox } from "../services/markdown/todoList";
+import { toggleCheckbox } from "../services/markdown/features/todoList";
 import { renderMarkdown } from "../services/markdown/renderer";
 import { splitNote } from "../services/note";
 import { useCustomCaret } from "../services/customCaret";

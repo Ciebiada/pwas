@@ -1,6 +1,8 @@
 import { InputResult, Selection } from "../utils";
 
-export interface MarkdownFeature {
+export type LineRange = { start: number; end: number; line: string };
+
+export type MarkdownFeature = {
   name: string;
   pattern: RegExp;
   onTab?: (
@@ -8,23 +10,23 @@ export interface MarkdownFeature {
     selection: Selection,
     shiftKey: boolean,
     match: RegExpMatchArray,
-    lineRange: { start: number; end: number; line: string },
+    lineRange: LineRange,
   ) => InputResult | null;
   onEnter?: (
     content: string,
     selection: Selection,
     match: RegExpMatchArray,
-    lineRange: { start: number; end: number; line: string },
+    lineRange: LineRange,
   ) => InputResult | null;
   onBackspace?: (
     content: string,
     selection: Selection,
     match: RegExpMatchArray,
-    lineRange: { start: number; end: number; line: string },
+    lineRange: LineRange,
   ) => InputResult | null;
   onInput?: (
     char: string,
     content: string,
     selection: Selection,
   ) => InputResult | null;
-}
+};

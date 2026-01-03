@@ -1,4 +1,5 @@
-import { INDENT, INDENT_SIZE, insert } from "../utils";
+import { INDENT, insert, lineEnd } from "../utils";
+import { handleEmptyLineEnter, handleIndentBackspace } from "./helpers";
 import { MarkdownFeature } from "./types";
 
 export const TodoListFeature: MarkdownFeature = {
@@ -6,16 +7,14 @@ export const TodoListFeature: MarkdownFeature = {
   pattern: /^(\s*[-*] )\[([ x])\]\s/,
 
   onEnter(content, selection, match, lineRange) {
-    const { start: lineStart } = lineRange;
-    const prefix = match[0];
-    const isAfterPrefix = selection.start === lineStart + prefix.length;
-    const textAfter = content
-      .slice(selection.start, lineEnd(content, lineStart))
-      .trim();
-
-    if (isAfterPrefix && textAfter === "") {
-      return this.onBackspace!(content, selection, match, lineRange);
-    }
+    const emptyLineResult = handleEmptyLineEnter(
+      content,
+      selection,
+      match,
+      lineRange,
+      this.onBackspace!.bind(this),
+    );
+    if (emptyLineResult) return emptyLineResult;
 
     const newPrefix = match[1] + "[ ] ";
     return {
@@ -29,18 +28,10 @@ export const TodoListFeature: MarkdownFeature = {
   },
 
   onBackspace(content, selection, match, lineRange) {
+    const indentResult = handleIndentBackspace(content, selection, lineRange);
+    if (indentResult) return indentResult;
+
     const { start: lineStart, line } = lineRange;
-
-    if (line.startsWith(INDENT)) {
-      return {
-        content:
-          content.slice(0, lineStart) +
-          line.slice(INDENT_SIZE) +
-          content.slice(lineEnd(content, lineStart)),
-        cursor: selection.start - INDENT_SIZE,
-      };
-    }
-
     const prefixLength = match[0].length;
     return {
       content:
@@ -109,7 +100,20 @@ export const TodoListFeature: MarkdownFeature = {
   },
 };
 
-const lineEnd = (content: string, start: number) => {
-  const index = content.indexOf("\n", start);
-  return index === -1 ? content.length : index;
+export const toggleCheckbox = (content: string, lineIndex: number): string => {
+  const lines = content.split("\n");
+  const line = lines[lineIndex];
+  if (!line) return content;
+
+  const checkboxPattern = /^(\s*[-*] )\[([ x])\]/;
+  const match = line.match(checkboxPattern);
+  if (!match) return content;
+
+  const isChecked = match[2] === "x";
+  const newStatus = isChecked ? " " : "x";
+  const prefix = match[1];
+
+  lines[lineIndex] = `${prefix}[${newStatus}]${line.slice(match[0].length)}`;
+
+  return lines.join("\n");
 };
