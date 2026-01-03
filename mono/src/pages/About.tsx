@@ -1,6 +1,6 @@
 import { Header, HeaderButton, BackIcon } from "rams";
 import { useNavigate } from "../hooks/useNavigate";
-import { renderMarkdown } from "../services/markdown";
+import { renderMarkdown } from "../services/markdown/renderer";
 
 const ABOUT_CONTENT = `### Private & Secure
 Unlike most other note-taking apps, Mono is **open source** and runs entirely in your browser. There is no backend - your notes are synced by calling the official APIs of your storage provider directly from your device. Your data remains under your control.

@@ -1,88 +1,14 @@
 import {
   handleBackspaceAtListStart,
   handleEnter,
+  handleInput,
   handleTab,
-  INDENT,
-  renumberOrderedList,
-} from "./markdownInput";
+} from "./markdown/input";
+import { insert } from "./markdown/utils";
+import { renumberOrderedList } from "./markdown/orderedList";
 
 type Selection = { start: number; end: number };
 type EditResult = { content: string; cursor: number };
-
-const SIMPLE_SHORTCUTS: Record<string, string> = {
-  "[]": "- [ ] ",
-  x: "- [ ] ",
-  X: "- [ ] ",
-  "*": "* ",
-  "-": "- ",
-  "1.": "1. ",
-};
-
-type PatternShortcut = {
-  pattern: RegExp;
-  replace: (match: RegExpMatchArray) => string;
-};
-
-const PATTERN_SHORTCUTS: PatternShortcut[] = [
-  { pattern: /^(\s*)[-*] [-*]$/, replace: (m) => m[1] + INDENT + "- " },
-  { pattern: /^(\s*)[-*] \[\]$/, replace: (m) => m[1] + "- [ ] " },
-  { pattern: /^(\s*)[-*] [xX]$/, replace: (m) => m[1] + "- [ ] " },
-  { pattern: /^(\s*)[-*] \[[ x]\] [-*]$/, replace: (m) => m[1] + "- " },
-  {
-    pattern: /^(\s*)[-*] \[[ x]\] \[\]$/,
-    replace: (m) => m[1] + INDENT + "- [ ] ",
-  },
-  {
-    pattern: /^(\s*)[-*] \[[ x]\] [xX]$/,
-    replace: (m) => m[1] + INDENT + "- [ ] ",
-  },
-  // Convert Bullet/Checkbox -> Ordered
-  { pattern: /^(\s*)[-*] 1\.$/, replace: (m) => m[1] + "1. " },
-  { pattern: /^(\s*)[-*] \[[ x]\] 1\.$/, replace: (m) => m[1] + "1. " },
-
-  // Convert Ordered -> Bullet
-  { pattern: /^(\s*)\d+\. [-*]$/, replace: (m) => m[1] + "- " },
-
-  // Convert Ordered -> Checkbox
-  { pattern: /^(\s*)\d+\. \[\]$/, replace: (m) => m[1] + "- [ ] " },
-  { pattern: /^(\s*)\d+\. [xX]$/, replace: (m) => m[1] + "- [ ] " },
-
-  // Indent Ordered (1. 1. -> indent 1.)
-  { pattern: /^(\s*)\d+\. 1\.$/, replace: (m) => m[1] + INDENT + "1. " },
-];
-
-const insert = (content: string, start: number, end: number, text: string) =>
-  content.slice(0, start) + text + content.slice(end);
-
-const tryExpandShortcut = (
-  content: string,
-  cursor: number,
-): EditResult | null => {
-  const lineStart = content.lastIndexOf("\n", cursor - 1) + 1;
-  const linePrefix = content.slice(lineStart, cursor);
-
-  // Try simple shortcuts first (exact match, no indentation)
-  const simpleReplacement = SIMPLE_SHORTCUTS[linePrefix];
-  if (simpleReplacement) {
-    return {
-      content: insert(content, lineStart, cursor, simpleReplacement),
-      cursor: lineStart + simpleReplacement.length,
-    };
-  }
-
-  for (const { pattern, replace } of PATTERN_SHORTCUTS) {
-    const match = linePrefix.match(pattern);
-    if (match) {
-      const replacement = replace(match);
-      return {
-        content: insert(content, lineStart, cursor, replacement),
-        cursor: lineStart + replacement.length,
-      };
-    }
-  }
-
-  return null;
-};
 
 export const processTab = (
   content: string,
@@ -115,10 +41,8 @@ export const processBeforeInput = (
       }
 
       if (data.eventData === " " && start === end) {
-        const expanded = tryExpandShortcut(content, start);
-        if (expanded) {
-          return renumberOrderedList(expanded.content, expanded.cursor);
-        }
+        const result = handleInput(" ", content, selection);
+        if (result) return result;
       }
 
       return {

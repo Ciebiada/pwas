@@ -62,13 +62,12 @@ const INLINE_PATTERNS: InlinePattern[] = [
   { type: "strong", regex: /^__(\S(?:.*?\S)?)__/, delimiter: "__" },
   { type: "strikethrough", regex: /^~~(\S(?:.*?\S)?)~~/, delimiter: "~~" },
   { type: "emphasis", regex: /^\*(\S(?:.*?\S)?)\*/, delimiter: "*" },
-  { type: "emphasis", regex: /^_(\S(?:.*?\S)?)_/, delimiter: "_" },
+  { type: "emphasis", regex: /^_(?!_)([^_]+)_/, delimiter: "_" },
 ];
 
 const BLOCK_PATTERNS = [
   { type: "h3" as const, regex: /^(### )(.*)/ },
   { type: "h2" as const, regex: /^(## )(.*)/ },
-  { type: "h1" as const, regex: /^(# )(.*)/ },
   { type: "h1" as const, regex: /^(# )(.*)/ },
   { type: "checkbox" as const, regex: /^(\s*[-*] \[(?:x| )\] )(.*)/ },
   { type: "orderedList" as const, regex: /^(\s*\d+\. )(.*)/ },
