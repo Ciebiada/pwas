@@ -48,7 +48,7 @@
 
 .md-list-marker {
   width: 24px;
-  height: 1.5em;
+  height: 1.5rem;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -58,7 +58,8 @@
   top: 0;
 }
 
-.md-ordered-marker {
+.md-ordered-marker,
+.md-list-bullet {
   color: var(--text-secondary-color);
 }
 
@@ -66,15 +67,10 @@
   content: attr(data-content);
 }
 
-.md-checkbox .md-list-marker::after {
-  content: "";
-  position: absolute;
-  inset: -8px;
-  cursor: pointer;
-}
-
 .md-list-bullet::after {
   content: "•";
+  font-size: 1.5rem;
+  padding-bottom: 0.1rem;
 }
 
 .md-link {
