@@ -12,11 +12,13 @@ body.modal-open {
 }
 
 .modal-overlay[data-expanded] {
-  animation: overlay-fade-in var(--animation-duration) cubic-bezier(0.36, 0.66, 0.04, 1) forwards;
+  animation: overlay-fade-in var(--animation-duration)
+    cubic-bezier(0.36, 0.66, 0.04, 1) forwards;
 }
 
 .modal-overlay[data-closed] {
-  animation: overlay-fade-out var(--animation-duration) cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  animation: overlay-fade-out var(--animation-duration)
+    cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
 @keyframes overlay-fade-in {
@@ -169,17 +171,21 @@ body.modal-open {
 
 @media (hover: hover) {
   .modal-button:hover {
-    background-color: color-mix(in srgb,
-        var(--element-background-color),
-        var(--text-color) 8%);
+    background-color: color-mix(
+      in srgb,
+      var(--element-background-color),
+      var(--text-color) 8%
+    );
   }
 }
 
 .modal-button:active,
 .modal-select-wrapper:active .modal-button {
-  background-color: color-mix(in srgb,
-      var(--element-background-color),
-      var(--text-color) 15%);
+  background-color: color-mix(
+    in srgb,
+    var(--element-background-color),
+    var(--text-color) 15%
+  );
 }
 
 .modal-toggle {
@@ -245,15 +251,15 @@ body.modal-open {
   transform: scale(1.5);
 }
 
-.modal-toggle-switch input:checked+.modal-toggle-slider {
+.modal-toggle-switch input:checked + .modal-toggle-slider {
   background-color: var(--green-color);
 }
 
-.modal-toggle-switch input:checked+.modal-toggle-slider::before {
+.modal-toggle-switch input:checked + .modal-toggle-slider::before {
   transform: translateX(22px);
 }
 
-.modal-toggle-switch:active input:checked+.modal-toggle-slider::before {
+.modal-toggle-switch:active input:checked + .modal-toggle-slider::before {
   transform: translateX(22px) scale(1.5);
 }
 
@@ -278,11 +284,13 @@ body.modal-open {
 }
 
 .modal-page[data-animate="forward"] {
-  animation: page-slide-in-forward var(--animation-duration) cubic-bezier(0.36, 0.66, 0.04, 1);
+  animation: page-slide-in-forward var(--animation-duration)
+    cubic-bezier(0.36, 0.66, 0.04, 1);
 }
 
 .modal-page[data-animate="backward"] {
-  animation: page-slide-in-backward var(--animation-duration) cubic-bezier(0.36, 0.66, 0.04, 1);
+  animation: page-slide-in-backward var(--animation-duration)
+    cubic-bezier(0.36, 0.66, 0.04, 1);
 }
 
 .modal-content p {
@@ -354,11 +362,14 @@ body.modal-open {
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
-  background-image: linear-gradient(90deg,
-      color-mix(in srgb, var(--text-color), transparent 90%) 0%,
-      color-mix(in srgb, var(--text-color), transparent 90%) var(--slider-progress),
-      transparent var(--slider-progress),
-      transparent 100%);
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--text-color), transparent 90%) 0%,
+    color-mix(in srgb, var(--text-color), transparent 90%)
+      var(--slider-progress),
+    transparent var(--slider-progress),
+    transparent 100%
+  );
 }
 
 .modal-slider-content {

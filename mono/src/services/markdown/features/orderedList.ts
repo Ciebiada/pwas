@@ -100,7 +100,8 @@ export const OrderedListFeature: MarkdownFeature = {
 
     const nextLinePos = result.content.indexOf("\n", lineStart) + 1;
     if (nextLinePos > 0 && nextLinePos < result.content.length) {
-      return renumberOrderedList(result.content, nextLinePos);
+      const renumbered = renumberOrderedList(result.content, nextLinePos);
+      return { content: renumbered.content, cursor: result.cursor };
     }
     return result;
   },
@@ -234,8 +235,8 @@ export const renumberOrderedList = (
     }
   }
 
-  let expectedNum = parseInt(lines[startIdx].match(/\d+/)?.[0] || "1");
-  for (let i = startIdx + 1; i < lines.length; i++) {
+  let expectedNum = 0;
+  for (let i = startIdx; i < lines.length; i++) {
     if (lines[i].trim() === "") break;
 
     const match = lines[i].match(/^(\s*)(\d+)\.\s(.*)/);
