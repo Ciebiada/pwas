@@ -1,4 +1,4 @@
-import { insert, lineEnd } from "../utils";
+import { INDENT, insert, lineEnd } from "../utils";
 import { handleEmptyLineEnter, handleIndentBackspace } from "./helpers";
 import { MarkdownFeature } from "./types";
 
