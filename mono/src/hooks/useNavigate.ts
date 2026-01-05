@@ -23,7 +23,7 @@ export const useNavigate = () => {
     });
 
     if (options?.back) {
-      transition.types.add("back-transition");
+      transition.types?.add("back-transition");
     }
   };
 };

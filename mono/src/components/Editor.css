@@ -73,10 +73,6 @@
   padding-bottom: 0.1rem;
 }
 
-.md-link {
-  color: var(--main-color);
-}
-
 .md-list-content {
   flex: 1;
   min-width: 0;

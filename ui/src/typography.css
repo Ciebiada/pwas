@@ -50,13 +50,13 @@ h3 {
 }
 
 a {
-  color: var(--text-color);
+  color: var(--text-secondary-color);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 a:hover {
-  color: var(--text-strong-color);
+  color: var(--text-color);
 }
 
 .inline-icon-button {
