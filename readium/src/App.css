@@ -142,6 +142,8 @@
   height: 100%;
   touch-action: manipulation;
   pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .nav-zone.left {

@@ -14,6 +14,7 @@ import {
   ModalToggle,
   BackIcon,
 } from "rams";
+import { useTap } from "../hooks/useTap";
 
 const Reader = (props: { onClose: () => void }) => {
   const params = useParams<{ id: string }>();
@@ -255,26 +256,20 @@ const Reader = (props: { onClose: () => void }) => {
     }
   };
 
+  // --- Pointer/Tap Handling ---
+
+  const leftTap = useTap((e) => (showControls() ? toggleControls() : prev(e)));
+  const centerTap = useTap(toggleControls);
+  const rightTap = useTap((e) => (showControls() ? toggleControls() : next(e)));
+
   return (
     <div class="reader-container">
       <div class="reader-viewer" ref={viewerRef} onClick={handleViewerClick} />
 
       <div class={`reader-controls-overlay ${showControls() ? "visible" : ""}`}>
-        <div
-          class="nav-zone left"
-          onClick={(e) => (showControls() ? toggleControls() : prev(e))}
-          onDblClick={(e) => e.preventDefault()}
-        />
-        <div
-          class="nav-zone center"
-          onClick={toggleControls}
-          onDblClick={(e) => e.preventDefault()}
-        />
-        <div
-          class="nav-zone right"
-          onClick={(e) => (showControls() ? toggleControls() : next(e))}
-          onDblClick={(e) => e.preventDefault()}
-        />
+        <div class="nav-zone left" {...leftTap} />
+        <div class="nav-zone center" {...centerTap} />
+        <div class="nav-zone right" {...rightTap} />
       </div>
 
       {/* TODO: remove those hardcoded theme values */}
