@@ -67,7 +67,7 @@ export const NotesList = () => {
         <For
           each={notes}
           fallback={
-            <div class="content">
+            <div class="page-content">
               <p>
                 Tap{" "}
                 <button

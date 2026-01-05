@@ -262,7 +262,7 @@ const Reader = (props: { onClose: () => void }) => {
       <div class={`reader-controls-overlay ${showControls() ? "visible" : ""}`}>
         <div
           class="nav-zone left"
-          onClick={prev}
+          onClick={(e) => (showControls() ? toggleControls() : prev(e))}
           onDblClick={(e) => e.preventDefault()}
         />
         <div
@@ -272,7 +272,7 @@ const Reader = (props: { onClose: () => void }) => {
         />
         <div
           class="nav-zone right"
-          onClick={next}
+          onClick={(e) => (showControls() ? toggleControls() : next(e))}
           onDblClick={(e) => e.preventDefault()}
         />
       </div>
@@ -335,7 +335,6 @@ const Reader = (props: { onClose: () => void }) => {
             >
               <option value="Literata, Georgia, serif">Literata</option>
               <option value="Merriweather, Georgia, serif">Merriweather</option>
-              <option value="Lora, Georgia, serif">Lora</option>
               <option value="'Open Sans', Helvetica, sans-serif">
                 Open Sans
               </option>
@@ -352,7 +351,6 @@ const Reader = (props: { onClose: () => void }) => {
               }
             >
               <option value="0">None</option>
-              <option value="10">Narrow</option>
               <option value="20">Normal</option>
               <option value="40">Wide</option>
             </ModalSelect>

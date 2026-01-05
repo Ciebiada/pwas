@@ -35,6 +35,10 @@ h3 {
 }
 
 .page-container {
+  margin-top: env(safe-area-inset-top);
+}
+
+.page-container.with-header {
   margin-top: calc(68px + env(safe-area-inset-top));
 }
 

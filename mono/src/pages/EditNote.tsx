@@ -96,7 +96,7 @@ export const EditNote = () => {
           <MoreIcon />
         </HeaderButton>
       </Header>
-      <div class="page-container">
+      <div class="page-container with-header">
         <div class="page-content">
           <Show when={note()}>
             <Editor

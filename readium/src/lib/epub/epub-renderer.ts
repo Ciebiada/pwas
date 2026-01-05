@@ -603,13 +603,8 @@ export class EpubRenderer {
       ? this.contentElement.style.transform
       : "";
 
-    const { fontSize, fontFamily, margin, theme } = this.options;
-    const colors = {
-      light: { color: "#000000", background: "#ffffff" },
-      dark: { color: "#dedede", background: "#000000" },
-    };
+    const { fontSize, fontFamily, margin } = this.options;
 
-    const themeColors = colors[theme];
     const containerWidth = this.options.container.clientWidth;
     const columnWidth = containerWidth - margin * 2;
 
@@ -617,8 +612,6 @@ export class EpubRenderer {
             box-sizing: border-box;
             font-size: ${fontSize}%;
             font-family: ${fontFamily};
-            color: ${themeColors.color};
-            background: ${themeColors.background};
             padding: 0 ${margin}px;
             width: 100%;
             column-width: ${columnWidth}px;
@@ -646,7 +639,7 @@ export class EpubRenderer {
     styleEl.innerHTML = `
             .epub-content * {
                 font-family: ${fontFamily} !important;
-                color: ${themeColors.color} !important;
+                color: var(--text-strong-color) !important;
                 line-height: 1 !important;
             }
             /* Restore grid rhythm for block containers */
