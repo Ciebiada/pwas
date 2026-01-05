@@ -84,21 +84,22 @@ export const Editor = (_props: EditorProps) => {
       props.onCursorChange?.(getSelection(editor).start);
     };
     const onTextInput = (event: any) => (iosReplacementText = event.data);
-    const fixCursorPosition = debounce(() => {
-      if (document.activeElement !== editor) return;
-      if (isIOS) scrollCursorIntoView(window.getSelection()!, "instant");
-    }, 100);
+    // const fixCursorPosition = debounce(() => {
+    //   console.log("Fixing cursor position");
+    //   if (document.activeElement !== editor) return;
+    //   if (isIOS) scrollCursorIntoView(window.getSelection()!, "instant");
+    // }, 100);
 
     document.addEventListener("selectionchange", onSelectionChange);
     editor.addEventListener("textInput", onTextInput);
-    if (window.visualViewport)
-      window.visualViewport.addEventListener("resize", fixCursorPosition);
+    // if (window.visualViewport)
+    //   window.visualViewport.addEventListener("resize", fixCursorPosition);
 
     onCleanup(() => {
       document.removeEventListener("selectionchange", onSelectionChange);
       editor.removeEventListener("textInput", onTextInput);
-      if (window.visualViewport)
-        window.visualViewport.removeEventListener("resize", fixCursorPosition);
+      // if (window.visualViewport)
+      //   window.visualViewport.removeEventListener("resize", fixCursorPosition);
     });
   });
 
