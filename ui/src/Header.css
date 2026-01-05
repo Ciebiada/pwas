@@ -8,8 +8,9 @@
   padding-bottom: 16px;
   padding-left: 16px;
   padding-right: 16px;
-  /* background: linear-gradient(to bottom, var(--bg-color), transparent); */
-  view-transition-name: header;
+  background: linear-gradient(to bottom, var(--bg-color), transparent);
+  background-size: 100% env(safe-area-inset-top);
+  background-repeat: no-repeat;
   gap: 8px;
   z-index: 10;
 }

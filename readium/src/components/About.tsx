@@ -11,7 +11,7 @@ export const About = () => {
           <BackIcon />
         </HeaderButton>
       </Header>
-      <div class="page-container">
+      <div class="page-container with-header">
         <div class="page-content">
           <h1>About Readium</h1>
           <p>Description under development. Please come back later.</p>

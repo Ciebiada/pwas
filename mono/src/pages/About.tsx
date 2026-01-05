@@ -24,7 +24,7 @@ export const About = () => {
           <BackIcon />
         </HeaderButton>
       </Header>
-      <div class="page-container">
+      <div class="page-container with-header">
         <div class="page-content">
           <div class="editor">
             <h1>About Mono</h1>
