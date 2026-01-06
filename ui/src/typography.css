@@ -47,6 +47,7 @@ h3 {
   padding-left: 16px;
   user-select: none;
   -webkit-user-select: none;
+  margin-bottom: 16px;
 }
 
 .page-content {
