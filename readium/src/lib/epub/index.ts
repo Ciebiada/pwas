@@ -7,4 +7,5 @@ export type {
   EpubManifestItem,
   EpubSpineItem,
   EpubNavPoint,
+  RendererOptions,
 } from "./epub-types";

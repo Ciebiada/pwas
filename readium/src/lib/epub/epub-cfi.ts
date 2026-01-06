@@ -106,4 +106,88 @@ export class CFIHelper {
 
     return current;
   }
+
+  static locateTextPosition(
+    root: HTMLElement,
+    absoluteOffset: number,
+  ): { node: Text; offset: number } | null {
+    try {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      let currentOffset = 0;
+      let n: Node | null;
+      while ((n = walker.nextNode())) {
+        const text = n as Text;
+        const len = text.length ?? (text.textContent?.length || 0);
+        if (currentOffset + len >= absoluteOffset) {
+          return {
+            node: text,
+            offset: Math.max(0, absoluteOffset - currentOffset),
+          };
+        }
+        currentOffset += len;
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  }
+
+  static getTargetCharClientRect(
+    element: Element,
+    offset: number,
+  ): DOMRect | null {
+    const startOffset = Math.max(0, offset || 0);
+    const maxLookahead = 64;
+
+    const startPos = this.locateTextPosition(
+      element as HTMLElement,
+      startOffset,
+    );
+    if (!startPos) return element.getBoundingClientRect();
+
+    try {
+      const range = document.createRange();
+
+      let node: Text | null = startPos.node;
+      let localOffset = startPos.offset;
+      let remaining = maxLookahead;
+
+      while (node && remaining >= 0) {
+        const nodeLen = node.length ?? (node.textContent?.length || 0);
+        while (localOffset < nodeLen && remaining >= 0) {
+          // Try a 1-character range; if it yields no rects, advance.
+          const end = Math.min(nodeLen, localOffset + 1);
+          range.setStart(node, localOffset);
+          range.setEnd(node, end);
+          const rects = range.getClientRects();
+          if (rects && rects.length > 0) {
+            return rects[0] as DOMRect;
+          }
+          localOffset += 1;
+          remaining -= 1;
+        }
+
+        // Move to next text node
+        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+        // Advance walker to current node, then move to next.
+        let cur: Node | null;
+        let found = false;
+        while ((cur = walker.nextNode())) {
+          if (cur === node) {
+            found = true;
+            break;
+          }
+        }
+        node = found ? (walker.nextNode() as Text | null) : null;
+        localOffset = 0;
+      }
+
+      // As a last resort, use the element’s first client rect (more stable than bounding box)
+      const elRects = element.getClientRects();
+      if (elRects && elRects.length > 0) return elRects[0] as DOMRect;
+      return element.getBoundingClientRect();
+    } catch {
+      return element.getBoundingClientRect();
+    }
+  }
 }

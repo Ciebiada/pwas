@@ -37,3 +37,12 @@ export type EpubResource = {
   url: string;
   blob: Blob;
 };
+
+export type RendererOptions = {
+  container: HTMLElement;
+  fontSize: number;
+  fontFamily: string;
+  margin: number;
+  theme: "light" | "dark";
+  invertImages: boolean;
+};
