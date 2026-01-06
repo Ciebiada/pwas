@@ -6,7 +6,7 @@ import {
   fixCursorPositionForZeroWidthSpace,
   scrollCursorIntoView,
 } from "../services/cursor";
-import { processBeforeInput, processTab } from "../services/editorInput";
+import { processBeforeInput } from "../services/editorInput";
 import { toggleCheckbox } from "../services/markdown/features/todoList";
 import { renderMarkdown } from "../services/markdown/renderer";
 import { splitNote } from "../services/note";
@@ -18,6 +18,7 @@ import {
 } from "../services/preferences";
 import "./Editor.css";
 import { debounce } from "../services/debounce";
+import { handleTab } from "../services/markdown/input";
 
 export type EditorAPI = {
   focus: () => void;
@@ -111,11 +112,7 @@ export const Editor = (_props: EditorProps) => {
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key === "Tab") {
       event.preventDefault();
-      const result = processTab(
-        content(),
-        getSelection(editor),
-        event.shiftKey,
-      );
+      const result = handleTab(content(), getSelection(editor), event.shiftKey);
       applyEdit(result.content, result.cursor);
     }
   };

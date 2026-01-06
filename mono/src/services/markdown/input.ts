@@ -64,11 +64,15 @@ export const handleTab = (
   const listResult = handleListTab(content, selection, shiftKey);
   if (listResult) return listResult;
 
-  return {
-    content:
-      content.slice(0, selection.start) + INDENT + content.slice(selection.end),
-    cursor: selection.start + INDENT_SIZE,
-  };
+  return shiftKey
+    ? { content, cursor: selection.start }
+    : {
+        content:
+          content.slice(0, selection.start) +
+          INDENT +
+          content.slice(selection.end),
+        cursor: selection.start + INDENT_SIZE,
+      };
 };
 
 export const handleEnter = (

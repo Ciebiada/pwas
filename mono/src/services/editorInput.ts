@@ -2,19 +2,26 @@ import {
   handleBackspaceAtListStart,
   handleEnter,
   handleInput,
-  handleTab,
 } from "./markdown/input";
-import { insert } from "./markdown/utils";
+import { insert, INDENT, INDENT_SIZE } from "./markdown/utils";
 import { renumberOrderedList } from "./markdown/features/orderedList";
 
 type Selection = { start: number; end: number };
 type EditResult = { content: string; cursor: number };
 
-export const processTab = (
+const handleBackspaceAtIndent = (
   content: string,
   selection: Selection,
-  shiftKey: boolean,
-): EditResult => handleTab(content, selection, shiftKey);
+): EditResult | null => {
+  const { start, end } = selection;
+  if (start !== end || start < INDENT_SIZE) return null;
+  if (content.slice(start - INDENT_SIZE, start) !== INDENT) return null;
+
+  return {
+    content: insert(content, start - INDENT_SIZE, start, ""),
+    cursor: start - INDENT_SIZE,
+  };
+};
 
 export const processBeforeInput = (
   inputType: string,
@@ -82,6 +89,9 @@ export const processBeforeInput = (
     case "deleteContentBackward": {
       const listResult = handleBackspaceAtListStart(content, selection);
       if (listResult) return listResult;
+
+      const indentResult = handleBackspaceAtIndent(content, selection);
+      if (indentResult) return indentResult;
 
       if (end > start) {
         const afterDelete = insert(content, start, end, "");
