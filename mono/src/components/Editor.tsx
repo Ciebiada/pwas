@@ -86,7 +86,6 @@ export const Editor = (_props: EditorProps) => {
     };
     const onTextInput = (event: any) => (iosReplacementText = event.data);
     const fixCursorPosition = debounce((e: Event) => {
-      console.log("Fixing cursor position", e);
       if (document.activeElement !== editor) return;
       if (isIOS) {
         const vv = e.target as VisualViewport;

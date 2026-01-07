@@ -213,8 +213,7 @@ const renderListItem = (
               : "md-list-marker md-list-bullet"
         }
         contentEditable={false}
-        style={{ "user-select": "none", left: `${indentation}ch` }}
-        onMouseDown={(e) => isCheckbox && e.preventDefault()}
+        style={{ left: `${indentation}ch` }}
       >
         {isCheckbox ? (
           <input
