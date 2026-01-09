@@ -270,7 +270,7 @@ export class EpubRenderer {
       }
       // Even if complete, decoding might still be happening if not awaited earlier
       if ("decode" in img) {
-        promises.push(img.decode().catch(() => { }));
+        promises.push(img.decode().catch(() => {}));
       }
     });
 

@@ -13,69 +13,74 @@ const UA_STYLES = `
         `;
 
 export class EpubStyler {
-    constructor(
-        private parser: EpubParser,
-        private resolver: ResourceResolver,
-    ) { }
+  constructor(
+    private parser: EpubParser,
+    private resolver: ResourceResolver,
+  ) {}
 
-    async resolveCombinedStyles(doc: Document, baseHref: string): Promise<string> {
-        let combinedCss = `/* UA Styles */\n${UA_STYLES}\n`;
+  async resolveCombinedStyles(
+    doc: Document,
+    baseHref: string,
+  ): Promise<string> {
+    let combinedCss = `/* UA Styles */\n${UA_STYLES}\n`;
 
-        const styleTags = Array.from(doc.querySelectorAll("style"));
-        for (const tag of styleTags) {
-            combinedCss +=
-                (await this.resolver.resolveUrlsInCss(tag.textContent || "", baseHref)) +
-                "\n";
-        }
-
-        const links = Array.from(doc.querySelectorAll('link[rel="stylesheet"]'));
-        for (const link of links) {
-            const href = link.getAttribute("href");
-            if (href) {
-                const resolvedPath = this.resolver.resolveRelativePath(href, baseHref);
-                try {
-                    const css = await this.parser.getFileAsText(
-                        this.parser.resolvePath(resolvedPath),
-                    );
-                    const resolvedCss = await this.resolver.resolveUrlsInCss(
-                        css,
-                        resolvedPath,
-                    );
-                    combinedCss += `\n/* ${href} */\n${resolvedCss}\n`;
-                } catch (e) {
-                    console.warn(
-                        `[EpubStyler] Failed to load stylesheet: ${resolvedPath}`,
-                        e,
-                    );
-                }
-            }
-        }
-
-        const rewrittenCss = combinedCss.replace(
-            /(^|[}\s,])body(?=[\s.#[:{,])/gi,
-            "$1.epub-content",
-        );
-        return `<style>${rewrittenCss}</style>`;
+    const styleTags = Array.from(doc.querySelectorAll("style"));
+    for (const tag of styleTags) {
+      combinedCss +=
+        (await this.resolver.resolveUrlsInCss(
+          tag.textContent || "",
+          baseHref,
+        )) + "\n";
     }
 
-    applyStyles(
-        contentElement: HTMLElement | null,
-        shadowRoot: ShadowRoot | null,
-        options: RendererOptions,
-        preserveTransform: boolean = false,
-    ) {
-        if (!contentElement || !shadowRoot) return;
+    const links = Array.from(doc.querySelectorAll('link[rel="stylesheet"]'));
+    for (const link of links) {
+      const href = link.getAttribute("href");
+      if (href) {
+        const resolvedPath = this.resolver.resolveRelativePath(href, baseHref);
+        try {
+          const css = await this.parser.getFileAsText(
+            this.parser.resolvePath(resolvedPath),
+          );
+          const resolvedCss = await this.resolver.resolveUrlsInCss(
+            css,
+            resolvedPath,
+          );
+          combinedCss += `\n/* ${href} */\n${resolvedCss}\n`;
+        } catch (e) {
+          console.warn(
+            `[EpubStyler] Failed to load stylesheet: ${resolvedPath}`,
+            e,
+          );
+        }
+      }
+    }
 
-        const previousTransform = preserveTransform
-            ? contentElement.style.transform
-            : "";
+    const rewrittenCss = combinedCss.replace(
+      /(^|[}\s,])body(?=[\s.#[:{,])/gi,
+      "$1.epub-content",
+    );
+    return `<style>${rewrittenCss}</style>`;
+  }
 
-        const { fontSize, fontFamily, margin, container } = options;
+  applyStyles(
+    contentElement: HTMLElement | null,
+    shadowRoot: ShadowRoot | null,
+    options: RendererOptions,
+    preserveTransform: boolean = false,
+  ) {
+    if (!contentElement || !shadowRoot) return;
 
-        const containerWidth = container.clientWidth;
-        const columnWidth = containerWidth - margin * 2;
+    const previousTransform = preserveTransform
+      ? contentElement.style.transform
+      : "";
 
-        contentElement.style.cssText = `
+    const { fontSize, fontFamily, margin, container } = options;
+
+    const containerWidth = container.clientWidth;
+    const columnWidth = containerWidth - margin * 2;
+
+    contentElement.style.cssText = `
             box-sizing: border-box;
             font-size: ${fontSize}%;
             font-family: ${fontFamily};
@@ -90,20 +95,20 @@ export class EpubStyler {
             margin: 0;
             will-change: transform;
         `;
-        if (previousTransform) {
-            contentElement.style.transform = previousTransform;
-        }
+    if (previousTransform) {
+      contentElement.style.transform = previousTransform;
+    }
 
-        const styleId = "epub-image-styles";
-        let styleEl = shadowRoot.getElementById(styleId);
-        if (!styleEl) {
-            styleEl = document.createElement("style");
-            styleEl.id = styleId;
-            shadowRoot.insertBefore(styleEl, shadowRoot.firstChild);
-        }
-        const lineHeight = Math.round(fontSize * 0.16 * 1.6);
+    const styleId = "epub-image-styles";
+    let styleEl = shadowRoot.getElementById(styleId);
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = styleId;
+      shadowRoot.insertBefore(styleEl, shadowRoot.firstChild);
+    }
+    const lineHeight = Math.round(fontSize * 0.16 * 1.6);
 
-        styleEl.innerHTML = `
+    styleEl.innerHTML = `
             :host {
                 display: block;
                 width: 100%;
@@ -150,51 +155,51 @@ export class EpubStyler {
                 ${options.invertImages ? "filter: invert(1) hue-rotate(180deg);" : ""}
             }
         `;
-    }
+  }
 
-    snapMarginsToGrid(contentElement: HTMLElement | null, fontSize: number) {
-        if (!contentElement) return;
+  snapMarginsToGrid(contentElement: HTMLElement | null, fontSize: number) {
+    if (!contentElement) return;
 
-        const gridUnit = Math.round(fontSize * 0.16 * 1.6);
-        const elements = contentElement.querySelectorAll(
-            "h1, h2, h3, h4, h5, h6, p, blockquote, div, section, article, ul, ol, li, pre, figure, dt, dd",
-        );
+    const gridUnit = Math.round(fontSize * 0.16 * 1.6);
+    const elements = contentElement.querySelectorAll(
+      "h1, h2, h3, h4, h5, h6, p, blockquote, div, section, article, ul, ol, li, pre, figure, dt, dd",
+    );
 
-        elements.forEach((el) => {
-            const element = el as HTMLElement;
-            const computed = getComputedStyle(element);
+    elements.forEach((el) => {
+      const element = el as HTMLElement;
+      const computed = getComputedStyle(element);
 
-            const marginTop = parseFloat(computed.marginTop);
-            const marginBottom = parseFloat(computed.marginBottom);
-            const paddingTop = parseFloat(computed.paddingTop);
-            const paddingBottom = parseFloat(computed.paddingBottom);
+      const marginTop = parseFloat(computed.marginTop);
+      const marginBottom = parseFloat(computed.marginBottom);
+      const paddingTop = parseFloat(computed.paddingTop);
+      const paddingBottom = parseFloat(computed.paddingBottom);
 
-            if (marginTop > 0) {
-                const snapped = Math.round(marginTop / gridUnit) * gridUnit;
-                element.style.marginTop = `${snapped}px`;
-            }
-            if (marginBottom > 0) {
-                const snapped = Math.round(marginBottom / gridUnit) * gridUnit;
-                element.style.marginBottom = `${snapped}px`;
-            }
-            if (paddingTop > 0) {
-                const snapped = Math.round(paddingTop / gridUnit) * gridUnit;
-                element.style.paddingTop = `${snapped}px`;
-            }
-            if (paddingBottom > 0) {
-                const snapped = Math.round(paddingBottom / gridUnit) * gridUnit;
-                element.style.paddingBottom = `${snapped}px`;
-            }
-        });
+      if (marginTop > 0) {
+        const snapped = Math.round(marginTop / gridUnit) * gridUnit;
+        element.style.marginTop = `${snapped}px`;
+      }
+      if (marginBottom > 0) {
+        const snapped = Math.round(marginBottom / gridUnit) * gridUnit;
+        element.style.marginBottom = `${snapped}px`;
+      }
+      if (paddingTop > 0) {
+        const snapped = Math.round(paddingTop / gridUnit) * gridUnit;
+        element.style.paddingTop = `${snapped}px`;
+      }
+      if (paddingBottom > 0) {
+        const snapped = Math.round(paddingBottom / gridUnit) * gridUnit;
+        element.style.paddingBottom = `${snapped}px`;
+      }
+    });
 
-        const images = contentElement.querySelectorAll("img, svg");
-        images.forEach((el) => {
-            const element = el as HTMLElement;
-            const rect = element.getBoundingClientRect();
-            if (rect.height > 0) {
-                const snappedHeight = Math.round(rect.height / gridUnit) * gridUnit;
-                element.style.height = `${snappedHeight}px`;
-            }
-        });
-    }
+    const images = contentElement.querySelectorAll("img, svg");
+    images.forEach((el) => {
+      const element = el as HTMLElement;
+      const rect = element.getBoundingClientRect();
+      if (rect.height > 0) {
+        const snappedHeight = Math.round(rect.height / gridUnit) * gridUnit;
+        element.style.height = `${snappedHeight}px`;
+      }
+    });
+  }
 }

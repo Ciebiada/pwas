@@ -1,5 +1,11 @@
 import { timeFromNow } from "../services/date";
-import { Header, HeaderButton, MoreIcon, AddIcon } from "rams";
+import {
+  Header,
+  HeaderButton,
+  MoreIcon,
+  AddIcon,
+  ChevronRightIcon,
+} from "rams";
 import { createDexieArrayQuery } from "../services/solid-dexie";
 import { useNavigate } from "../hooks/useNavigate";
 import { db } from "../services/db";
@@ -35,7 +41,7 @@ export const NotesList = () => {
 
     return (
       content
-        .slice(0, 500)
+        .slice(0, 200)
         .split("\n")
         .map((line) =>
           line
@@ -45,8 +51,7 @@ export const NotesList = () => {
             .replace(/- \s*/, "• ")
             .trim(),
         )
-        .filter((line) => line !== "")
-        .join(" ") || "Empty note"
+        .filter((line) => line !== "")[0] || "Empty note"
     );
   };
 
@@ -102,7 +107,10 @@ export const NotesList = () => {
                 <div class="note-item-name">{note.name}</div>
                 <div class="note-item-preview">{getPreview(note.content)}</div>
               </div>
-              <div class="note-item-date">{timeFromNow(note.lastModified)}</div>
+              <div class="note-item-date">
+                {timeFromNow(note.lastModified)}
+                <ChevronRightIcon />
+              </div>
             </button>
           )}
         </For>
