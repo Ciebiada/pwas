@@ -3,12 +3,13 @@ import {
   INDENT_SIZE,
   InputResult,
   LIST_PATTERN,
+  TABLE_PATTERN,
   Selection,
   getLineRange,
 } from "./utils";
 import { MARKDOWN_FEATURES } from "./features";
 
-export const handleListTab = (
+export const handleBlockTab = (
   content: string,
   selection: Selection,
   shiftKey: boolean,
@@ -16,10 +17,11 @@ export const handleListTab = (
   const lineRange = getLineRange(content, selection.start);
   const { start: lineStart, line } = lineRange;
 
-  // Generic check if it's a list at all
-  if (!line.match(LIST_PATTERN)) return null;
+  // Check if line matches any navigable block (list or table)
+  const isTable = line.match(TABLE_PATTERN);
+  if (!line.match(LIST_PATTERN) && !isTable) return null;
 
-  // Try features first
+  // Try features
   for (const feature of MARKDOWN_FEATURES) {
     const match = line.match(feature.pattern);
     if (match && feature.onTab) {
@@ -34,26 +36,30 @@ export const handleListTab = (
     }
   }
 
-  // Default generic indentation handling
-  if (shiftKey) {
-    if (!line.startsWith(INDENT)) return null;
+  // Default generic indentation handling (lists only)
+  if (!isTable) {
+    if (shiftKey) {
+      if (!line.startsWith(INDENT)) return null;
+      return {
+        content:
+          content.slice(0, lineStart) +
+          line.slice(INDENT_SIZE) +
+          content.slice(lineRange.end),
+        cursor: selection.start - INDENT_SIZE,
+      };
+    }
+
     return {
       content:
         content.slice(0, lineStart) +
-        line.slice(INDENT_SIZE) +
+        INDENT +
+        line +
         content.slice(lineRange.end),
-      cursor: selection.start - INDENT_SIZE,
+      cursor: selection.start + INDENT_SIZE,
     };
   }
 
-  return {
-    content:
-      content.slice(0, lineStart) +
-      INDENT +
-      line +
-      content.slice(lineRange.end),
-    cursor: selection.start + INDENT_SIZE,
-  };
+  return null;
 };
 
 export const handleTab = (
@@ -61,8 +67,8 @@ export const handleTab = (
   selection: Selection,
   shiftKey: boolean,
 ): InputResult => {
-  const listResult = handleListTab(content, selection, shiftKey);
-  if (listResult) return listResult;
+  const blockResult = handleBlockTab(content, selection, shiftKey);
+  if (blockResult) return blockResult;
 
   return shiftKey
     ? { content, cursor: selection.start }
@@ -84,10 +90,16 @@ export const handleEnter = (
   const { start: lineStart, line: lineContent } = lineRange;
   const beforeCursor = lineContent.slice(0, start - lineStart);
 
-  // Quick check if we are in a list
-  if (beforeCursor.match(LIST_PATTERN)) {
+  // Check if we are in a list or table line
+  const isListLine = beforeCursor.match(LIST_PATTERN);
+  const isTableLine = lineContent.match(TABLE_PATTERN);
+
+  if (isListLine || isTableLine) {
+    // Use full line for table, beforeCursor for lists
+    const lineToMatch = isTableLine ? lineContent : beforeCursor;
+
     for (const feature of MARKDOWN_FEATURES) {
-      const match = beforeCursor.match(feature.pattern);
+      const match = lineToMatch.match(feature.pattern);
       if (match && feature.onEnter) {
         const result = feature.onEnter(content, selection, match, lineRange);
         if (result) return result;
@@ -112,20 +124,43 @@ export const handleBackspaceAtListStart = (
   const lineRange = getLineRange(content, start);
   const { start: lineStart, line } = lineRange;
 
-  const match = line.match(LIST_PATTERN);
-  if (!match) return null;
+  const listMatch = line.match(LIST_PATTERN);
+  const isTableLine = line.match(TABLE_PATTERN);
 
-  const prefix = match[1];
-  const cursorInLine = start - lineStart;
+  // For lists, check cursor position
+  if (listMatch) {
+    const prefix = listMatch[1];
+    const cursorInLine = start - lineStart;
 
-  if (cursorInLine !== prefix.length) return null;
+    if (cursorInLine === prefix.length) {
+      for (const feature of MARKDOWN_FEATURES) {
+        const fMatch = line.match(feature.pattern);
+        if (fMatch && feature.onBackspace) {
+          const result = feature.onBackspace(
+            content,
+            selection,
+            fMatch,
+            lineRange,
+          );
+          if (result) return result;
+        }
+      }
+    }
+  }
 
-  // Delegate to features
-  for (const feature of MARKDOWN_FEATURES) {
-    const fMatch = line.match(feature.pattern);
-    if (fMatch && feature.onBackspace) {
-      const result = feature.onBackspace(content, selection, fMatch, lineRange);
-      if (result) return result;
+  // For tables, use feature loop
+  if (isTableLine) {
+    for (const feature of MARKDOWN_FEATURES) {
+      const fMatch = line.match(feature.pattern);
+      if (fMatch && feature.onBackspace) {
+        const result = feature.onBackspace(
+          content,
+          selection,
+          fMatch,
+          lineRange,
+        );
+        if (result) return result;
+      }
     }
   }
 

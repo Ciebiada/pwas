@@ -5,6 +5,7 @@ export const INDENT = "    ";
 export const INDENT_SIZE = INDENT.length;
 
 export const LIST_PATTERN = /^(\s*([-*]|\d+\.)\s(?:\[[ x]\]\s)?)/;
+export const TABLE_PATTERN = /^\|/;
 
 export const getLineRange = (content: string, position: number) => {
   const start = content.lastIndexOf("\n", position - 1) + 1;

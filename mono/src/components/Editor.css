@@ -80,3 +80,9 @@
   outline: none;
   padding-left: 28px;
 }
+
+.md-table {
+  font-family: "SF Mono", "Menlo", "Monaco", "Consolas", monospace;
+  white-space: pre;
+  overflow-x: auto;
+}

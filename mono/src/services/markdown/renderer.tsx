@@ -14,7 +14,8 @@ type BlockType =
   | "paragraph"
   | "checkbox"
   | "list"
-  | "orderedList";
+  | "orderedList"
+  | "table";
 
 type InlineToken = {
   type: InlineTokenType;
@@ -66,6 +67,7 @@ const INLINE_PATTERNS: InlinePattern[] = [
 ];
 
 const BLOCK_PATTERNS = [
+  { type: "table" as const, regex: /^()(\|.*)$/ },
   { type: "h3" as const, regex: /^(### )(.*)/ },
   { type: "h2" as const, regex: /^(## )(.*)/ },
   { type: "h1" as const, regex: /^(# )(.*)/ },
@@ -247,6 +249,8 @@ const renderBlock = (
     case "list":
     case "orderedList":
       return renderListItem(block, index, className, content, onCheckboxToggle);
+    case "table":
+      return <div class="md-line md-table">{renderBlockContent(block)}</div>;
     default:
       return block.content ? (
         <div class="md-line md-text">{renderInlineMarkdown(block.content)}</div>
