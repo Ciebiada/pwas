@@ -44,6 +44,8 @@ const isSeparatorRow = (cells: string[]): boolean => {
   return cells.every((cell) => /^-+$/.test(cell.trim()));
 };
 
+const isNumeric = (str: string): boolean => /^-?[\d.,]+%?$/.test(str.trim());
+
 const formatTable = (
   lines: string[],
 ): { formatted: string[]; columnWidths: number[] } => {
@@ -57,14 +59,26 @@ const formatTable = (
     0,
   );
   const colWidths = new Array(colCount).fill(0);
+  const numericCounts = new Array(colCount).fill(0);
+  const totalCounts = new Array(colCount).fill(0);
 
-  // Calculate widths (content only, skip separator rows)
+  // Calculate widths and check for numeric content (skip separator rows)
   parsedRows.forEach((row) => {
     if (isSeparatorRow(row)) return;
     row.forEach((cell, i) => {
-      colWidths[i] = Math.max(colWidths[i], cell.trim().length);
+      const content = cell.trim();
+      colWidths[i] = Math.max(colWidths[i], content.length);
+      if (content) {
+        totalCounts[i]++;
+        if (isNumeric(content)) numericCounts[i]++;
+      }
     });
   });
+
+  // Determine alignment: right-align if > 50% of cells are numeric
+  const rightAlign = colWidths.map(
+    (_, i) => totalCounts[i] > 0 && numericCounts[i] / totalCounts[i] > 0.5,
+  );
 
   // Ensure minimum width of 1 for empty columns
   for (let i = 0; i < colWidths.length; i++) {
@@ -74,7 +88,7 @@ const formatTable = (
   // Rebuild lines
   const formatted = parsedRows.map((row) => {
     if (isSeparatorRow(row)) {
-      // Format as standard markdown separator: |----|----|
+      // Format as standard markdown separator: |----|-----|
       const pieces = colWidths.map((w) => "-".repeat(w + 2));
       return `|${pieces.join("|")}|`;
     }
@@ -84,7 +98,12 @@ const formatTable = (
       const cellContent = row[i] ? row[i].trim() : "";
       const width = colWidths[i];
       const padding = " ".repeat(Math.max(0, width - cellContent.length));
-      pieces.push(` ${cellContent}${padding} `);
+      // Right-align numeric columns, left-align otherwise
+      pieces.push(
+        rightAlign[i]
+          ? ` ${padding}${cellContent} `
+          : ` ${cellContent}${padding} `,
+      );
     }
     return `|${pieces.join("|")}|`;
   });
