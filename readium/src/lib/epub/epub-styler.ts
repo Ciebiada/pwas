@@ -176,19 +176,23 @@ export class EpubStyler {
 
       if (marginTop > 0) {
         const snapped = Math.round(marginTop / gridUnit) * gridUnit;
-        element.style.marginTop = `${snapped}px`;
+        element.style.setProperty("margin-top", `${snapped}px`, "important");
       }
       if (marginBottom > 0) {
         const snapped = Math.round(marginBottom / gridUnit) * gridUnit;
-        element.style.marginBottom = `${snapped}px`;
+        element.style.setProperty("margin-bottom", `${snapped}px`, "important");
       }
       if (paddingTop > 0) {
         const snapped = Math.round(paddingTop / gridUnit) * gridUnit;
-        element.style.paddingTop = `${snapped}px`;
+        element.style.setProperty("padding-top", `${snapped}px`, "important");
       }
       if (paddingBottom > 0) {
         const snapped = Math.round(paddingBottom / gridUnit) * gridUnit;
-        element.style.paddingBottom = `${snapped}px`;
+        element.style.setProperty(
+          "padding-bottom",
+          `${snapped}px`,
+          "important",
+        );
       }
     });
 
