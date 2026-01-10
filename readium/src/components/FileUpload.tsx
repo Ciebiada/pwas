@@ -20,14 +20,9 @@ const FileUpload = (props: { onUpload: () => void }) => {
 
       let coverBuffer: ArrayBuffer | undefined;
       try {
-        const coverId = Array.from(packageData.manifest.values()).find(
-          (item) =>
-            item.id === "cover" ||
-            item.id === "cover-image" ||
-            item.mediaType.startsWith("image/"),
-        );
-        if (coverId) {
-          const coverBlob = await parser.getFile(coverId.href);
+        const coverHref = await parser.getCoverImageHref();
+        if (coverHref) {
+          const coverBlob = await parser.getFile(coverHref);
           if (coverBlob) {
             coverBuffer = await coverBlob.arrayBuffer();
           }

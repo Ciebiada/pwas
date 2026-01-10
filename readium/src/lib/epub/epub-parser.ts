@@ -11,6 +11,7 @@ export class EpubParser {
   private zip: JSZip | null = null;
   private opfPath: string = "";
   private opfDir: string = "";
+  private opfDoc: Document | null = null;
 
   async load(arrayBuffer: ArrayBuffer): Promise<EpubPackage> {
     this.zip = await JSZip.loadAsync(arrayBuffer);
@@ -20,6 +21,7 @@ export class EpubParser {
 
     const opfContent = await this.getFileAsText(this.opfPath);
     const opfDoc = this.parseXml(opfContent);
+    this.opfDoc = opfDoc;
 
     const metadata = this.parseMetadata(opfDoc);
     const manifest = this.parseManifest(opfDoc);
@@ -170,5 +172,64 @@ export class EpubParser {
     if (path.startsWith("http")) return path;
 
     return this.opfDir + path;
+  }
+
+  async getCoverImageHref(): Promise<string | null> {
+    if (!this.opfDoc) return null;
+    const manifest = this.parseManifest(this.opfDoc);
+
+    // 1. EPUB 2: Check metadata for <meta name="cover" content="item-id"/>
+    const coverMeta = this.opfDoc.querySelector('meta[name="cover"]');
+    if (coverMeta) {
+      const coverId = coverMeta.getAttribute("content");
+      if (coverId) {
+        const item = manifest.get(coverId);
+        if (item?.mediaType.startsWith("image/")) {
+          return item.href;
+        }
+      }
+    }
+
+    // 2. EPUB 3: Check manifest for properties="cover-image"
+    const items = this.opfDoc.querySelectorAll("manifest > item");
+    for (const item of Array.from(items)) {
+      const properties = item.getAttribute("properties") || "";
+      if (properties.includes("cover-image")) {
+        return item.getAttribute("href");
+      }
+    }
+
+    // 3. Check guide for type="cover" and parse that page for embedded image
+    const guideRef = this.opfDoc.querySelector('guide reference[type="cover"]');
+    if (guideRef) {
+      const coverPageHref = guideRef.getAttribute("href");
+      if (coverPageHref) {
+        const coverPageContent = await this.getFileAsText(
+          this.resolvePath(coverPageHref.split("#")[0]),
+        );
+        if (coverPageContent) {
+          const coverDoc = this.parseXml(coverPageContent);
+          const img = coverDoc.querySelector("img");
+          if (img) {
+            const imgSrc = img.getAttribute("src");
+            if (imgSrc) {
+              return imgSrc;
+            }
+          }
+        }
+      }
+    }
+
+    // 4. Fallback: Look for manifest item with id containing "cover"
+    for (const item of manifest.values()) {
+      if (
+        item.mediaType.startsWith("image/") &&
+        item.id.toLowerCase().includes("cover")
+      ) {
+        return item.href;
+      }
+    }
+
+    return null;
   }
 }
