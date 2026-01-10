@@ -94,6 +94,8 @@ export class EpubStyler {
             position: relative;
             margin: 0;
             will-change: transform;
+            widows: 1;
+            orphans: 1;
         `;
     if (previousTransform) {
       contentElement.style.transform = previousTransform;
