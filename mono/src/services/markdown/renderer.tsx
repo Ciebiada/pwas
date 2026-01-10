@@ -222,6 +222,7 @@ const renderListItem = (
             type="checkbox"
             checked={isChecked}
             onChange={() => onCheckboxToggle?.(index)}
+            onPointerDown={(e) => e.preventDefault()}
           />
         ) : isOrdered ? (
           <span class="md-ordered-number" data-content={block.prefix.trim()} />
