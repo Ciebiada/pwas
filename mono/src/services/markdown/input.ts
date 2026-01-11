@@ -81,6 +81,26 @@ export const handleTab = (
       };
 };
 
+const trimLineBeforeNewline = (result: InputResult): InputResult => {
+  const newlinePos = result.content.lastIndexOf("\n", result.cursor - 1);
+  if (newlinePos === -1) return result;
+
+  const lineStart = result.content.lastIndexOf("\n", newlinePos - 1) + 1;
+  const lineBeforeNewline = result.content.slice(lineStart, newlinePos);
+  const trimmed = lineBeforeNewline.trimEnd();
+  const removed = lineBeforeNewline.length - trimmed.length;
+
+  if (removed === 0) return result;
+
+  return {
+    content:
+      result.content.slice(0, lineStart) +
+      trimmed +
+      result.content.slice(newlinePos),
+    cursor: result.cursor - removed,
+  };
+};
+
 export const handleEnter = (
   content: string,
   selection: Selection,
@@ -102,16 +122,17 @@ export const handleEnter = (
       const match = lineToMatch.match(feature.pattern);
       if (match && feature.onEnter) {
         const result = feature.onEnter(content, selection, match, lineRange);
-        if (result) return result;
+        if (result) return trimLineBeforeNewline(result);
       }
     }
   }
 
   // Default enter behavior
-  return {
+  const result = {
     content: content.slice(0, start) + "\n" + content.slice(end),
     cursor: start + 1,
   };
+  return trimLineBeforeNewline(result);
 };
 
 export const handleBackspaceAtListStart = (
