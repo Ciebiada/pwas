@@ -9,6 +9,16 @@ const UA_STYLES = `
             h2 { font-size: 1.4em; font-weight: bold; }
             h3 { font-size: 1.3em; font-weight: bold; }
             h4, h5, h6 { font-size: 1.1em; font-weight: bold; }
+            
+            /* Fix for books where paragraphs are incorrectly wrapped in headings */
+            h1 p, h2 p, h3 p, h4 p, h5 p, h6 p {
+                font-size: calc(1rem * var(--user-font-scale));
+                font-weight: normal;
+                line-height: 1.6; /* Ensure readable line height for body text */
+                text-transform: none;
+                letter-spacing: normal;
+            }
+
             figure { margin: 0; padding: 0; }
         `;
 
@@ -76,11 +86,13 @@ export class EpubStyler {
       : "";
 
     const { fontSize, fontFamily, margin, container } = options;
+    const userScale = fontSize / 100;
 
     const containerWidth = container.clientWidth;
     const columnWidth = containerWidth - margin * 2;
 
     contentElement.style.cssText = `
+            --user-font-scale: ${userScale};
             box-sizing: border-box;
             font-size: ${fontSize}%;
             font-family: ${fontFamily};
@@ -135,6 +147,9 @@ export class EpubStyler {
             .epub-content dt,
             .epub-content dd,
             .epub-content th,
+            .epub-content td {
+                line-height: ${lineHeight}px !important;
+            }
             .epub-content td {
                 line-height: ${lineHeight}px !important;
             }
@@ -205,6 +220,32 @@ export class EpubStyler {
       if (rect.height > 0) {
         const snappedHeight = Math.round(rect.height / gridUnit) * gridUnit;
         element.style.height = `${snappedHeight}px`;
+      }
+    });
+
+    this.normalizeInlineElements(contentElement);
+  }
+
+  normalizeInlineElements(contentElement: HTMLElement) {
+    const inlineElements = contentElement.querySelectorAll(
+      "p span, p a, div span, div a",
+    );
+
+    const defaultFontSize = parseFloat(
+      getComputedStyle(contentElement).fontSize,
+    );
+
+    inlineElements.forEach((el) => {
+      const element = el as HTMLElement;
+      const computed = getComputedStyle(element);
+      const fontSize = parseFloat(computed.fontSize);
+
+      // If font size is significantly larger than base text (e.g., > 1.2x),
+      // it's likely a drop cap or emphasis that might break the grid.
+      // We fix this by enforcing vertical-align: text-bottom and line-height: inherit.
+      if (fontSize > defaultFontSize * 1.2) {
+        element.style.setProperty("vertical-align", "text-bottom", "important");
+        element.style.setProperty("line-height", "inherit", "important");
       }
     });
   }
