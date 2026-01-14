@@ -58,6 +58,16 @@
   top: 0;
 }
 
+input[type="checkbox"] {
+  position: relative;
+}
+
+input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+
 .md-ordered-marker,
 .md-list-bullet {
   color: var(--text-secondary-color);

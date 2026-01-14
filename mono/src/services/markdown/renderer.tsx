@@ -1,5 +1,6 @@
 import { JSX } from "solid-js";
 import { Dynamic } from "solid-js/web";
+import { triggerHaptic } from "../../hooks/useHaptic";
 
 type InlineTokenType =
   | "text"
@@ -221,7 +222,10 @@ const renderListItem = (
           <input
             type="checkbox"
             checked={isChecked}
-            onChange={() => onCheckboxToggle?.(index)}
+            onChange={() => {
+              triggerHaptic();
+              onCheckboxToggle?.(index);
+            }}
             onPointerDown={(e) => e.preventDefault()}
           />
         ) : isOrdered ? (
