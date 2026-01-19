@@ -1,13 +1,6 @@
 import { createSignal, Show, Accessor, Setter } from "solid-js";
-import {
-  Modal,
-  ModalButton,
-  ModalToggle,
-  ModalPage,
-  useModal,
-  ChevronRightIcon,
-  CheckIcon,
-} from "rams";
+import { Modal, ModalButton, ModalToggle, ModalPage, useModal } from "ui/Modal";
+import { ChevronRightIcon, CheckIcon } from "ui/Icons";
 import { DropboxIcon, GoogleDriveIcon } from "./Icons";
 import { DropboxProvider } from "../services/sync/dropboxProvider";
 import { GoogleDriveProvider } from "../services/sync/googleDriveProvider";

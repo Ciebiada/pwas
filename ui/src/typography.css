@@ -34,26 +34,6 @@ h3 {
   color: var(--text-strong-color);
 }
 
-.page-container {
-  margin-top: env(safe-area-inset-top);
-}
-
-.page-container.with-header {
-  margin-top: calc(68px + env(safe-area-inset-top));
-}
-
-.page-title {
-  padding-top: 16px;
-  padding-left: 16px;
-  user-select: none;
-  -webkit-user-select: none;
-  margin-bottom: 16px;
-}
-
-.page-content {
-  padding: 16px;
-}
-
 a {
   color: var(--text-color);
   text-decoration: underline;
@@ -74,9 +54,4 @@ a:hover {
   cursor: pointer;
   color: var(--text-color);
   -webkit-tap-highlight-color: transparent;
-}
-
-.inline-icon-button:active {
-  /* transform: scale(1.32);
-  filter: brightness(5); */
 }

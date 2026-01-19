@@ -11,7 +11,7 @@ import { toggleCheckbox } from "../services/markdown/features/todoList";
 import { renderMarkdown } from "../services/markdown/renderer";
 import { splitNote } from "../services/note";
 import { useCustomCaret } from "../services/customCaret";
-import { isIOS } from "../services/platform";
+import { isIOS } from "../../../ui/src/platform";
 import {
   isCustomCaretEnabled,
   isMonospaceEnabled,
@@ -39,10 +39,14 @@ export const Editor = (_props: EditorProps) => {
   const [content, setContent] = createSignal(props.initialContent);
 
   let editor: HTMLDivElement;
+  let container: HTMLDivElement | undefined;
   let iosReplacementText = "";
 
   if (isCustomCaretEnabled()) {
-    useCustomCaret(() => editor);
+    useCustomCaret(
+      () => container,
+      () => editor,
+    );
   }
 
   const emitChange = () => {
@@ -149,15 +153,17 @@ export const Editor = (_props: EditorProps) => {
   };
 
   return (
-    <div
-      ref={(e) => (editor = e)}
-      classList={{ editor: true, monospace: isMonospaceEnabled() }}
-      contentEditable={true}
-      spellcheck={false}
-      onBeforeInput={handleBeforeInput}
-      onKeyDown={handleKeyDown}
-    >
-      {renderMarkdown(content(), handleCheckboxToggle)}
+    <div style={{ position: "relative" }} ref={container}>
+      <div
+        ref={(e) => (editor = e)}
+        classList={{ editor: true, monospace: isMonospaceEnabled() }}
+        contentEditable={true}
+        spellcheck={false}
+        onBeforeInput={handleBeforeInput}
+        onKeyDown={handleKeyDown}
+      >
+        {renderMarkdown(content(), handleCheckboxToggle)}
+      </div>
     </div>
   );
 };

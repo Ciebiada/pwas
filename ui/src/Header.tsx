@@ -1,8 +1,22 @@
 import type { JSX } from "solid-js";
 import "./Header.css";
+import { useActivatable } from "./useActivatable";
+import { isScrolled } from "./scrollState";
 
-export const Header = (props: { children: JSX.Element }) => {
-  return <header class="header">{props.children}</header>;
+export const Header = (props: { children: JSX.Element; title?: string }) => {
+  return (
+    <header class="header">
+      {props.title && (
+        <h2
+          class="header-title"
+          classList={{ "header-title-fade": isScrolled() }}
+        >
+          {props.title}
+        </h2>
+      )}
+      {props.children}
+    </header>
+  );
 };
 
 export const HeaderButton = (props: {
@@ -10,15 +24,20 @@ export const HeaderButton = (props: {
   children: JSX.Element;
   primary?: boolean;
   right?: boolean;
-}) => (
-  <button
-    class="header-button"
-    classList={{
-      "header-button-primary": props.primary,
-      "header-right": props.right,
-    }}
-    onClick={props.onClick}
-  >
-    {props.children}
-  </button>
-);
+}) => {
+  const activatableRef = useActivatable({ fastRelease: true });
+
+  return (
+    <button
+      ref={activatableRef}
+      class="header-button"
+      classList={{
+        "header-button-primary": props.primary,
+        "header-right": props.right,
+      }}
+      onClick={props.onClick}
+    >
+      {props.children}
+    </button>
+  );
+};

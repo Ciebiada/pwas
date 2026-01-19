@@ -1,6 +1,8 @@
-import { Header, HeaderButton, BackIcon } from "rams";
+import { Header, HeaderButton } from "ui/Header";
+import { BackIcon } from "ui/Icons";
 import { useNavigate } from "../hooks/useNavigate";
 import { renderMarkdown } from "../services/markdown/renderer";
+import { Page } from "ui/Page";
 
 const ABOUT_CONTENT = `### Private & Secure
 Unlike most other note-taking apps, Mono is **open source** and runs entirely in your browser. There is no backend - your notes are synced by calling the official APIs of your storage provider directly from your device. Your data remains under your control.
@@ -19,19 +21,22 @@ export const About = () => {
 
   return (
     <>
-      <Header>
-        <HeaderButton onClick={() => navigate("/", { back: true })}>
-          <BackIcon />
-        </HeaderButton>
-      </Header>
-      <div class="page-container with-header">
+      <Page
+        header={
+          <Header>
+            <HeaderButton onClick={() => navigate("/", { back: true })}>
+              <BackIcon />
+            </HeaderButton>
+          </Header>
+        }
+      >
         <div class="page-content">
           <div class="editor">
             <h1>About Mono</h1>
             {renderMarkdown(ABOUT_CONTENT, () => {})}
           </div>
         </div>
-      </div>
+      </Page>
     </>
   );
 };

@@ -9,9 +9,11 @@ import { NewNote } from "./pages/NewNote";
 import { About } from "./pages/About";
 import { DropboxCallback } from "./pages/DropboxCallback";
 import { GoogleDriveCallback } from "./pages/GoogleDriveCallback";
-import "rams/reset.css";
-import "rams/theme.css";
-import "rams/typography.css";
+import "ui/reset.css";
+import "ui/theme.css";
+import "ui/typography.css";
+import { useLocation } from "@solidjs/router";
+import { setIsScrolled, getScrollPosition } from "ui/scrollState";
 import "./pwa";
 
 const root = document.getElementById("root");
@@ -22,9 +24,16 @@ if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
   );
 }
 
+const App = (props: any) => {
+  const location = useLocation();
+  const saved = getScrollPosition(location.pathname);
+  setIsScrolled(saved !== undefined ? saved > 10 : false);
+  return props.children;
+};
+
 render(() => {
   return (
-    <Router explicitLinks>
+    <Router explicitLinks root={App}>
       <Route path="/" component={NotesList} />
       <Route path="/new" component={NewNote} />
       <Route path="/note/:id" component={EditNote} />

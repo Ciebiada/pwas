@@ -20,6 +20,10 @@
     filter 0.2s;
 }
 
+.note-item:first-child {
+  margin-top: 16px;
+}
+
 .note-item:last-child {
   border-bottom: none;
 }
@@ -37,7 +41,7 @@
   }
 }
 
-.note-item:active {
+.note-item.activated {
   background-color: var(--bg-secondary-color);
 }
 

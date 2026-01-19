@@ -1,21 +1,16 @@
 import { createSignal, Show, onMount, onCleanup, createEffect } from "solid-js";
 import { useParams } from "@solidjs/router";
 import { Editor, EditorAPI } from "../components/Editor";
-import {
-  Header,
-  HeaderButton,
-  Modal,
-  ModalButton,
-  BackIcon,
-  MoreIcon,
-  ModalPage,
-} from "rams";
+import { Header, HeaderButton } from "ui/Header";
+import { Modal, ModalButton, ModalPage } from "ui/Modal";
+import { BackIcon, MoreIcon } from "ui/Icons";
 import { useNavigate } from "../hooks/useNavigate";
 import { db } from "../services/db";
 import { syncNote, wasSynced } from "../services/sync";
 
 import { debounce } from "../services/debounce";
 import { createDexieSignalQuery } from "../services/solid-dexie";
+import { Page } from "ui/Page";
 
 export const EditNote = () => {
   const navigate = useNavigate();
@@ -88,15 +83,18 @@ export const EditNote = () => {
 
   return (
     <>
-      <Header>
-        <HeaderButton onClick={() => navigate("/")}>
-          <BackIcon />
-        </HeaderButton>
-        <HeaderButton right onClick={() => setModalOpen(true)}>
-          <MoreIcon />
-        </HeaderButton>
-      </Header>
-      <div class="page-container with-header">
+      <Page
+        header={
+          <Header>
+            <HeaderButton onClick={() => navigate("/")}>
+              <BackIcon />
+            </HeaderButton>
+            <HeaderButton right onClick={() => setModalOpen(true)}>
+              <MoreIcon />
+            </HeaderButton>
+          </Header>
+        }
+      >
         <div class="page-content">
           <Show when={note()}>
             <Editor
@@ -109,7 +107,7 @@ export const EditNote = () => {
             />
           </Show>
         </div>
-      </div>
+      </Page>
       <Modal
         open={modalOpen}
         setOpen={setModalOpen}

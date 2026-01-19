@@ -179,8 +179,8 @@ body.modal-open {
   }
 }
 
-.modal-button:active,
-.modal-select-wrapper:active .modal-button {
+.modal-button.activated,
+.modal-native-select.activated + .modal-button {
   background-color: color-mix(
     in srgb,
     var(--element-background-color),
@@ -212,16 +212,10 @@ body.modal-open {
   display: inline-block;
   width: 64px;
   height: 28px;
-  cursor: pointer;
   flex-shrink: 0;
+  cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  touch-action: none;
-}
-
-.modal-toggle-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
+  touch-action: pan-y;
 }
 
 .modal-toggle-slider {
@@ -247,20 +241,20 @@ body.modal-open {
     0 3px 1px rgba(0, 0, 0, 0.06);
 }
 
-.modal-toggle-switch:active .modal-toggle-slider::before {
-  transform: scale(1.5);
-}
-
-.modal-toggle-switch input:checked + .modal-toggle-slider {
+.modal-toggle-switch[data-checked] .modal-toggle-slider {
   background-color: var(--green-color);
 }
 
-.modal-toggle-switch input:checked + .modal-toggle-slider::before {
+.modal-toggle-switch[data-checked] .modal-toggle-slider::before {
   transform: translateX(22px);
 }
 
-.modal-toggle-switch:active input:checked + .modal-toggle-slider::before {
-  transform: translateX(22px) scale(1.5);
+.modal-toggle-switch.activated .modal-toggle-slider::before {
+  transform: scale(1.1);
+}
+
+.modal-toggle-switch.activated[data-checked] .modal-toggle-slider::before {
+  transform: translateX(22px) scale(1.1);
 }
 
 .modal-pages-container {
@@ -272,11 +266,13 @@ body.modal-open {
 }
 
 .modal-page {
+  position: relative;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
   touch-action: none;
+  height: 100%;
 }
 
 .modal-page-scrollable {

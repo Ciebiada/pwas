@@ -13,6 +13,10 @@ import { BackIcon, CloseIcon, ChevronUpDownIcon } from "./Icons";
 import "./Modal.css";
 import { useModalStack } from "./useModalStack";
 import { useSheetDrag } from "./useSheetDrag";
+import { setIsScrolling, setIsScrolled } from "./scrollState";
+import { useActivatable } from "./useActivatable";
+import { triggerHaptic } from "./haptic";
+import { isIOS } from "./platform";
 
 const MODAL_ANIMATION_DURATION = 400;
 const MODAL_FAST_ANIMATION_DURATION = 100;
@@ -48,16 +52,6 @@ export const Modal = (props: ModalProps) => {
   const [isVisible, setIsVisible] = createSignal(false);
   const [isClosing, setIsClosing] = createSignal(false);
 
-  const lockScroll = () => {
-    document.body.classList.add("modal-open");
-    document.documentElement.classList.add("modal-open");
-  };
-
-  const unlockScroll = () => {
-    document.body.classList.remove("modal-open");
-    document.documentElement.classList.remove("modal-open");
-  };
-
   const closeWithAnimation = async (fast?: boolean) => {
     if (isClosing() || !isVisible()) return;
 
@@ -81,11 +75,12 @@ export const Modal = (props: ModalProps) => {
       setIsClosing(false);
       setIsVisible(false);
     });
-    unlockScroll();
+
     props.onClose?.();
   };
 
   const sheet = useSheetDrag(() => closeWithAnimation());
+  const headerActivatableRef = useActivatable({ fastRelease: true });
 
   createEffect(() => {
     const isOpen = props.open();
@@ -100,8 +95,6 @@ export const Modal = (props: ModalProps) => {
         sheet.setModalPosition(window.innerHeight);
       });
 
-      lockScroll();
-
       // Ensure the browser acknowledges the starting position before animating
       requestAnimationFrame(() => {
         sheet.setModalPosition(window.innerHeight * 0.5);
@@ -109,10 +102,6 @@ export const Modal = (props: ModalProps) => {
     } else if (isVisible() && !isClosing()) {
       closeWithAnimation();
     }
-  });
-
-  onCleanup(() => {
-    unlockScroll();
   });
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -186,6 +175,7 @@ export const Modal = (props: ModalProps) => {
                 onTouchStart={sheet.handleDragStart}
               >
                 <button
+                  ref={headerActivatableRef}
                   class="header-button"
                   onClick={() =>
                     modalStack.isRoot()
@@ -235,6 +225,16 @@ export const ModalPage = (props: ModalPageProps) => {
     }
   };
 
+  const handleScroll = (e: Event) => {
+    if (pageRef) {
+      setIsScrolling(true);
+    }
+  };
+
+  const handleScrollEnd = () => {
+    setIsScrolling(false);
+  };
+
   createEffect(() => {
     if (currentPage() === props.id && pageRef) {
       checkScrollable();
@@ -251,8 +251,13 @@ export const ModalPage = (props: ModalPageProps) => {
       <div
         ref={pageRef}
         class="modal-page"
-        classList={{ "modal-page-scrollable": isScrollable() }}
+        classList={{
+          "modal-page-scrollable": isScrollable(),
+          overscroll: isIOS,
+        }}
         data-animate={direction()}
+        onScroll={handleScroll}
+        onscrollend={handleScrollEnd}
       >
         {props.children}
       </div>
@@ -270,6 +275,7 @@ type ModalButtonProps = {
 
 export const ModalButton = (props: ModalButtonProps) => {
   const { close } = useModal();
+  const activatableRef = useActivatable();
 
   const handleClick = () => {
     props.onClick?.(close);
@@ -277,6 +283,7 @@ export const ModalButton = (props: ModalButtonProps) => {
 
   return (
     <button
+      ref={activatableRef}
       class="modal-button"
       classList={{
         "modal-button-danger": props.danger,
@@ -297,17 +304,24 @@ type ModalToggleProps = {
 };
 
 export const ModalToggle = (props: ModalToggleProps) => {
+  const activatableRef = useActivatable();
+
+  const handleClick = () => {
+    triggerHaptic();
+    props.onChange(!props.checked());
+  };
+
   return (
     <div class="modal-toggle">
       <span class="modal-toggle-label">{props.label}</span>
-      <label class="modal-toggle-switch">
-        <input
-          type="checkbox"
-          checked={props.checked()}
-          onChange={(e) => props.onChange(e.currentTarget.checked)}
-        />
+      <span
+        ref={activatableRef}
+        class="modal-toggle-switch"
+        data-checked={props.checked() ? "" : undefined}
+        onClick={handleClick}
+      >
         <span class="modal-toggle-slider" />
-      </label>
+      </span>
     </div>
   );
 };
@@ -322,6 +336,7 @@ type ModalSelectProps = {
 
 export const ModalSelect = (props: ModalSelectProps) => {
   let selectRef: HTMLSelectElement | undefined;
+  const activatableRef = useActivatable();
   const [displayText, setDisplayText] = createSignal("");
 
   const updateDisplayText = () => {
@@ -338,6 +353,17 @@ export const ModalSelect = (props: ModalSelectProps) => {
 
   return (
     <div class="modal-select-wrapper">
+      <select
+        ref={(el) => {
+          selectRef = el;
+          activatableRef(el);
+        }}
+        class="modal-native-select"
+        value={props.value}
+        onChange={(e) => props.onChange(e.currentTarget.value)}
+      >
+        {props.children}
+      </select>
       <div class="modal-button">
         <span>{props.label}</span>
         <div class="modal-select-content">
@@ -347,14 +373,6 @@ export const ModalSelect = (props: ModalSelectProps) => {
           <ChevronUpDownIcon />
         </div>
       </div>
-      <select
-        ref={selectRef}
-        class="modal-native-select"
-        value={props.value}
-        onChange={(e) => props.onChange(e.currentTarget.value)}
-      >
-        {props.children}
-      </select>
     </div>
   );
 };
@@ -408,6 +426,9 @@ export const ModalSlider = (props: ModalSliderProps) => {
     <div
       ref={sliderRef}
       class="modal-slider-wrapper modal-button"
+      classList={{
+        activated: isSliding(),
+      }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

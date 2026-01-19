@@ -20,14 +20,19 @@ const getVisibleRect = (node: Node, atEnd: boolean): DOMRect | null => {
   return rect.height > 0 ? rect : null;
 };
 
-export const useCustomCaret = (getEditor: () => HTMLElement | undefined) => {
+export const useCustomCaret = (
+  getContainer: () => HTMLElement | undefined,
+  getEditor: () => HTMLElement | undefined,
+) => {
   onMount(() => {
     const editor = getEditor();
-    if (!editor) return;
+    const container = getContainer();
+
+    if (!editor || !container) return;
 
     const caret = document.createElement("div");
     caret.className = "custom-caret";
-    document.body.appendChild(caret);
+    container.appendChild(caret);
 
     let blinkTimeout: number | undefined;
 
@@ -81,12 +86,14 @@ export const useCustomCaret = (getEditor: () => HTMLElement | undefined) => {
 
     const updateCaretPosition = () => {
       const range = getValidCollapsedRange();
-      if (!range) return;
+      if (!range || !container) return;
+      
       const rect = getRectForVisibleContent(range);
       if (rect.height === 0) return;
 
-      const left = rect.left + window.scrollX;
-      const top = rect.top + window.scrollY;
+      const containerRect = container.getBoundingClientRect();
+      const left = rect.left - containerRect.left;
+      const top = rect.top - containerRect.top;
 
       caret.style.left = `${left}px`;
       caret.style.top = `${top}px`;
@@ -126,7 +133,6 @@ export const useCustomCaret = (getEditor: () => HTMLElement | undefined) => {
 
     document.addEventListener("selectionchange", handleSelectionChange);
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("scroll", updateCaretPosition, true);
     window.addEventListener("resize", updateCaretPosition);
     editor.addEventListener("blur", hideCaret);
     editor.addEventListener("focus", handleFocus);
@@ -135,7 +141,6 @@ export const useCustomCaret = (getEditor: () => HTMLElement | undefined) => {
       clearBlinkTimer();
       document.removeEventListener("selectionchange", handleSelectionChange);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("scroll", updateCaretPosition, true);
       window.removeEventListener("resize", updateCaretPosition);
       editor.removeEventListener("blur", hideCaret);
       editor.removeEventListener("focus", handleFocus);
