@@ -144,6 +144,21 @@ const getRangeAtOffset = (
   return range;
 };
 
+const getScrollParent = (node: Node | null): HTMLElement | null => {
+  if (!node || !(node instanceof HTMLElement)) {
+    return null;
+  }
+
+  const { overflowY } = window.getComputedStyle(node);
+  const isScrollable = overflowY !== "visible" && overflowY !== "hidden";
+
+  if (isScrollable && node.scrollHeight > node.clientHeight) {
+    return node;
+  }
+
+  return getScrollParent(node.parentNode);
+};
+
 export const scrollCursorIntoView = (
   selection: Selection,
   behavior: ScrollBehavior,
@@ -153,17 +168,60 @@ export const scrollCursorIntoView = (
   const viewport = window.visualViewport;
 
   if (
-    !viewport ||
+    viewport &&
     (rect.top >= SCROLL_MARGIN_PX &&
       rect.bottom <= viewport.height - SCROLL_MARGIN_PX)
   ) {
     return;
   }
 
-  range.commonAncestorContainer.parentElement?.scrollIntoView({
-    behavior,
-    block: "center",
-  });
+  const container = range.commonAncestorContainer;
+  const element =
+    container.nodeType === Node.TEXT_NODE
+      ? container.parentElement
+      : (container as HTMLElement);
+
+  if (!element) return;
+
+  const scrollParent = getScrollParent(element);
+
+  if (scrollParent && viewport) {
+    const viewportTop = SCROLL_MARGIN_PX;
+    const viewportBottom = viewport.height - SCROLL_MARGIN_PX;
+
+    let delta = 0;
+
+    if (rect.top < viewportTop) {
+      delta = rect.top - viewportTop;
+    } else if (rect.bottom > viewportBottom) {
+      delta = rect.bottom - viewportBottom;
+    }
+
+    console.log("scrolling: ", {
+      delta,
+      rectTop: rect.top,
+      rectBottom: rect.bottom,
+      viewportTop,
+      viewportBottom,
+    });
+
+    console.log("scrollParent: ", scrollParent);
+
+    if (delta !== 0) {
+      // this is necessary for some reason. Let's investigate why
+      window.setTimeout(() => {
+        scrollParent.scrollBy({
+          top: delta,
+          behavior,
+        });
+      }, 10);
+    }
+  } else {
+    element.scrollIntoView({
+      behavior,
+      block: "nearest",
+    });
+  }
 };
 
 export const getSelection = (element: HTMLElement): CursorPosition => {

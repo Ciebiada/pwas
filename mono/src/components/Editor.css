@@ -4,7 +4,17 @@
 
 .editor[contenteditable="true"] {
   min-height: 100vh;
+  padding-bottom: calc(var(--keyboard-offset, 0) + 32px);
 }
+
+/* @keyframes blink_input_opacity_to_prevent_scrolling_when_focus {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.editor:focus {
+    animation: blink_input_opacity_to_prevent_scrolling_when_focus 0.5s;
+} */
 
 .markdown-delimiter,
 .markdown-prefix {

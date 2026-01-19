@@ -41,6 +41,8 @@ export const Editor = (_props: EditorProps) => {
   let editor: HTMLDivElement;
   let container: HTMLDivElement | undefined;
   let iosReplacementText = "";
+  let ghostInput: HTMLInputElement | undefined;
+  let touchStart: { x: number; y: number } | null = null;
 
   if (isCustomCaretEnabled()) {
     useCustomCaret(
@@ -56,13 +58,16 @@ export const Editor = (_props: EditorProps) => {
 
   const applyEdit = (newContent: string, cursor: number) => {
     setContent(newContent);
-    setSelection(editor, cursor);
+    setSelection(editor, cursor, { scroll: true });
     emitChange();
   };
 
   onMount(() => {
     props.onReady?.({
-      focus: () => editor.focus(),
+      focus: () => {
+        editor.focus({ preventScroll: true });
+        scrollCursorIntoView(window.getSelection()!, "instant");
+      },
       replaceContent: (name: string, noteContent: string) => {
         const newContent = name + (noteContent ? "\n" + noteContent : "");
         const { start } = getSelection(editor);
@@ -78,7 +83,8 @@ export const Editor = (_props: EditorProps) => {
     setSelection(editor, props.initialCursor, { scroll: true });
 
     if (props.autoFocus && !isIOS) {
-      editor.focus();
+      editor.focus({ preventScroll: true });
+      scrollCursorIntoView(window.getSelection()!, "instant");
     } else {
       editor.blur();
     }
@@ -94,19 +100,21 @@ export const Editor = (_props: EditorProps) => {
       if (isIOS) {
         const vv = e.target as VisualViewport;
         // Capture only initial resize event
-        if (vv.offsetTop == vv.pageTop)
-          scrollCursorIntoView(window.getSelection()!, "instant");
+        // document.documentElement.scrollTo(0, 0);
+        // if (vv.offsetTop == vv.pageTop) scrollCursorIntoView(window.getSelection()!, "instant");
       }
     }, 100);
 
     document.addEventListener("selectionchange", onSelectionChange);
     editor.addEventListener("textInput", onTextInput);
+
     if (window.visualViewport)
       window.visualViewport.addEventListener("resize", fixCursorPosition);
 
     onCleanup(() => {
       document.removeEventListener("selectionchange", onSelectionChange);
       editor.removeEventListener("textInput", onTextInput);
+
       if (window.visualViewport)
         window.visualViewport.removeEventListener("resize", fixCursorPosition);
     });
@@ -152,8 +160,64 @@ export const Editor = (_props: EditorProps) => {
     emitChange();
   };
 
+  const handleTouchStart = (e: TouchEvent) => {
+    if (isIOS && document.activeElement !== editor) {
+      touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+  };
+
+  const handleTouchEnd = (e: TouchEvent) => {
+    if (!touchStart || !ghostInput) return;
+
+    const touchEnd = e.changedTouches[0];
+    const distance = Math.hypot(
+      touchEnd.clientX - touchStart.x,
+      touchEnd.clientY - touchStart.y,
+    );
+
+    touchStart = null;
+
+    if (distance < 10) {
+      e.preventDefault();
+
+      const range = document.caretRangeFromPoint(
+        touchEnd.clientX,
+        touchEnd.clientY,
+      );
+
+      ghostInput.focus({ preventScroll: true });
+
+      setTimeout(() => {
+        editor.focus({ preventScroll: true });
+        if (range) {
+          const selection = window.getSelection();
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        }
+        scrollCursorIntoView(window.getSelection()!, "smooth");
+      }, 150);
+    }
+  };
+
   return (
-    <div style={{ position: "relative" }} ref={container}>
+    <div
+      style={{ position: "relative" }}
+      ref={container}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      <input
+        ref={(e) => (ghostInput = e)}
+        style={{
+          position: "fixed",
+          top: "0",
+          left: "0",
+          opacity: "0",
+          "pointer-events": "none",
+          height: "0",
+          width: "0",
+        }}
+      />
       <div
         ref={(e) => (editor = e)}
         classList={{ editor: true, monospace: isMonospaceEnabled() }}

@@ -250,11 +250,11 @@ body.modal-open {
 }
 
 .modal-toggle-switch.activated .modal-toggle-slider::before {
-  transform: scale(1.1);
+  transform: scale(1.5);
 }
 
 .modal-toggle-switch.activated[data-checked] .modal-toggle-slider::before {
-  transform: translateX(22px) scale(1.1);
+  transform: translateX(22px) scale(1.5);
 }
 
 .modal-pages-container {

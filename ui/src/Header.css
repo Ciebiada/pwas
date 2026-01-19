@@ -1,7 +1,7 @@
 .header {
-  position: fixed;
+  position: absolute;
   /* top: var(--offset-top, 0); */
-  bottom: calc(var(--viewport-height, 0) - 76px - env(safe-area-inset-top));
+  /* bottom: calc(var(--viewport-height, 0) - 76px - env(safe-area-inset-top)); */
   left: 0;
   right: 0;
   display: flex;

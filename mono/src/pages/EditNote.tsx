@@ -83,6 +83,14 @@ export const EditNote = () => {
 
   return (
     <>
+          <Header>
+            <HeaderButton onClick={() => navigate("/")}>
+              <BackIcon />
+            </HeaderButton>
+            <HeaderButton right onClick={() => setModalOpen(true)}>
+              <MoreIcon />
+            </HeaderButton>
+          </Header>
       <Page
         header={
           <Header>

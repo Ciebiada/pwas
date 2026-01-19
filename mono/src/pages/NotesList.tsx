@@ -54,6 +54,14 @@ export const NotesList = () => {
 
   return (
     <>
+          <Header title="Notes">
+            <HeaderButton right onClick={() => navigate("/new")}>
+              <AddIcon />
+            </HeaderButton>
+            <HeaderButton onClick={() => setModalOpen(true)}>
+              <MoreIcon />
+            </HeaderButton>
+          </Header>
       <Page
         header={
           <Header title="Notes">

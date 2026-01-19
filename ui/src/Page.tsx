@@ -36,34 +36,9 @@ export const Page = (props: PageProps) => {
     let active = true;
 
     const handleVisualViewportChange = () => {
-      if (!containerRef || !window.visualViewport) return;
-      const offset = window.innerHeight - window.visualViewport.height;
-      containerRef.style.setProperty(
-        "--offset-top",
-        `${window.visualViewport.offsetTop}px`,
-      );
-      containerRef.style.setProperty(
-        "--page-top",
-        `${window.visualViewport.pageTop}px`,
-      );
-      containerRef.style.setProperty(
-        "--window-height",
-        `${window.innerHeight}px`,
-      );
-      containerRef.style.setProperty(
-        "--viewport-height",
-        `${window.visualViewport.height}px`,
-      );
-      console.log('pageTop: ', window.visualViewport.pageTop);
-      console.log('offsetTop: ', window.visualViewport.offsetTop);
-      console.log('viewport height: ', window.visualViewport.height);
-      console.log('window height: ', window.innerHeight);
-      containerRef.style.setProperty(
-        "--keyboard-shift",
-        window.visualViewport.offsetTop > 0 ?
-        `${window.visualViewport.height}px` : "0",
-      )
-      containerRef.style.setProperty("--keyboard-offset", `${offset}px`);
+      if (!scrollRef || !window.visualViewport) return;
+      const offset = window.outerHeight - window.visualViewport.height;
+      scrollRef.style.setProperty("--keyboard-offset", `${offset}px`);
     };
 
     if (window.visualViewport) {
@@ -111,8 +86,6 @@ export const Page = (props: PageProps) => {
   });
 
   return (
-    <div class="page-container" ref={containerRef}>
-      {props.header}
       <div
         ref={scrollRef}
         onScroll={(e) => {
@@ -127,6 +100,5 @@ export const Page = (props: PageProps) => {
       >
         {props.children}
       </div>
-    </div>
   );
 };
