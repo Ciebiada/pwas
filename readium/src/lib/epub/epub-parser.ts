@@ -1,11 +1,5 @@
 import JSZip from "jszip";
-import type {
-  EpubPackage,
-  EpubMetadata,
-  EpubManifestItem,
-  EpubSpineItem,
-  EpubNavPoint,
-} from "./epub-types";
+import type { EpubPackage, EpubMetadata, EpubManifestItem, EpubSpineItem, EpubNavPoint } from "./epub-types";
 
 export class EpubParser {
   private zip: JSZip | null = null;
@@ -70,11 +64,9 @@ export class EpubParser {
 
     return {
       title: metadata?.querySelector("title")?.textContent || "Unknown Title",
-      creator:
-        metadata?.querySelector("creator")?.textContent || "Unknown Author",
+      creator: metadata?.querySelector("creator")?.textContent || "Unknown Author",
       language: metadata?.querySelector("language")?.textContent || undefined,
-      identifier:
-        metadata?.querySelector("identifier")?.textContent || undefined,
+      identifier: metadata?.querySelector("identifier")?.textContent || undefined,
       publisher: metadata?.querySelector("publisher")?.textContent || undefined,
     };
   }
@@ -94,10 +86,7 @@ export class EpubParser {
     return manifest;
   }
 
-  private parseSpine(
-    opfDoc: Document,
-    manifest: Map<string, EpubManifestItem>,
-  ): EpubSpineItem[] {
+  private parseSpine(opfDoc: Document, manifest: Map<string, EpubManifestItem>): EpubSpineItem[] {
     const spine: EpubSpineItem[] = [];
     const items = opfDoc.querySelectorAll("spine > itemref");
 
@@ -128,12 +117,8 @@ export class EpubParser {
     return spine;
   }
 
-  private async parseToc(
-    manifest: Map<string, EpubManifestItem>,
-  ): Promise<EpubNavPoint[]> {
-    const ncxItem = Array.from(manifest.values()).find(
-      (item) => item.mediaType === "application/x-dtbncx+xml",
-    );
+  private async parseToc(manifest: Map<string, EpubManifestItem>): Promise<EpubNavPoint[]> {
+    const ncxItem = Array.from(manifest.values()).find((item) => item.mediaType === "application/x-dtbncx+xml");
 
     if (!ncxItem) return [];
 
@@ -155,9 +140,7 @@ export class EpubParser {
 
     const childNavPoints = element.querySelectorAll(":scope > navPoint");
     const children =
-      childNavPoints.length > 0
-        ? Array.from(childNavPoints).map((np) => this.parseNavPoint(np))
-        : undefined;
+      childNavPoints.length > 0 ? Array.from(childNavPoints).map((np) => this.parseNavPoint(np)) : undefined;
 
     return { id, label, content, children };
   }
@@ -204,9 +187,7 @@ export class EpubParser {
     if (guideRef) {
       const coverPageHref = guideRef.getAttribute("href");
       if (coverPageHref) {
-        const coverPageContent = await this.getFileAsText(
-          this.resolvePath(coverPageHref.split("#")[0]),
-        );
+        const coverPageContent = await this.getFileAsText(this.resolvePath(coverPageHref.split("#")[0]));
         if (coverPageContent) {
           const coverDoc = this.parseXml(coverPageContent);
           const img = coverDoc.querySelector("img");
@@ -222,10 +203,7 @@ export class EpubParser {
 
     // 4. Fallback: Look for manifest item with id containing "cover"
     for (const item of manifest.values()) {
-      if (
-        item.mediaType.startsWith("image/") &&
-        item.id.toLowerCase().includes("cover")
-      ) {
+      if (item.mediaType.startsWith("image/") && item.id.toLowerCase().includes("cover")) {
         return item.href;
       }
     }

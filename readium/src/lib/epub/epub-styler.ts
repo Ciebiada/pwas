@@ -28,19 +28,12 @@ export class EpubStyler {
     private resolver: ResourceResolver,
   ) {}
 
-  async resolveCombinedStyles(
-    doc: Document,
-    baseHref: string,
-  ): Promise<string> {
+  async resolveCombinedStyles(doc: Document, baseHref: string): Promise<string> {
     let combinedCss = `/* UA Styles */\n${UA_STYLES}\n`;
 
     const styleTags = Array.from(doc.querySelectorAll("style"));
     for (const tag of styleTags) {
-      combinedCss +=
-        (await this.resolver.resolveUrlsInCss(
-          tag.textContent || "",
-          baseHref,
-        )) + "\n";
+      combinedCss += (await this.resolver.resolveUrlsInCss(tag.textContent || "", baseHref)) + "\n";
     }
 
     const links = Array.from(doc.querySelectorAll('link[rel="stylesheet"]'));
@@ -49,27 +42,16 @@ export class EpubStyler {
       if (href) {
         const resolvedPath = this.resolver.resolveRelativePath(href, baseHref);
         try {
-          const css = await this.parser.getFileAsText(
-            this.parser.resolvePath(resolvedPath),
-          );
-          const resolvedCss = await this.resolver.resolveUrlsInCss(
-            css,
-            resolvedPath,
-          );
+          const css = await this.parser.getFileAsText(this.parser.resolvePath(resolvedPath));
+          const resolvedCss = await this.resolver.resolveUrlsInCss(css, resolvedPath);
           combinedCss += `\n/* ${href} */\n${resolvedCss}\n`;
         } catch (e) {
-          console.warn(
-            `[EpubStyler] Failed to load stylesheet: ${resolvedPath}`,
-            e,
-          );
+          console.warn(`[EpubStyler] Failed to load stylesheet: ${resolvedPath}`, e);
         }
       }
     }
 
-    const rewrittenCss = combinedCss.replace(
-      /(^|[}\s,])body(?=[\s.#[:{,])/gi,
-      "$1.epub-content",
-    );
+    const rewrittenCss = combinedCss.replace(/(^|[}\s,])body(?=[\s.#[:{,])/gi, "$1.epub-content");
     return `<style>${rewrittenCss}</style>`;
   }
 
@@ -81,9 +63,7 @@ export class EpubStyler {
   ) {
     if (!contentElement || !shadowRoot) return;
 
-    const previousTransform = preserveTransform
-      ? contentElement.style.transform
-      : "";
+    const previousTransform = preserveTransform ? contentElement.style.transform : "";
 
     const { fontSize, fontFamily, margin, container } = options;
     const userScale = fontSize / 100;
@@ -205,11 +185,7 @@ export class EpubStyler {
       }
       if (paddingBottom > 0) {
         const snapped = Math.round(paddingBottom / gridUnit) * gridUnit;
-        element.style.setProperty(
-          "padding-bottom",
-          `${snapped}px`,
-          "important",
-        );
+        element.style.setProperty("padding-bottom", `${snapped}px`, "important");
       }
     });
 
@@ -227,13 +203,9 @@ export class EpubStyler {
   }
 
   normalizeInlineElements(contentElement: HTMLElement) {
-    const inlineElements = contentElement.querySelectorAll(
-      "p span, p a, div span, div a",
-    );
+    const inlineElements = contentElement.querySelectorAll("p span, p a, div span, div a");
 
-    const defaultFontSize = parseFloat(
-      getComputedStyle(contentElement).fontSize,
-    );
+    const defaultFontSize = parseFloat(getComputedStyle(contentElement).fontSize);
 
     inlineElements.forEach((el) => {
       const element = el as HTMLElement;

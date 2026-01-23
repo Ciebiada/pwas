@@ -24,9 +24,5 @@ export type MarkdownFeature = {
     match: RegExpMatchArray,
     lineRange: LineRange,
   ) => InputResult | null;
-  onInput?: (
-    char: string,
-    content: string,
-    selection: Selection,
-  ) => InputResult | null;
+  onInput?: (char: string, content: string, selection: Selection) => InputResult | null;
 };

@@ -26,11 +26,7 @@ export class EpubRenderer {
   private resizeObserver: ResizeObserver;
   private onRelocated?: (location: any) => void;
 
-  constructor(
-    parser: EpubParser,
-    packageData: EpubPackage,
-    options: RendererOptions,
-  ) {
+  constructor(parser: EpubParser, packageData: EpubPackage, options: RendererOptions) {
     this.parser = parser;
     this.package = packageData;
     this.options = options;
@@ -68,11 +64,7 @@ export class EpubRenderer {
     }
   }
 
-  async displayCFI(
-    cfi: CFI,
-    internal: boolean = false,
-    suppressPaint: boolean = false,
-  ): Promise<void> {
+  async displayCFI(cfi: CFI, internal: boolean = false, suppressPaint: boolean = false): Promise<void> {
     if (!internal && this.isBusy) return;
     if (!internal) this.isBusy = true;
 
@@ -98,10 +90,7 @@ export class EpubRenderer {
       if (parsed.path && this.contentElement) {
         await this.waitForLayout("async");
 
-        const element = CFIHelper.getElementByPath(
-          this.contentElement,
-          parsed.path,
-        );
+        const element = CFIHelper.getElementByPath(this.contentElement, parsed.path);
         if (element instanceof HTMLElement) {
           const containerWidth = this.options.container.clientWidth;
           const margin = this.options.margin;
@@ -114,10 +103,7 @@ export class EpubRenderer {
           // Robust absolute offset for multi-column nested elements
           let elementLeft: number | undefined;
           if (parsed.offset > 0) {
-            const rect = CFIHelper.getTargetCharClientRect(
-              element,
-              parsed.offset,
-            );
+            const rect = CFIHelper.getTargetCharClientRect(element, parsed.offset);
             if (rect) {
               const contentRect = this.contentElement.getBoundingClientRect();
               elementLeft = rect.left - contentRect.left;
@@ -125,10 +111,7 @@ export class EpubRenderer {
           }
 
           if (elementLeft === undefined) {
-            elementLeft = this.locationTracker.getVirtualOffsetLeft(
-              element,
-              this.contentElement,
-            );
+            elementLeft = this.locationTracker.getVirtualOffsetLeft(element, this.contentElement);
           }
 
           // elementLeft is relative to contentElement origin (left padding edge).
@@ -150,10 +133,7 @@ export class EpubRenderer {
 
           this.goToPage(pageIndex, true);
         } else {
-          console.warn(
-            "[Renderer] CFI path not found in document:",
-            parsed.path,
-          );
+          console.warn("[Renderer] CFI path not found in document:", parsed.path);
         }
       }
     } finally {
@@ -190,8 +170,7 @@ export class EpubRenderer {
 
       // If we are re-rendering the *same* chapter (e.g. resize / style update),
       // preserve the current transform so the user doesn't see a snap back to page 1.
-      const preserveTransform =
-        Boolean(this.contentElement) && index === this.currentSpineIndex;
+      const preserveTransform = Boolean(this.contentElement) && index === this.currentSpineIndex;
 
       this.currentSpineIndex = index;
       const spineItem = this.package.spine[index];
@@ -202,19 +181,14 @@ export class EpubRenderer {
         return;
       }
 
-      const htmlContent = await this.parser.getFileAsText(
-        this.parser.resolvePath(manifestItem.href),
-      );
+      const htmlContent = await this.parser.getFileAsText(this.parser.resolvePath(manifestItem.href));
 
       const parser = new DOMParser();
       const doc = parser.parseFromString(htmlContent, "text/html");
 
       await this.resourceResolver.resolveImages(doc, manifestItem.href);
       this.resourceResolver.resolveLinks(doc);
-      const styles = await this.epubStyler.resolveCombinedStyles(
-        doc,
-        manifestItem.href,
-      );
+      const styles = await this.epubStyler.resolveCombinedStyles(doc, manifestItem.href);
 
       // Extract body attributes
       const attributes: any = {};
@@ -288,11 +262,7 @@ export class EpubRenderer {
     void this.contentElement.offsetWidth;
   }
 
-  private renderHtml(
-    html: string,
-    attributes?: any,
-    preserveTransform: boolean = false,
-  ) {
+  private renderHtml(html: string, attributes?: any, preserveTransform: boolean = false) {
     if (!this.shadowHost) {
       this.shadowHost = document.createElement("div");
       this.shadowHost.className = "epub-shadow-host";
@@ -319,16 +289,8 @@ export class EpubRenderer {
     }
 
     this.contentElement.innerHTML = html;
-    this.epubStyler.applyStyles(
-      this.contentElement,
-      this.shadowRoot,
-      this.options,
-      preserveTransform,
-    );
-    this.epubStyler.snapMarginsToGrid(
-      this.contentElement,
-      this.options.fontSize,
-    );
+    this.epubStyler.applyStyles(this.contentElement, this.shadowRoot, this.options, preserveTransform);
+    this.epubStyler.snapMarginsToGrid(this.contentElement, this.options.fontSize);
   }
 
   async handleResize() {
@@ -340,16 +302,8 @@ export class EpubRenderer {
       const cfi = currentLocation?.start?.cfi;
 
       // Preserve the current transform while restyling to avoid flashing page 1.
-      this.epubStyler.applyStyles(
-        this.contentElement,
-        this.shadowRoot,
-        this.options,
-        true,
-      );
-      this.epubStyler.snapMarginsToGrid(
-        this.contentElement,
-        this.options.fontSize,
-      );
+      this.epubStyler.applyStyles(this.contentElement, this.shadowRoot, this.options, true);
+      this.epubStyler.snapMarginsToGrid(this.contentElement, this.options.fontSize);
       await this.waitForLayout();
       this.calculatePages();
 
@@ -396,13 +350,7 @@ export class EpubRenderer {
       this.goToPage(this.currentPage + 1);
       return true;
     } else if (this.currentSpineIndex < this.package.spine.length - 1) {
-      await this.displaySpineIndex(
-        this.currentSpineIndex + 1,
-        false,
-        false,
-        "async",
-        true,
-      );
+      await this.displaySpineIndex(this.currentSpineIndex + 1, false, false, "async", true);
       return true;
     }
     return false;
@@ -419,12 +367,7 @@ export class EpubRenderer {
       this.options.container.style.visibility = "hidden";
       try {
         // Use skipInitialPage to avoid flashing page 0
-        await this.displaySpineIndex(
-          this.currentSpineIndex - 1,
-          true,
-          true,
-          "async",
-        );
+        await this.displaySpineIndex(this.currentSpineIndex - 1, true, true, "async");
         this.goToPage(this.totalPages - 1, true);
         return true;
       } finally {

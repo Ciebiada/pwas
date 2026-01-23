@@ -1,11 +1,4 @@
-import {
-  from,
-  Accessor,
-  createMemo,
-  createEffect,
-  on,
-  onCleanup,
-} from "solid-js";
+import { from, Accessor, createMemo, createEffect, on, onCleanup } from "solid-js";
 import { createStore, reconcile, SetStoreFunction } from "solid-js/store";
 import { liveQuery, PromiseExtended } from "dexie";
 
@@ -20,10 +13,7 @@ export function createDexieSignalQuery<T>(
   return () => get()();
 }
 
-export function createDexieArrayQuery<T>(
-  querier: () => T[] | Promise<T[]>,
-  options?: ReconcileOptions,
-): T[] {
+export function createDexieArrayQuery<T>(querier: () => T[] | Promise<T[]>, options?: ReconcileOptions): T[] {
   const [store, setStore] = createStore<T[]>([]);
 
   createEffect(
@@ -37,9 +27,7 @@ export function createDexieArrayQuery<T>(
 
 function fromReconcileStore<T>(
   producer: {
-    subscribe: (
-      fn: (v: T) => void,
-    ) => (() => void) | { unsubscribe: () => void };
+    subscribe: (fn: (v: T) => void) => (() => void) | { unsubscribe: () => void };
   },
   store: T,
   setStore: SetStoreFunction<T>,

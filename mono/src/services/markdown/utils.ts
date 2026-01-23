@@ -19,9 +19,5 @@ export const lineEnd = (content: string, start: number) => {
   return index === -1 ? content.length : index;
 };
 
-export const insert = (
-  content: string,
-  start: number,
-  end: number,
-  text: string,
-) => content.slice(0, start) + text + content.slice(end);
+export const insert = (content: string, start: number, end: number, text: string) =>
+  content.slice(0, start) + text + content.slice(end);

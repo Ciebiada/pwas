@@ -2,25 +2,17 @@ import { JSX, onMount, onCleanup } from "solid-js";
 import { useLocation, useBeforeLeave } from "@solidjs/router";
 import "./Page.css";
 import { isIOS } from "./platform";
-import {
-  setIsScrolling,
-  setIsScrolled,
-  saveScrollPosition,
-  getScrollPosition,
-} from "./scrollState";
+import { setIsScrolling, setIsScrolled, saveScrollPosition, getScrollPosition } from "./scrollState";
 
 type PageProps = {
   children: JSX.Element;
-  header?: JSX.Element;
 };
 
 export const Page = (props: PageProps) => {
   let scrollRef: HTMLDivElement | undefined;
-  let containerRef: HTMLDivElement | undefined;
   const location = useLocation();
   const savedPosition = getScrollPosition(location.pathname);
 
-  // Set isScrolled immediately based on saved position to prevent header flash during view transitions
   if (savedPosition !== undefined) {
     setIsScrolled(savedPosition > 10);
   }
@@ -37,25 +29,20 @@ export const Page = (props: PageProps) => {
 
     const handleVisualViewportChange = () => {
       if (!scrollRef || !window.visualViewport) return;
-      const offset = window.outerHeight - window.visualViewport.height;
-      scrollRef.style.setProperty("--keyboard-offset", `${offset}px`);
+      const offset = window.innerHeight - window.visualViewport.height;
+      const padding = 64; // adding just the keybord height as a bottom padding is enough to be able to scroll to the bottom
+      if (isIOS) scrollRef.style.setProperty("--keyboard-offset", `${offset + padding}px`);
     };
 
     if (window.visualViewport) {
-      window.visualViewport.addEventListener(
-        "resize",
-        handleVisualViewportChange,
-      );
+      window.visualViewport.addEventListener("resize", handleVisualViewportChange);
       handleVisualViewportChange();
     }
 
     onCleanup(() => {
       active = false;
       if (window.visualViewport) {
-        window.visualViewport.removeEventListener(
-          "resize",
-          handleVisualViewportChange,
-        );
+        window.visualViewport.removeEventListener("resize", handleVisualViewportChange);
       }
     });
 
@@ -86,19 +73,19 @@ export const Page = (props: PageProps) => {
   });
 
   return (
-      <div
-        ref={scrollRef}
-        onScroll={(e) => {
-          setIsScrolling(true);
-          setIsScrolled(e.currentTarget.scrollTop > 10);
-        }}
-        onscrollend={() => setIsScrolling(false)}
-        class="page"
-        classList={{
-          overscroll: isIOS,
-        }}
-      >
-        {props.children}
-      </div>
+    <div
+      ref={scrollRef}
+      onScroll={(e) => {
+        setIsScrolling(true);
+        setIsScrolled(e.currentTarget.scrollTop > 10);
+      }}
+      onscrollend={() => setIsScrolling(false)}
+      class="page"
+      classList={{
+        overscroll: isIOS,
+      }}
+    >
+      {props.children}
+    </div>
   );
 };

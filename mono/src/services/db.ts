@@ -43,8 +43,7 @@ db.version(3).stores({
 
 db.version(4)
   .stores({
-    notes:
-      "++id, name, status, content, cursor, lastOpened, dropboxId, lastModified, lastSync, syncedContent",
+    notes: "++id, name, status, content, cursor, lastOpened, dropboxId, lastModified, lastSync, syncedContent",
   })
   .upgrade(async (tx) => {
     const notes = await tx.table("notes").toArray();
@@ -72,8 +71,7 @@ db.version(5)
   });
 
 db.version(6).stores({
-  notes:
-    "++id, name, status, content, cursor, lastOpened, dropboxId, lastModified, lastSync, syncedContent",
+  notes: "++id, name, status, content, cursor, lastOpened, dropboxId, lastModified, lastSync, syncedContent",
 });
 
 db.version(8).stores({

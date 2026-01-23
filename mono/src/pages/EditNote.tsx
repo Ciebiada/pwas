@@ -24,9 +24,12 @@ export const EditNote = () => {
 
   const handleFocusSync = () => syncNote(noteId);
 
-  onMount(() => {
+  onMount(async () => {
     syncNote(noteId);
     window.addEventListener("focus", handleFocusSync);
+
+    const n = await db.notes.get(noteId);
+    if (!n) navigate("/", { replace: true });
   });
 
   onCleanup(() => {
@@ -78,31 +81,20 @@ export const EditNote = () => {
       await db.notes.delete(noteId);
     }
 
-    navigate("/", { back: true });
+    navigate(-1, { back: true });
   };
 
   return (
     <>
-          <Header>
-            <HeaderButton onClick={() => navigate("/")}>
-              <BackIcon />
-            </HeaderButton>
-            <HeaderButton right onClick={() => setModalOpen(true)}>
-              <MoreIcon />
-            </HeaderButton>
-          </Header>
-      <Page
-        header={
-          <Header>
-            <HeaderButton onClick={() => navigate("/")}>
-              <BackIcon />
-            </HeaderButton>
-            <HeaderButton right onClick={() => setModalOpen(true)}>
-              <MoreIcon />
-            </HeaderButton>
-          </Header>
-        }
-      >
+      <Header>
+        <HeaderButton onClick={() => navigate(-1, { back: true })}>
+          <BackIcon />
+        </HeaderButton>
+        <HeaderButton right onClick={() => setModalOpen(true)}>
+          <MoreIcon />
+        </HeaderButton>
+      </Header>
+      <Page>
         <div class="page-content">
           <Show when={note()}>
             <Editor
@@ -116,12 +108,7 @@ export const EditNote = () => {
           </Show>
         </div>
       </Page>
-      <Modal
-        open={modalOpen}
-        setOpen={setModalOpen}
-        title="Note Actions"
-        onClose={() => setModalOpen(false)}
-      >
+      <Modal open={modalOpen} setOpen={setModalOpen} title="Note Actions" onClose={() => setModalOpen(false)}>
         <ModalPage id="root">
           <ModalButton danger onClick={handleDelete}>
             Delete Note

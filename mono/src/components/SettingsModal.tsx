@@ -12,10 +12,7 @@ import {
   setMonospaceEnabled,
 } from "../services/preferences";
 import { disconnectDropbox } from "../services/sync/dropbox";
-import {
-  getAuthUrl as getGoogleAuthUrl,
-  disconnectGoogleDrive,
-} from "../services/sync/googleDrive";
+import { getAuthUrl as getGoogleAuthUrl, disconnectGoogleDrive } from "../services/sync/googleDrive";
 import "./SettingsModal.css";
 
 type SettingsModalProps = {
@@ -26,17 +23,10 @@ type SettingsModalProps = {
 const SettingsModalContent = () => {
   const { push } = useModal();
   const navigate = useNavigate();
-  const [isDropboxConnected, setIsDropboxConnected] = createSignal(
-    DropboxProvider.isAuthenticated(),
-  );
-  const [isGoogleDriveConnected, setIsGoogleDriveConnected] = createSignal(
-    GoogleDriveProvider.isAuthenticated(),
-  );
-  const [customCaretEnabled, setCustomCaretEnabledSignal] = createSignal(
-    isCustomCaretEnabled(),
-  );
-  const [monospaceEnabled, setMonospaceEnabledSignal] =
-    createSignal(isMonospaceEnabled());
+  const [isDropboxConnected, setIsDropboxConnected] = createSignal(DropboxProvider.isAuthenticated());
+  const [isGoogleDriveConnected, setIsGoogleDriveConnected] = createSignal(GoogleDriveProvider.isAuthenticated());
+  const [customCaretEnabled, setCustomCaretEnabledSignal] = createSignal(isCustomCaretEnabled());
+  const [monospaceEnabled, setMonospaceEnabledSignal] = createSignal(isMonospaceEnabled());
 
   const handleCustomCaretChange = (enabled: boolean) => {
     setCustomCaretEnabled(enabled);
@@ -160,22 +150,12 @@ const SettingsModalContent = () => {
             </Show>
           </ModalButton>
         </div>
-        <p class="settings-description">
-          Select a provider to sync your notes.
-        </p>
+        <p class="settings-description">Select a provider to sync your notes.</p>
       </ModalPage>
 
       <ModalPage id="preferences">
-        <ModalToggle
-          label="Animate Cursor"
-          checked={customCaretEnabled}
-          onChange={handleCustomCaretChange}
-        />
-        <ModalToggle
-          label="Monospace Font"
-          checked={monospaceEnabled}
-          onChange={handleMonospaceChange}
-        />
+        <ModalToggle label="Animate Cursor" checked={customCaretEnabled} onChange={handleCustomCaretChange} />
+        <ModalToggle label="Monospace Font" checked={monospaceEnabled} onChange={handleMonospaceChange} />
       </ModalPage>
     </>
   );

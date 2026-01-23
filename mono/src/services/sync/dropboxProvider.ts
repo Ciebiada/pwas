@@ -29,10 +29,7 @@ export const DropboxProvider: SyncProvider = {
       ...file,
     };
   },
-  uploadFile: async (
-    path: string,
-    content: string,
-  ): Promise<UploadResponse> => {
+  uploadFile: async (path: string, content: string): Promise<UploadResponse> => {
     const res = await uploadFile(path, content);
     return {
       id: res.id,

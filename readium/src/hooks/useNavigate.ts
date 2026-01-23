@@ -14,8 +14,7 @@ export const useNavigate = () => {
   const isRouting = useIsRouting();
 
   return (path: string, options?: { back?: boolean; replace?: boolean }) => {
-    if (!document.startViewTransition)
-      return navigate(path, { replace: options?.replace });
+    if (!document.startViewTransition) return navigate(path, { replace: options?.replace });
 
     const transition = document.startViewTransition(async () => {
       navigate(path, { replace: options?.replace });

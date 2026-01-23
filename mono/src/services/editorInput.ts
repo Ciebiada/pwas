@@ -1,18 +1,11 @@
-import {
-  handleBackspaceAtListStart,
-  handleEnter,
-  handleInput,
-} from "./markdown/input";
+import { handleBackspaceAtListStart, handleEnter, handleInput } from "./markdown/input";
 import { insert, INDENT, INDENT_SIZE } from "./markdown/utils";
 import { renumberOrderedList } from "./markdown/features/orderedList";
 
 type Selection = { start: number; end: number };
 type EditResult = { content: string; cursor: number };
 
-const handleBackspaceAtIndent = (
-  content: string,
-  selection: Selection,
-): EditResult | null => {
+const handleBackspaceAtIndent = (content: string, selection: Selection): EditResult | null => {
   const { start, end } = selection;
   if (start !== end || start < INDENT_SIZE) return null;
   if (content.slice(start - INDENT_SIZE, start) !== INDENT) return null;

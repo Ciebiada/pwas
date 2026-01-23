@@ -1,15 +1,13 @@
 .page {
-    position: absolute;
-    width: 100%;
-    height: calc(100% + env(safe-area-inset-top));
-    padding-top: calc(44px + 16px + env(safe-area-inset-top));
-    overscroll-behavior-y: contain;
-    overflow-y: auto;
-    /* top: var(--offset-top, 0); */
-    /* padding-bottom: calc(var(--keyboard-offset, 0) + 32px); */
-    /* padding-bottom: 500px; */
+  position: absolute;
+  width: 100%;
+  height: calc(100% + env(safe-area-inset-top));
+  padding-top: calc(44px + 16px + env(safe-area-inset-top));
+  overscroll-behavior-y: contain;
+  overflow-y: auto;
 }
 
 .page-content {
-    padding: 16px;
+  height: 100%;
+  padding: 16px;
 }

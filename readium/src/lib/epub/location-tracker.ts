@@ -34,10 +34,7 @@ export class LocationTracker {
     const chapterPercentage = totalPages > 0 ? currentPage / totalPages : 0;
     const globalProgress =
       this.totalBookSize > 0
-        ? ((chapterBaseSize +
-            chapterPercentage * (currentSpineItem.size || 0)) /
-            this.totalBookSize) *
-          100
+        ? ((chapterBaseSize + chapterPercentage * (currentSpineItem.size || 0)) / this.totalBookSize) * 100
         : 0;
 
     const displayed = {
@@ -67,25 +64,14 @@ export class LocationTracker {
     // Calculate offset if element starts off-screen (to the left of current visible column)
     let offset = 0;
     const rects = element.getClientRects();
-    const rect =
-      rects && rects.length > 0 ? rects[0] : element.getBoundingClientRect();
+    const rect = rects && rects.length > 0 ? rects[0] : element.getBoundingClientRect();
     const elementLeftInContent = rect.left - contentRect.left;
 
     if (elementLeftInContent < visibleMin - fuzzPx) {
-      offset = this.findFirstVisibleCharOffset(
-        element,
-        contentElement,
-        currentPage,
-        options,
-      );
+      offset = this.findFirstVisibleCharOffset(element, contentElement, currentPage, options);
     }
 
-    const cfi = CFIHelper.generate(
-      currentSpineIndex,
-      element,
-      contentElement,
-      offset,
-    );
+    const cfi = CFIHelper.generate(currentSpineIndex, element, contentElement, offset);
 
     return {
       start: {
@@ -173,10 +159,7 @@ export class LocationTracker {
     return 0;
   }
 
-  getFirstVisibleElement(
-    contentElement: HTMLElement | null,
-    options: RendererOptions,
-  ): Element | null {
+  getFirstVisibleElement(contentElement: HTMLElement | null, options: RendererOptions): Element | null {
     if (!contentElement) return null;
 
     const containerRect = options.container.getBoundingClientRect();
@@ -195,24 +178,17 @@ export class LocationTracker {
       (t) =>
         contentElement.contains(t) &&
         t !== contentElement &&
-        !["div", "section", "article", "body"].includes(
-          t.tagName.toLowerCase(),
-        ),
+        !["div", "section", "article", "body"].includes(t.tagName.toLowerCase()),
     );
 
     if (element) return element;
 
     // Fallback: iterate through children to find the first visible one
-    const candidates = contentElement.querySelectorAll(
-      "p, h1, h2, h3, h4, h5, h6, img, li",
-    );
+    const candidates = contentElement.querySelectorAll("p, h1, h2, h3, h4, h5, h6, img, li");
     for (const cand of Array.from(candidates)) {
       const rect = cand.getBoundingClientRect();
       // Element is visible if its left edge is within the visible column
-      if (
-        rect.left >= containerRect.left - 5 &&
-        rect.left < containerRect.right - margin
-      ) {
+      if (rect.left >= containerRect.left - 5 && rect.left < containerRect.right - margin) {
         return cand;
       }
     }
@@ -220,17 +196,13 @@ export class LocationTracker {
     return contentElement;
   }
 
-  getVirtualOffsetLeft(
-    element: Element,
-    contentElement: HTMLElement | null,
-  ): number {
+  getVirtualOffsetLeft(element: Element, contentElement: HTMLElement | null): number {
     if (!contentElement) return 0;
     // Use getClientRects()[0] instead of getBoundingClientRect() for multi-column layouts.
     // getBoundingClientRect() returns a rect spanning all columns the element appears in,
     // but getClientRects() returns individual rects per column fragment.
     const rects = element.getClientRects();
-    const rect =
-      rects && rects.length > 0 ? rects[0] : element.getBoundingClientRect();
+    const rect = rects && rects.length > 0 ? rects[0] : element.getBoundingClientRect();
     const contentRect = contentElement.getBoundingClientRect();
     return rect.left - contentRect.left;
   }

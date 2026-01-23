@@ -6,7 +6,6 @@ type CursorPosition = {
 };
 
 const ZERO_WIDTH_SPACE = "\u200B";
-const SCROLL_MARGIN_PX = 50;
 
 /**
  * iOS autocapitalization fix: moves cursor from after zero-width space to before it.
@@ -14,24 +13,21 @@ const SCROLL_MARGIN_PX = 50;
  */
 export const fixCursorPositionForZeroWidthSpace = () => {
   const selection = window.getSelection();
-  if (!selection || !selection.isCollapsed) return;
+  if (!selection?.isCollapsed) return;
 
   const anchor = selection.anchorNode;
-  if (
-    anchor?.nodeType === Node.TEXT_NODE &&
-    anchor.textContent === ZERO_WIDTH_SPACE &&
-    selection.anchorOffset === 1
-  ) {
-    const range = document.createRange();
-    range.setStart(anchor, 0);
-    range.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(range);
-  }
+  if (anchor?.nodeType !== Node.TEXT_NODE) return;
+  if (anchor.textContent !== ZERO_WIDTH_SPACE) return;
+  if (selection.anchorOffset !== 1) return;
+
+  const range = document.createRange();
+  range.setStart(anchor, 0);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
 };
 
-const countWithoutZeroWidthSpaces = (text: string): number =>
-  text.replaceAll(ZERO_WIDTH_SPACE, "").length;
+const countWithoutZeroWidthSpaces = (text: string): number => text.replaceAll(ZERO_WIDTH_SPACE, "").length;
 
 const findActualOffset = (text: string, targetOffset: number): number => {
   let actualOffset = 0;
@@ -44,96 +40,89 @@ const findActualOffset = (text: string, targetOffset: number): number => {
 };
 
 const getTextOffsetInContainer = (container: Node, offset: number): number =>
-  countWithoutZeroWidthSpaces(
-    (container.textContent || "").substring(0, offset),
-  );
+  countWithoutZeroWidthSpaces((container.textContent || "").substring(0, offset));
 
-const getOffsetInElement = (
-  element: HTMLElement,
-  container: Node,
-  offset: number,
-): number => {
+const getOffsetWithinChild = (child: Node, container: Node, offset: number): number | null => {
+  if (child === container) {
+    return getTextOffsetInContainer(container, offset);
+  }
+
+  const walker = document.createTreeWalker(child, NodeFilter.SHOW_TEXT, null);
+  let node: Node | null;
+  let localAccumulated = 0;
+
+  while ((node = walker.nextNode())) {
+    if (node === container) {
+      return localAccumulated + getTextOffsetInContainer(node, offset);
+    }
+    localAccumulated += countWithoutZeroWidthSpaces(node.textContent || "");
+  }
+  return null;
+};
+
+const getOffsetInElement = (element: HTMLElement, container: Node, offset: number): number => {
   let accumulated = 0;
   const childNodes = element.childNodes;
 
   for (let i = 0; i < childNodes.length; i++) {
     const child = childNodes[i];
     if (child.contains(container) || child === container) {
-      if (child === container) {
-        return accumulated + getTextOffsetInContainer(container, offset);
-      }
-      const walker = document.createTreeWalker(
-        child,
-        NodeFilter.SHOW_TEXT,
-        null,
-      );
-      let node: Node | null;
-      while ((node = walker.nextNode())) {
-        if (node === container) {
-          return accumulated + getTextOffsetInContainer(node, offset);
-        }
-        accumulated += countWithoutZeroWidthSpaces(node.textContent || "");
-      }
-      return accumulated;
+      const offsetInChild = getOffsetWithinChild(child, container, offset);
+      return accumulated + (offsetInChild ?? 0);
     }
-    const childText = child.textContent || "";
-    accumulated += countWithoutZeroWidthSpaces(childText);
+
+    accumulated += countWithoutZeroWidthSpaces(child.textContent || "");
     // Add 1 for newline separator between blocks (except for last block)
     if (i < childNodes.length - 1) accumulated += 1;
   }
   return accumulated;
 };
 
-const getRangeAtOffset = (
-  element: HTMLElement,
-  offset: number,
-): Range | null => {
+const findRangeInChild = (child: Node, offsetInBlock: number): Range | null => {
+  const range = document.createRange();
+  try {
+    const walker = document.createTreeWalker(child, NodeFilter.SHOW_TEXT, null);
+    let node: Node | null;
+    let nodeOffset = 0;
+
+    while ((node = walker.nextNode())) {
+      const text = node.textContent || "";
+      const filteredLength = countWithoutZeroWidthSpaces(text);
+      if (nodeOffset + filteredLength >= offsetInBlock) {
+        const isHidden = node.parentElement?.classList.contains("markdown-prefix");
+        if (isHidden && nodeOffset + filteredLength === offsetInBlock) {
+          nodeOffset += filteredLength;
+          continue;
+        }
+
+        const targetOffset = offsetInBlock - nodeOffset;
+        const actualOffset = findActualOffset(text, targetOffset);
+        range.setStart(node, actualOffset);
+        range.collapse(true);
+        return range;
+      }
+      nodeOffset += filteredLength;
+    }
+
+    range.selectNodeContents(child);
+    range.collapse(true);
+    return range;
+  } catch (error) {
+    console.error("Failed to create range:", error);
+    return null;
+  }
+};
+
+const getRangeAtOffset = (element: HTMLElement, offset: number): Range | null => {
   let accumulated = 0;
   const childNodes = element.childNodes;
 
   for (let i = 0; i < childNodes.length; i++) {
     const child = childNodes[i];
-    const childText = child.textContent || "";
-    const blockLength = countWithoutZeroWidthSpaces(childText);
+    const blockLength = countWithoutZeroWidthSpaces(child.textContent || "");
 
     if (accumulated + blockLength >= offset) {
-      const range = document.createRange();
-      const offsetInBlock = offset - accumulated;
-      try {
-        const walker = document.createTreeWalker(
-          child,
-          NodeFilter.SHOW_TEXT,
-          null,
-        );
-        let node: Node | null;
-        let nodeOffset = 0;
-        while ((node = walker.nextNode())) {
-          const text = node.textContent || "";
-          const filteredLength = countWithoutZeroWidthSpaces(text);
-          if (nodeOffset + filteredLength >= offsetInBlock) {
-            // Skip hidden nodes (e.g. markdown prefix) at boundary to prefer visible nodes
-            const isHidden =
-              node.parentElement?.classList.contains("markdown-prefix");
-            if (isHidden && nodeOffset + filteredLength === offsetInBlock) {
-              nodeOffset += filteredLength;
-              continue;
-            }
-
-            const targetOffset = offsetInBlock - nodeOffset;
-            const actualOffset = findActualOffset(text, targetOffset);
-            range.setStart(node, actualOffset);
-            range.collapse(true);
-            return range;
-          }
-          nodeOffset += filteredLength;
-        }
-        range.selectNodeContents(child);
-        range.collapse(true);
-        return range;
-      } catch (error) {
-        console.error("Failed to create range:", error);
-        return null;
-      }
+      return findRangeInChild(child, offset - accumulated);
     }
     accumulated += blockLength + 1;
   }
@@ -159,67 +148,37 @@ const getScrollParent = (node: Node | null): HTMLElement | null => {
   return getScrollParent(node.parentNode);
 };
 
-export const scrollCursorIntoView = (
-  selection: Selection,
-  behavior: ScrollBehavior,
-) => {
+export const scrollCursorIntoView = (selection: Selection, behavior: ScrollBehavior) => {
+  if (selection.rangeCount === 0) return;
+
+  const viewport = window.visualViewport;
+  if (!viewport) return;
+
   const range = selection.getRangeAt(0);
   const rect = range.getBoundingClientRect();
-  const viewport = window.visualViewport;
 
-  if (
-    viewport &&
-    (rect.top >= SCROLL_MARGIN_PX &&
-      rect.bottom <= viewport.height - SCROLL_MARGIN_PX)
-  ) {
-    return;
+  const viewportTop = document.querySelector<HTMLElement>(".header")!.offsetHeight;
+  const viewportBottom = viewport.height - 16;
+
+  let delta = 0;
+  if (rect.top < viewportTop) {
+    delta = rect.top - viewportTop;
+  } else if (rect.bottom > viewportBottom) {
+    delta = rect.bottom - viewportBottom;
   }
 
+  if (delta === 0) return;
+
   const container = range.commonAncestorContainer;
-  const element =
-    container.nodeType === Node.TEXT_NODE
-      ? container.parentElement
-      : (container as HTMLElement);
+  const element = container.nodeType === Node.TEXT_NODE ? container.parentElement : (container as HTMLElement);
 
   if (!element) return;
 
   const scrollParent = getScrollParent(element);
-
-  if (scrollParent && viewport) {
-    const viewportTop = SCROLL_MARGIN_PX;
-    const viewportBottom = viewport.height - SCROLL_MARGIN_PX;
-
-    let delta = 0;
-
-    if (rect.top < viewportTop) {
-      delta = rect.top - viewportTop;
-    } else if (rect.bottom > viewportBottom) {
-      delta = rect.bottom - viewportBottom;
-    }
-
-    console.log("scrolling: ", {
-      delta,
-      rectTop: rect.top,
-      rectBottom: rect.bottom,
-      viewportTop,
-      viewportBottom,
-    });
-
-    console.log("scrollParent: ", scrollParent);
-
-    if (delta !== 0) {
-      // this is necessary for some reason. Let's investigate why
-      window.setTimeout(() => {
-        scrollParent.scrollBy({
-          top: delta,
-          behavior,
-        });
-      }, 10);
-    }
-  } else {
-    element.scrollIntoView({
+  if (scrollParent) {
+    scrollParent.scrollTo({
+      top: scrollParent.scrollTop + Math.ceil(delta),
       behavior,
-      block: "nearest",
     });
   }
 };
@@ -228,8 +187,7 @@ export const getSelection = (element: HTMLElement): CursorPosition => {
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0) return { start: 0, end: 0 };
   const range = selection.getRangeAt(0);
-  if (!element.contains(range.commonAncestorContainer))
-    return { start: 0, end: 0 };
+  if (!element.contains(range.commonAncestorContainer)) return { start: 0, end: 0 };
   return {
     start: getOffsetInElement(element, range.startContainer, range.startOffset),
     end: getOffsetInElement(element, range.endContainer, range.endOffset),
@@ -241,11 +199,7 @@ type SetSelectionOptions = {
   scroll?: boolean;
 };
 
-export const setSelection = (
-  element: HTMLElement,
-  start: number,
-  { end = start, scroll = false }: SetSelectionOptions = {},
-) => {
+export const setSelection = (element: HTMLElement, start: number, { end = start }: SetSelectionOptions = {}) => {
   const selection = window.getSelection();
   if (!selection) return;
   const startRange = getRangeAtOffset(element, start);
@@ -264,15 +218,16 @@ export const setSelection = (
     selection.addRange(range);
   }
 
-  if (scroll) scrollCursorIntoView(selection, "instant");
-  else scrollCursorIntoView(selection, "smooth");
+  return selection;
 };
 
-export const calculateCursorPosition = (
-  currentContent: string,
-  newContent: string,
-  currentCursor: number,
-): number => {
+const DIFF_TYPE = {
+  EQUAL: 0,
+  INSERT: 1,
+  DELETE: -1,
+} as const;
+
+export const calculateCursorPosition = (currentContent: string, newContent: string, currentCursor: number): number => {
   const dmp = new DiffMatchPatch();
   const diffs = dmp.diff_main(currentContent, newContent);
 
@@ -281,27 +236,27 @@ export const calculateCursorPosition = (
 
   for (const [type, text] of diffs) {
     const length = text.length;
-    if (type === 0) {
-      // EQUAL
-      if (oldCursor + length > currentCursor) {
-        newCursor += currentCursor - oldCursor;
-        oldCursor = currentCursor; // Break condition met
+    switch (type) {
+      case DIFF_TYPE.EQUAL:
+        if (oldCursor + length > currentCursor) {
+          // Cursor is within this equal block
+          newCursor += currentCursor - oldCursor;
+          return newCursor;
+        }
+        newCursor += length;
+        oldCursor += length;
         break;
-      }
-      newCursor += length;
-      oldCursor += length;
-    } else if (type === 1) {
-      // INSERT
-      newCursor += length;
-    } else {
-      // DELETE
-      if (oldCursor + length > currentCursor) {
-        // Cursor was inside the deleted text
-        // We keep newCursor as is (start of deletion)
-        oldCursor = currentCursor;
+      case DIFF_TYPE.INSERT:
+        newCursor += length;
         break;
-      }
-      oldCursor += length;
+      case DIFF_TYPE.DELETE:
+        if (oldCursor + length > currentCursor) {
+          // Cursor was inside the deleted text
+          // Return known newCursor (start of deletion)
+          return newCursor;
+        }
+        oldCursor += length;
+        break;
     }
   }
 

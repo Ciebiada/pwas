@@ -54,10 +54,7 @@ export const GoogleDriveProvider: SyncProvider = {
       lastModified: f.modifiedTime || new Date().toISOString(),
     };
   },
-  uploadFile: async (
-    path: string,
-    content: string,
-  ): Promise<UploadResponse> => {
+  uploadFile: async (path: string, content: string): Promise<UploadResponse> => {
     let fileId: string | undefined;
     let name: string | undefined;
 

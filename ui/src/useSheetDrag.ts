@@ -6,9 +6,7 @@ export const useSheetDrag = (onClose: () => void) => {
   const [modalPosition, setModalPosition] = createSignal(window.innerHeight);
   const [dragOffsetY, setDragOffsetY] = createSignal(0);
   const [isDragging, setIsDragging] = createSignal(false);
-  const [animationDuration, setAnimationDuration] = createSignal(
-    MODAL_ANIMATION_DURATION,
-  );
+  const [animationDuration, setAnimationDuration] = createSignal(MODAL_ANIMATION_DURATION);
 
   let startY = 0;
   let lastY = 0;

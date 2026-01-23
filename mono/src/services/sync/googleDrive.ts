@@ -14,8 +14,7 @@ const REDIRECT_PATH = "google-callback";
 
 let accessToken: string | null = localStorage.getItem("google_access_token");
 let refreshToken: string | null = localStorage.getItem("google_refresh_token");
-let tokenExpiration: number =
-  Number(localStorage.getItem("google_token_expiration")) || 0;
+let tokenExpiration: number = Number(localStorage.getItem("google_token_expiration")) || 0;
 let codeVerifier: string | null = null;
 
 const generateCodeVerifier = (): string => {
@@ -60,9 +59,7 @@ export const getAuthUrl = async (): Promise<string> => {
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 };
 
-export const handleGoogleAuthCallback = async (
-  code: string,
-): Promise<boolean> => {
+export const handleGoogleAuthCallback = async (code: string): Promise<boolean> => {
   try {
     const storedVerifier = sessionStorage.getItem("google_code_verifier");
     if (!storedVerifier) {
@@ -109,11 +106,7 @@ export const handleGoogleAuthCallback = async (
   }
 };
 
-const setTokens = (
-  access: string,
-  refresh: string | undefined,
-  expiresInSeconds: number,
-) => {
+const setTokens = (access: string, refresh: string | undefined, expiresInSeconds: number) => {
   accessToken = access;
   tokenExpiration = Date.now() + expiresInSeconds * 1000;
   localStorage.setItem("google_access_token", access);
@@ -209,9 +202,7 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   }
 
   if (!response.ok) {
-    throw new Error(
-      `Google Drive API Error: ${response.status} ${response.statusText}`,
-    );
+    throw new Error(`Google Drive API Error: ${response.status} ${response.statusText}`);
   }
   return response;
 };
@@ -253,9 +244,7 @@ const getAppFolderId = async (): Promise<string> => {
   return appFolderId!;
 };
 
-export const listFiles = async (
-  additionalQuery: string = "",
-): Promise<GoogleDriveFile[]> => {
+export const listFiles = async (additionalQuery: string = ""): Promise<GoogleDriveFile[]> => {
   const folderId = await getAppFolderId();
   let q = `'${folderId}' in parents and trashed = false`;
 
@@ -273,9 +262,7 @@ export const listFiles = async (
   return data.files || [];
 };
 
-export const getFileMetadata = async (
-  fileId: string,
-): Promise<GoogleDriveFile | null> => {
+export const getFileMetadata = async (fileId: string): Promise<GoogleDriveFile | null> => {
   try {
     const url = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,mimeType,modifiedTime,size`;
     const res = await fetchWithAuth(url);
@@ -315,10 +302,7 @@ export const uploadFile = async (
   }
 
   const form = new FormData();
-  form.append(
-    "metadata",
-    new Blob([JSON.stringify(metadata)], { type: "application/json" }),
-  );
+  form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
   form.append("file", new Blob([content], { type: "text/markdown" }));
 
   const fields = "id,name,mimeType,modifiedTime,size";

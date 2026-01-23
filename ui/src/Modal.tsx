@@ -1,13 +1,5 @@
 import { Portal } from "solid-js/web";
-import {
-  createContext,
-  useContext,
-  createSignal,
-  createEffect,
-  Show,
-  onCleanup,
-  batch,
-} from "solid-js";
+import { createContext, useContext, createSignal, createEffect, Show, onCleanup, batch } from "solid-js";
 import type { JSX, Accessor, Setter } from "solid-js";
 import { BackIcon, CloseIcon, ChevronUpDownIcon } from "./Icons";
 import "./Modal.css";
@@ -55,9 +47,7 @@ export const Modal = (props: ModalProps) => {
   const closeWithAnimation = async (fast?: boolean) => {
     if (isClosing() || !isVisible()) return;
 
-    const duration = fast
-      ? MODAL_FAST_ANIMATION_DURATION
-      : MODAL_ANIMATION_DURATION;
+    const duration = fast ? MODAL_FAST_ANIMATION_DURATION : MODAL_ANIMATION_DURATION;
     setIsClosing(true);
 
     batch(() => {
@@ -164,37 +154,19 @@ export const Modal = (props: ModalProps) => {
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div
-                class="modal-handle"
-                onMouseDown={sheet.handleDragStart}
-                onTouchStart={sheet.handleDragStart}
-              />
-              <div
-                class="modal-fixed-header"
-                onMouseDown={sheet.handleDragStart}
-                onTouchStart={sheet.handleDragStart}
-              >
+              <div class="modal-handle" onMouseDown={sheet.handleDragStart} onTouchStart={sheet.handleDragStart} />
+              <div class="modal-fixed-header" onMouseDown={sheet.handleDragStart} onTouchStart={sheet.handleDragStart}>
                 <button
                   ref={headerActivatableRef}
                   class="header-button"
-                  onClick={() =>
-                    modalStack.isRoot()
-                      ? closeWithAnimation()
-                      : modalStack.pop()
-                  }
+                  onClick={() => (modalStack.isRoot() ? closeWithAnimation() : modalStack.pop())}
                   onMouseDown={(e) => e.stopPropagation()}
                   onTouchStart={(e) => e.stopPropagation()}
                 >
-                  <span
-                    class="modal-icon"
-                    classList={{ "modal-icon-visible": modalStack.isRoot() }}
-                  >
+                  <span class="modal-icon" classList={{ "modal-icon-visible": modalStack.isRoot() }}>
                     <CloseIcon />
                   </span>
-                  <span
-                    class="modal-icon"
-                    classList={{ "modal-icon-visible": !modalStack.isRoot() }}
-                  >
+                  <span class="modal-icon" classList={{ "modal-icon-visible": !modalStack.isRoot() }}>
                     <BackIcon />
                   </span>
                 </button>
@@ -367,9 +339,7 @@ export const ModalSelect = (props: ModalSelectProps) => {
       <div class="modal-button">
         <span>{props.label}</span>
         <div class="modal-select-content">
-          <span class="modal-select-value">
-            {props.displayValue ?? displayText()}
-          </span>
+          <span class="modal-select-value">{props.displayValue ?? displayText()}</span>
           <ChevronUpDownIcon />
         </div>
       </div>
@@ -406,8 +376,7 @@ export const ModalSlider = (props: ModalSliderProps) => {
     const rect = sliderRef.getBoundingClientRect();
     const deltaValue = (deltaX / rect.width) * (props.max - props.min);
     const rawValue = startValue() + deltaValue;
-    const steppedValue =
-      Math.round(rawValue / (props.step ?? 1)) * (props.step ?? 1);
+    const steppedValue = Math.round(rawValue / (props.step ?? 1)) * (props.step ?? 1);
     const finalValue = Math.max(props.min, Math.min(props.max, steppedValue));
     if (finalValue !== props.value) {
       props.onChange(finalValue);
@@ -419,8 +388,7 @@ export const ModalSlider = (props: ModalSliderProps) => {
     sliderRef?.releasePointerCapture(e.pointerId);
   };
 
-  const percentage = () =>
-    ((props.value - props.min) / (props.max - props.min)) * 100;
+  const percentage = () => ((props.value - props.min) / (props.max - props.min)) * 100;
 
   return (
     <div
@@ -440,9 +408,7 @@ export const ModalSlider = (props: ModalSliderProps) => {
     >
       <span>{props.label}</span>
       <div class="modal-slider-content">
-        <span class="modal-slider-value">
-          {props.displayValue ?? props.value}
-        </span>
+        <span class="modal-slider-value">{props.displayValue ?? props.value}</span>
       </div>
     </div>
   );

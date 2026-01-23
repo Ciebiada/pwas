@@ -2,21 +2,8 @@ import { JSX } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { triggerHaptic } from "../../hooks/useHaptic";
 
-type InlineTokenType =
-  | "text"
-  | "strong"
-  | "emphasis"
-  | "strikethrough"
-  | "link";
-type BlockType =
-  | "h1"
-  | "h2"
-  | "h3"
-  | "paragraph"
-  | "checkbox"
-  | "list"
-  | "orderedList"
-  | "table";
+type InlineTokenType = "text" | "strong" | "emphasis" | "strikethrough" | "link";
+type BlockType = "h1" | "h2" | "h3" | "paragraph" | "checkbox" | "list" | "orderedList" | "table";
 
 type InlineToken = {
   type: InlineTokenType;
@@ -102,9 +89,7 @@ const parseInlineMarkdown = (text: string): InlineToken[] => {
     const token = tryMatchPattern(text.slice(index));
     if (token) {
       tokens.push(token);
-      index += token.raw
-        ? token.raw.length
-        : token.delimiter!.length * 2 + token.content.length;
+      index += token.raw ? token.raw.length : token.delimiter!.length * 2 + token.content.length;
       continue;
     }
     const lastToken = tokens[tokens.length - 1];
@@ -129,9 +114,7 @@ const wrapWithDelimiters = (content: string, delimiter: string) => (
 const renderInlineToken = (token: InlineToken) => {
   switch (token.type) {
     case "strong":
-      return (
-        <strong>{wrapWithDelimiters(token.content, token.delimiter!)}</strong>
-      );
+      return <strong>{wrapWithDelimiters(token.content, token.delimiter!)}</strong>;
     case "emphasis":
       return <em>{wrapWithDelimiters(token.content, token.delimiter!)}</em>;
     case "strikethrough":
@@ -161,14 +144,12 @@ const renderInlineToken = (token: InlineToken) => {
   }
 };
 
-const renderInlineMarkdown = (text: string) =>
-  parseInlineMarkdown(text).map(renderInlineToken);
+const renderInlineMarkdown = (text: string) => parseInlineMarkdown(text).map(renderInlineToken);
 
 const parseBlockLine = (line: string): BlockToken => {
   for (const pattern of BLOCK_PATTERNS) {
     const match = line.match(pattern.regex);
-    if (match)
-      return { type: pattern.type, prefix: match[1], content: match[2] };
+    if (match) return { type: pattern.type, prefix: match[1], content: match[2] };
   }
   return { type: "paragraph", prefix: "", content: line };
 };
@@ -180,11 +161,7 @@ const renderBlockContent = (block: BlockToken) => (
   </>
 );
 
-const renderHeader = (
-  block: BlockToken,
-  className: string,
-  content: JSX.Element,
-) => {
+const renderHeader = (block: BlockToken, className: string, content: JSX.Element) => {
   const Tag = block.type as "h1" | "h2" | "h3";
   return (
     <Dynamic component={Tag} class={className}>
@@ -237,11 +214,7 @@ const renderListItem = (
   );
 };
 
-const renderBlock = (
-  block: BlockToken,
-  index: number,
-  onCheckboxToggle?: (lineIndex: number) => void,
-) => {
+const renderBlock = (block: BlockToken, index: number, onCheckboxToggle?: (lineIndex: number) => void) => {
   const className = `md-line md-${block.type}`;
   const content = renderBlockContent(block);
 
@@ -265,12 +238,5 @@ const renderBlock = (
   }
 };
 
-export const renderMarkdown = (
-  markdown: string,
-  onCheckboxToggle?: (lineIndex: number) => void,
-) =>
-  markdown
-    .split("\n")
-    .map((line, index) =>
-      renderBlock(parseBlockLine(line), index, onCheckboxToggle),
-    );
+export const renderMarkdown = (markdown: string, onCheckboxToggle?: (lineIndex: number) => void) =>
+  markdown.split("\n").map((line, index) => renderBlock(parseBlockLine(line), index, onCheckboxToggle));

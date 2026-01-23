@@ -12,9 +12,7 @@ export const setCustomCaretEnabled = (enabled: boolean): void => {
   localStorage.setItem(CUSTOM_CARET_KEY, enabled.toString());
 };
 
-const [monospaceMode, setMonospaceMode] = createSignal(
-  localStorage.getItem(MONOSPACE_KEY) === "true",
-);
+const [monospaceMode, setMonospaceMode] = createSignal(localStorage.getItem(MONOSPACE_KEY) === "true");
 
 export const isMonospaceEnabled = () => monospaceMode();
 

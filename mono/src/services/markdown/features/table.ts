@@ -15,8 +15,7 @@ const parseTableRow = (line: string): string[] | null => {
   return row;
 };
 
-const ensureClosingPipe = (line: string): string =>
-  line.endsWith("|") ? line : line + "|";
+const ensureClosingPipe = (line: string): string => (line.endsWith("|") ? line : line + "|");
 
 const getTableBlock = (content: string, lineIndex: number) => {
   const lines = content.split("\n");
@@ -46,18 +45,13 @@ const isSeparatorRow = (cells: string[]): boolean => {
 
 const isNumeric = (str: string): boolean => /^-?[\d.,]+%?$/.test(str.trim());
 
-const formatTable = (
-  lines: string[],
-): { formatted: string[]; columnWidths: number[] } => {
+const formatTable = (lines: string[]): { formatted: string[]; columnWidths: number[] } => {
   // Normalize all lines (add closing pipe if missing) before parsing
   const parsedRows = lines
     .map((line) => parseTableRow(ensureClosingPipe(line)))
     .filter((row): row is string[] => row !== null);
 
-  const colCount = parsedRows.reduce(
-    (max, row) => Math.max(max, row.length),
-    0,
-  );
+  const colCount = parsedRows.reduce((max, row) => Math.max(max, row.length), 0);
   const colWidths = new Array(colCount).fill(0);
   const numericCounts = new Array(colCount).fill(0);
   const totalCounts = new Array(colCount).fill(0);
@@ -76,9 +70,7 @@ const formatTable = (
   });
 
   // Determine alignment: right-align if > 50% of cells are numeric
-  const rightAlign = colWidths.map(
-    (_, i) => totalCounts[i] > 0 && numericCounts[i] / totalCounts[i] > 0.5,
-  );
+  const rightAlign = colWidths.map((_, i) => totalCounts[i] > 0 && numericCounts[i] / totalCounts[i] > 0.5);
 
   // Ensure minimum width of 1 for empty columns
   for (let i = 0; i < colWidths.length; i++) {
@@ -99,11 +91,7 @@ const formatTable = (
       const width = colWidths[i];
       const padding = " ".repeat(Math.max(0, width - cellContent.length));
       // Right-align numeric columns, left-align otherwise
-      pieces.push(
-        rightAlign[i]
-          ? ` ${padding}${cellContent} `
-          : ` ${cellContent}${padding} `,
-      );
+      pieces.push(rightAlign[i] ? ` ${padding}${cellContent} ` : ` ${cellContent}${padding} `);
     }
     return `|${pieces.join("|")}|`;
   });
@@ -130,9 +118,7 @@ export const TableFeature: MarkdownFeature = {
       const hasNewlineAfter = endOfLine < content.length;
 
       return {
-        content:
-          content.slice(0, lineStart) +
-          content.slice(endOfLine + (hasNewlineAfter ? 1 : 0)),
+        content: content.slice(0, lineStart) + content.slice(endOfLine + (hasNewlineAfter ? 1 : 0)),
         cursor: lineStart,
       };
     }
@@ -160,15 +146,11 @@ export const TableFeature: MarkdownFeature = {
     const newTableBlock = formatted.join("\n");
 
     const newContent =
-      (start > 0 ? beforeTable + "\n" : "") +
-      newTableBlock +
-      (end < lines.length - 1 ? "\n" + afterTable : "");
+      (start > 0 ? beforeTable + "\n" : "") + newTableBlock + (end < lines.length - 1 ? "\n" + afterTable : "");
 
     // Calculate new cursor position
     const newRowStart =
-      (start > 0 ? beforeTable.length + 1 : 0) +
-      formatted.slice(0, relativeIndex + 1).join("\n").length +
-      1;
+      (start > 0 ? beforeTable.length + 1 : 0) + formatted.slice(0, relativeIndex + 1).join("\n").length + 1;
 
     return {
       content: newContent,
@@ -194,19 +176,13 @@ export const TableFeature: MarkdownFeature = {
 
     let currentCellIndex = -1;
     for (let i = 0; i < pipeIndices.length - 1; i++) {
-      if (
-        relativeCursor >= pipeIndices[i] &&
-        relativeCursor <= pipeIndices[i + 1]
-      ) {
+      if (relativeCursor >= pipeIndices[i] && relativeCursor <= pipeIndices[i + 1]) {
         currentCellIndex = i;
         break;
       }
     }
 
-    if (
-      currentCellIndex === -1 &&
-      relativeCursor >= pipeIndices[pipeIndices.length - 1]
-    ) {
+    if (currentCellIndex === -1 && relativeCursor >= pipeIndices[pipeIndices.length - 1]) {
       currentCellIndex = pipeIndices.length - 1;
     }
 
@@ -217,8 +193,7 @@ export const TableFeature: MarkdownFeature = {
         const nextCellStart = pipeIndices[currentCellIndex + 1] + 1;
         return {
           content,
-          cursor:
-            lineStart + nextCellStart + (line[nextCellStart] === " " ? 1 : 0),
+          cursor: lineStart + nextCellStart + (line[nextCellStart] === " " ? 1 : 0),
         };
       }
     } else {
@@ -226,8 +201,7 @@ export const TableFeature: MarkdownFeature = {
         const prevCellStart = pipeIndices[currentCellIndex - 1] + 1;
         return {
           content,
-          cursor:
-            lineStart + prevCellStart + (line[prevCellStart] === " " ? 1 : 0),
+          cursor: lineStart + prevCellStart + (line[prevCellStart] === " " ? 1 : 0),
         };
       }
     }
@@ -245,9 +219,7 @@ export const TableFeature: MarkdownFeature = {
       const endOfLine = lineEnd(content, lineStart);
       const hasNewlineAfter = endOfLine < content.length;
       return {
-        content:
-          content.slice(0, lineStart) +
-          content.slice(endOfLine + (hasNewlineAfter ? 1 : 0)),
+        content: content.slice(0, lineStart) + content.slice(endOfLine + (hasNewlineAfter ? 1 : 0)),
         cursor: lineStart,
       };
     }

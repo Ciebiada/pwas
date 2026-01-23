@@ -12,10 +12,7 @@ export const OrderedListFeature: MarkdownFeature = {
     if (shiftKey) {
       if (!line.startsWith(INDENT)) return null;
       const result = {
-        content:
-          content.slice(0, lineStart) +
-          line.slice(INDENT_SIZE) +
-          content.slice(lineEnd(content, lineStart)),
+        content: content.slice(0, lineStart) + line.slice(INDENT_SIZE) + content.slice(lineEnd(content, lineStart)),
         cursor: selection.start - INDENT_SIZE,
       };
 
@@ -30,11 +27,7 @@ export const OrderedListFeature: MarkdownFeature = {
 
     const newLine = line.replace(/^(\s*)\d+\./, "$11.");
     const result = {
-      content:
-        content.slice(0, lineStart) +
-        INDENT +
-        newLine +
-        content.slice(lineEnd(content, lineStart)),
+      content: content.slice(0, lineStart) + INDENT + newLine + content.slice(lineEnd(content, lineStart)),
       cursor: selection.start + INDENT_SIZE,
     };
 
@@ -48,24 +41,14 @@ export const OrderedListFeature: MarkdownFeature = {
   },
 
   onEnter(content, selection, match, lineRange) {
-    const emptyLineResult = handleEmptyLineEnter(
-      content,
-      selection,
-      match,
-      lineRange,
-      this.onBackspace!.bind(this),
-    );
+    const emptyLineResult = handleEmptyLineEnter(content, selection, match, lineRange, this.onBackspace!.bind(this));
     if (emptyLineResult) return emptyLineResult;
 
     const indent = match[1];
     const num = parseInt(match[2]);
     const newPrefix = `${indent}${num + 1}. `;
     const result = {
-      content:
-        content.slice(0, selection.start) +
-        "\n" +
-        newPrefix +
-        content.slice(selection.end),
+      content: content.slice(0, selection.start) + "\n" + newPrefix + content.slice(selection.end),
       cursor: selection.start + 1 + newPrefix.length,
     };
 
@@ -76,10 +59,7 @@ export const OrderedListFeature: MarkdownFeature = {
     const indentResult = handleIndentBackspace(content, selection, lineRange);
     if (indentResult) {
       const { start: lineStart } = lineRange;
-      const renumbered = renumberOrderedList(
-        indentResult.content,
-        indentResult.cursor,
-      );
+      const renumbered = renumberOrderedList(indentResult.content, indentResult.cursor);
       const nextLinePos = renumbered.content.indexOf("\n", lineStart) + 1;
       if (nextLinePos > 0 && nextLinePos < renumbered.content.length) {
         const final = renumberOrderedList(renumbered.content, nextLinePos);
@@ -91,10 +71,7 @@ export const OrderedListFeature: MarkdownFeature = {
     const { start: lineStart, line } = lineRange;
     const prefixLength = match[0].length;
     const result = {
-      content:
-        content.slice(0, lineStart) +
-        line.slice(prefixLength) +
-        content.slice(lineEnd(content, lineStart)),
+      content: content.slice(0, lineStart) + line.slice(prefixLength) + content.slice(lineEnd(content, lineStart)),
       cursor: lineStart,
     };
 
@@ -154,10 +131,7 @@ export const OrderedListFeature: MarkdownFeature = {
   },
 };
 
-export const renumberOrderedList = (
-  content: string,
-  cursor: number,
-): { content: string; cursor: number } => {
+export const renumberOrderedList = (content: string, cursor: number): { content: string; cursor: number } => {
   const lineRange = {
     start: content.lastIndexOf("\n", cursor - 1) + 1,
     end: lineEnd(content, cursor),

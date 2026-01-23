@@ -16,12 +16,7 @@ export const NotesList = () => {
   const [modalOpen, setModalOpen] = createSignal(false);
 
   const notes = createDexieArrayQuery(
-    async () =>
-      await db.notes
-        .where("status")
-        .notEqual("pending-delete")
-        .reverse()
-        .sortBy("lastModified"),
+    async () => await db.notes.where("status").notEqual("pending-delete").reverse().sortBy("lastModified"),
   );
 
   onMount(() => {
@@ -54,14 +49,14 @@ export const NotesList = () => {
 
   return (
     <>
-          <Header title="Notes">
-            <HeaderButton right onClick={() => navigate("/new")}>
-              <AddIcon />
-            </HeaderButton>
-            <HeaderButton onClick={() => setModalOpen(true)}>
-              <MoreIcon />
-            </HeaderButton>
-          </Header>
+      <Header title="Notes">
+        <HeaderButton right onClick={() => navigate("/new")}>
+          <AddIcon />
+        </HeaderButton>
+        <HeaderButton onClick={() => setModalOpen(true)}>
+          <MoreIcon />
+        </HeaderButton>
+      </Header>
       <Page
         header={
           <Header title="Notes">
@@ -80,10 +75,7 @@ export const NotesList = () => {
             <div class="page-content">
               <p>
                 Tap{" "}
-                <button
-                  class="inline-icon-button"
-                  onClick={() => navigate("/new")}
-                >
+                <button class="inline-icon-button" onClick={() => navigate("/new")}>
                   <AddIcon />
                 </button>{" "}
                 to create a note.
@@ -106,16 +98,10 @@ export const NotesList = () => {
           {(note) => {
             const activatable = useActivatable();
             return (
-              <button
-                ref={activatable}
-                class="note-item"
-                onClick={() => navigate(`/note/${note.id}`)}
-              >
+              <button ref={activatable} class="note-item" onClick={() => navigate(`/note/${note.id}`)}>
                 <div class="note-item-content">
                   <div class="note-item-name">{note.name}</div>
-                  <div class="note-item-preview">
-                    {getPreview(note.content)}
-                  </div>
+                  <div class="note-item-preview">{getPreview(note.content)}</div>
                 </div>
                 <div class="note-item-date">
                   {timeFromNow(note.lastModified)}

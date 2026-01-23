@@ -1,8 +1,4 @@
-import {
-  defineConfig,
-  minimal2023Preset,
-  createAppleSplashScreens,
-} from "@vite-pwa/assets-generator/config";
+import { defineConfig, minimal2023Preset, createAppleSplashScreens } from "@vite-pwa/assets-generator/config";
 
 export default defineConfig({
   preset: {

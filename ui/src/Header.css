@@ -31,8 +31,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   pointer-events: auto;
-  user-select: none;
-  -webkit-user-select: none;
 }
 
 .header-title-fade {
@@ -57,9 +55,6 @@
   transition:
     transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
     opacity 0.2s;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  -webkit-user-select: none;
   touch-action: manipulation;
   flex-shrink: 0;
   position: relative;
@@ -76,7 +71,7 @@
   bottom: -20px;
 }
 
-.header-button>* {
+.header-button > * {
   pointer-events: none;
 }
 

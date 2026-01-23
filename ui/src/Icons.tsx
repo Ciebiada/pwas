@@ -1,10 +1,5 @@
 export const BackIcon = () => (
-  <svg
-    width="24"
-    height="24"
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="30 0 512 512"
-  >
+  <svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="30 0 512 512">
     <path
       fill="none"
       stroke="currentColor"
@@ -17,12 +12,7 @@ export const BackIcon = () => (
 );
 
 export const MoreIcon = () => (
-  <svg
-    width="24"
-    height="24"
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 512 512"
-  >
+  <svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
     <circle cx="256" cy="256" r="48" fill="currentColor" />
     <circle cx="416" cy="256" r="48" fill="currentColor" />
     <circle cx="96" cy="256" r="48" fill="currentColor" />
@@ -30,12 +20,7 @@ export const MoreIcon = () => (
 );
 
 export const PlusIcon = () => (
-  <svg
-    width="24"
-    height="24"
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 512 512"
-  >
+  <svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
     <path
       d="M384 224v184a40 40 0 01-40 40H104a40 40 0 01-40-40V168a40 40 0 0140-40h167.48"
       fill="none"
@@ -52,12 +37,7 @@ export const PlusIcon = () => (
 );
 
 export const CloseIcon = () => (
-  <svg
-    width="24"
-    height="24"
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 512 512"
-  >
+  <svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
     <path
       fill="none"
       stroke="currentColor"
@@ -70,12 +50,7 @@ export const CloseIcon = () => (
 );
 
 export const ChevronRightIcon = () => (
-  <svg
-    width="24"
-    height="24"
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="-30 0 512 512"
-  >
+  <svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="-30 0 512 512">
     <path
       fill="none"
       stroke="currentColor"
@@ -88,12 +63,7 @@ export const ChevronRightIcon = () => (
 );
 
 export const ChevronUpDownIcon = () => (
-  <svg
-    width="24"
-    height="24"
-    viewBox="0 0 512 512"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg width="24" height="24" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
     <path
       fill="none"
       stroke="currentColor"
@@ -106,12 +76,7 @@ export const ChevronUpDownIcon = () => (
 );
 
 export const ChevronsLeftRightIcon = () => (
-  <svg
-    width="24"
-    height="24"
-    viewBox="0 0 512 512"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg width="24" height="24" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
     <path
       fill="none"
       stroke="currentColor"
@@ -124,12 +89,7 @@ export const ChevronsLeftRightIcon = () => (
 );
 
 export const CheckIcon = () => (
-  <svg
-    width="24"
-    height="24"
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 512 512"
-  >
+  <svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
     <path
       fill="none"
       stroke="currentColor"
@@ -142,12 +102,7 @@ export const CheckIcon = () => (
 );
 
 export const AddIcon = () => (
-  <svg
-    width="24"
-    height="24"
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 512 512"
-  >
+  <svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
     <path
       fill="none"
       stroke="currentColor"

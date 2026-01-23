@@ -1,10 +1,7 @@
 import { createSignal } from "solid-js";
 
 export type Theme = "light" | "dark" | "system";
-export type FontFamily =
-  | "Helvetica, sans-serif"
-  | "Georgia, serif"
-  | "Courier New, monospace";
+export type FontFamily = "Helvetica, sans-serif" | "Georgia, serif" | "Courier New, monospace";
 
 const STORE_KEY = "readium_settings";
 
@@ -36,8 +33,7 @@ const getStoredSettings = (): Settings => {
   return defaultSettings;
 };
 
-export const [settings, setSettings] =
-  createSignal<Settings>(getStoredSettings());
+export const [settings, setSettings] = createSignal<Settings>(getStoredSettings());
 
 export const updateSettings = (newSettings: Partial<Settings>) => {
   setSettings((prev) => {
@@ -60,8 +56,7 @@ export const getThemeRules = (s: Settings) => {
   const themeRules: Record<string, Record<string, string>> = {
     body: {
       color: s.theme === "dark" ? "#dedede !important" : "#000000 !important",
-      background:
-        s.theme === "dark" ? "#000000 !important" : "#ffffff !important",
+      background: s.theme === "dark" ? "#000000 !important" : "#ffffff !important",
     },
     p: {
       "font-family": s.fontFamily + " !important",

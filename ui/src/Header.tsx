@@ -7,10 +7,7 @@ export const Header = (props: { children: JSX.Element; title?: string }) => {
   return (
     <header class="header">
       {props.title && (
-        <h2
-          class="header-title"
-          classList={{ "header-title-fade": isScrolled() }}
-        >
+        <h2 class="header-title" classList={{ "header-title-fade": isScrolled() }}>
           {props.title}
         </h2>
       )}

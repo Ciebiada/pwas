@@ -2,9 +2,7 @@ import { createSignal, batch } from "solid-js";
 
 export const useModalStack = (initialTitle: string) => {
   const [pageStack, setPageStack] = createSignal<string[]>(["root"]);
-  const [direction, setDirection] = createSignal<"forward" | "backward" | null>(
-    null,
-  );
+  const [direction, setDirection] = createSignal<"forward" | "backward" | null>(null);
   const [currentTitle, setCurrentTitle] = createSignal(initialTitle);
 
   const push = (pageId: string, title?: string) => {

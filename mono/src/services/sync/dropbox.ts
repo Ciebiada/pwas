@@ -62,10 +62,7 @@ export const handleAuthCallback = async (code: string): Promise<boolean> => {
       setAccessToken((response.result as any).access_token);
 
       if ((response.result as any).refresh_token) {
-        localStorage.setItem(
-          "dropbox_refresh_token",
-          (response.result as any).refresh_token,
-        );
+        localStorage.setItem("dropbox_refresh_token", (response.result as any).refresh_token);
       }
 
       return true;
@@ -114,9 +111,7 @@ const withRetryOnAuth = async <T>(operation: () => Promise<T>): Promise<T> => {
     return await operation();
   } catch (error: any) {
     if (error?.status === 401 || error?.response?.status === 401) {
-      console.log(
-        "Received 401 error, attempting to refresh token and retry...",
-      );
+      console.log("Received 401 error, attempting to refresh token and retry...");
 
       const refreshed = await refreshAccessToken();
       if (refreshed) {
@@ -160,9 +155,7 @@ export const listFiles = async (path: string = ""): Promise<DropboxFile[]> => {
   });
 };
 
-export const getFileMetadata = async (
-  path: string,
-): Promise<DropboxFile | null> => {
+export const getFileMetadata = async (path: string): Promise<DropboxFile | null> => {
   if (!isDropboxInitialized()) {
     throw new Error("Dropbox not initialized. Call initDropbox first.");
   }
@@ -191,10 +184,7 @@ export const getFileMetadata = async (
   });
 };
 
-export const uploadFile = async (
-  path: string,
-  content: string,
-): Promise<UploadResponse> => {
+export const uploadFile = async (path: string, content: string): Promise<UploadResponse> => {
   if (!isDropboxInitialized()) {
     throw new Error("Dropbox not initialized. Call initDropbox first.");
   }
@@ -245,10 +235,7 @@ export const deleteFile = async (path: string): Promise<void> => {
   });
 };
 
-export const moveFile = async (
-  fromPath: string,
-  toPath: string,
-): Promise<DropboxFile> => {
+export const moveFile = async (fromPath: string, toPath: string): Promise<DropboxFile> => {
   if (!isDropboxInitialized()) {
     throw new Error("Dropbox not initialized. Call initDropbox first.");
   }
@@ -273,8 +260,7 @@ export const moveFile = async (
 
 export const isDropboxInitialized = (): boolean => {
   return (
-    Boolean(localStorage.getItem("dropbox_access_token")) &&
-    Boolean(localStorage.getItem("dropbox_refresh_token"))
+    Boolean(localStorage.getItem("dropbox_access_token")) && Boolean(localStorage.getItem("dropbox_refresh_token"))
   );
 };
 
@@ -287,9 +273,7 @@ const initDropbox = (): void => {
 
   if (isDropboxInitialized()) {
     dbxAuth.setAccessToken(localStorage.getItem("dropbox_access_token") || "");
-    dbxAuth.setRefreshToken(
-      localStorage.getItem("dropbox_refresh_token") || "",
-    );
+    dbxAuth.setRefreshToken(localStorage.getItem("dropbox_refresh_token") || "");
   }
 };
 

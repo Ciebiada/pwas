@@ -34,10 +34,7 @@ export class ResourceResolver {
     const allImages = [...images, ...svgImages];
 
     for (const img of allImages) {
-      const src =
-        img.getAttribute("src") ||
-        img.getAttribute("xlink:href") ||
-        img.getAttribute("href");
+      const src = img.getAttribute("src") || img.getAttribute("xlink:href") || img.getAttribute("href");
       if (!src) continue;
 
       const resolvedPath = this.resolveRelativePath(src, baseHref);
@@ -60,20 +57,14 @@ export class ResourceResolver {
                 img.setAttribute("width", tempImg.naturalWidth.toString());
                 img.setAttribute("height", tempImg.naturalHeight.toString());
               } catch (decodeErr) {
-                console.warn(
-                  `[ResourceResolver] Failed to decode image: ${resolvedPath}`,
-                  decodeErr,
-                );
+                console.warn(`[ResourceResolver] Failed to decode image: ${resolvedPath}`, decodeErr);
               }
             }
 
             this.setImageSource(img, url);
           }
         } catch (e) {
-          console.warn(
-            `[ResourceResolver] Failed to load image: ${resolvedPath}`,
-            e,
-          );
+          console.warn(`[ResourceResolver] Failed to load image: ${resolvedPath}`, e);
         }
       }
     }
@@ -105,12 +96,7 @@ export class ResourceResolver {
 
     for (const match of matches) {
       const originalUrl = match[1];
-      if (
-        !originalUrl ||
-        originalUrl.startsWith("data:") ||
-        originalUrl.startsWith("http")
-      )
-        continue;
+      if (!originalUrl || originalUrl.startsWith("data:") || originalUrl.startsWith("http")) continue;
 
       const resolvedPath = this.resolveRelativePath(originalUrl, baseHref);
       const cachedUrl = this.resourceCache.get(resolvedPath);
@@ -126,10 +112,7 @@ export class ResourceResolver {
             resolvedCss = resolvedCss.replace(match[0], `url("${url}")`);
           }
         } catch (e) {
-          console.warn(
-            `[ResourceResolver] Failed to resolve CSS URL: ${resolvedPath}`,
-            e,
-          );
+          console.warn(`[ResourceResolver] Failed to resolve CSS URL: ${resolvedPath}`, e);
         }
       }
     }

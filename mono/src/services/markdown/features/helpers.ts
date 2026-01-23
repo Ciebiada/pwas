@@ -10,10 +10,7 @@ export const handleIndentBackspace = (
   if (!line.startsWith(INDENT)) return null;
 
   return {
-    content:
-      content.slice(0, lineStart) +
-      line.slice(INDENT_SIZE) +
-      content.slice(lineEnd(content, lineStart)),
+    content: content.slice(0, lineStart) + line.slice(INDENT_SIZE) + content.slice(lineEnd(content, lineStart)),
     cursor: selection.start - INDENT_SIZE,
   };
 };
@@ -33,9 +30,7 @@ export const handleEmptyLineEnter = (
   const { start: lineStart } = lineRange;
   const prefix = match[0];
   const isAfterPrefix = selection.start === lineStart + prefix.length;
-  const textAfter = content
-    .slice(selection.start, lineEnd(content, lineStart))
-    .trim();
+  const textAfter = content.slice(selection.start, lineEnd(content, lineStart)).trim();
 
   if (isAfterPrefix && textAfter === "") {
     return onBackspace(content, selection, match, lineRange);

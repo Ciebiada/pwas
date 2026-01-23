@@ -1,11 +1,4 @@
-import {
-  createSignal,
-  createEffect,
-  For,
-  Show,
-  onCleanup,
-  onMount,
-} from "solid-js";
+import { createSignal, createEffect, For, Show, onCleanup, onMount } from "solid-js";
 import { db, type Book } from "../db";
 import { Header, HeaderButton, AddIcon, MoreIcon } from "rams";
 import { SettingsModal } from "./SettingsModal";
@@ -21,9 +14,7 @@ const Library = (props: { onSelect: (id: number) => void }) => {
   const loadBooks = async () => {
     const all = await db.books.toArray();
     // Sort by lastOpened descending. Books without lastOpened (old books) go to the bottom.
-    const sorted = all.sort(
-      (a, b) => (b.lastOpened || 0) - (a.lastOpened || 0),
-    );
+    const sorted = all.sort((a, b) => (b.lastOpened || 0) - (a.lastOpened || 0));
     setBooks(sorted);
   };
 
@@ -42,10 +33,7 @@ const Library = (props: { onSelect: (id: number) => void }) => {
   return (
     <>
       <Header>
-        <HeaderButton
-          right
-          onClick={() => document.getElementById("file-input")?.click()}
-        >
+        <HeaderButton right onClick={() => document.getElementById("file-input")?.click()}>
           <AddIcon />
         </HeaderButton>
         <HeaderButton onClick={() => setSettingsOpen(true)}>
@@ -68,12 +56,7 @@ const Library = (props: { onSelect: (id: number) => void }) => {
               <div>
                 <p>
                   Tap{" "}
-                  <button
-                    class="inline-icon-button"
-                    onClick={() =>
-                      document.getElementById("file-input")?.click()
-                    }
-                  >
+                  <button class="inline-icon-button" onClick={() => document.getElementById("file-input")?.click()}>
                     <AddIcon />
                   </button>{" "}
                   to upload a book.
@@ -95,13 +78,7 @@ const Library = (props: { onSelect: (id: number) => void }) => {
           >
             <div class="book-grid">
               <For each={books()}>
-                {(book) => (
-                  <BookItem
-                    book={book}
-                    onSelect={props.onSelect}
-                    onDelete={deleteBook}
-                  />
-                )}
+                {(book) => <BookItem book={book} onSelect={props.onSelect} onDelete={deleteBook} />}
               </For>
             </div>
           </Show>
@@ -112,11 +89,7 @@ const Library = (props: { onSelect: (id: number) => void }) => {
   );
 };
 
-const BookItem = (props: {
-  book: Book;
-  onSelect: (id: number) => void;
-  onDelete: (id: number, e: Event) => void;
-}) => {
+const BookItem = (props: { book: Book; onSelect: (id: number) => void; onDelete: (id: number, e: Event) => void }) => {
   const [coverUrl, setCoverUrl] = createSignal<string | undefined>(undefined);
 
   // Create cover URL reactively when book data is available
@@ -155,22 +128,14 @@ const BookItem = (props: {
   return (
     <div class="book-item" onClick={handleClick}>
       <div class="book-cover">
-        <Show
-          when={coverUrl()}
-          fallback={
-            <div class="placeholder-cover">{props.book.title?.[0] || "?"}</div>
-          }
-        >
+        <Show when={coverUrl()} fallback={<div class="placeholder-cover">{props.book.title?.[0] || "?"}</div>}>
           <img src={coverUrl()} alt={props.book.title} />
         </Show>
       </div>
       <div class="book-info">
         <h3>{props.book.title || "Untitled"}</h3>
         <p>{props.book.author || "Unknown"}</p>
-        <button
-          class="delete-btn"
-          onClick={(e) => props.book.id && props.onDelete(props.book.id, e)}
-        >
+        <button class="delete-btn" onClick={(e) => props.book.id && props.onDelete(props.book.id, e)}>
           ✕
         </button>
       </div>

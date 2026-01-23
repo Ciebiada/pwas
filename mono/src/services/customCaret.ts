@@ -4,8 +4,7 @@ import "./customCaret.css";
 const BLINK_DELAY_MS = 300;
 
 const isHiddenElement = (element: Element) =>
-  element.className === "markdown-prefix" ||
-  element.className === "markdown-delimiter";
+  element.className === "markdown-prefix" || element.className === "markdown-delimiter";
 
 const getVisibleRect = (node: Node, atEnd: boolean): DOMRect | null => {
   const tempRange = document.createRange();
@@ -87,7 +86,7 @@ export const useCustomCaret = (
     const updateCaretPosition = () => {
       const range = getValidCollapsedRange();
       if (!range || !container) return;
-      
+
       const rect = getRectForVisibleContent(range);
       if (rect.height === 0) return;
 
@@ -128,8 +127,7 @@ export const useCustomCaret = (
     };
 
     const handleFocus = () => handleSelectionChange();
-    const handleVisibilityChange = () =>
-      document.hidden ? hideCaret() : handleSelectionChange();
+    const handleVisibilityChange = () => (document.hidden ? hideCaret() : handleSelectionChange());
 
     document.addEventListener("selectionchange", handleSelectionChange);
     document.addEventListener("visibilitychange", handleVisibilityChange);

@@ -10,12 +10,7 @@ export class CFIHelper {
    * Generate a simplified CFI from a spine index and character offset
    * Format: epubcfi(/6/[spineIndex]!/4/[paragraphIndex]/[characterOffset])
    */
-  static generate(
-    spineIndex: number,
-    element: Element | null,
-    root: Element,
-    offset: number = 0,
-  ): CFI {
+  static generate(spineIndex: number, element: Element | null, root: Element, offset: number = 0): CFI {
     if (!element || !root) {
       return `epubcfi(/6/${(spineIndex + 1) * 2}!/0)`;
     }
@@ -27,9 +22,7 @@ export class CFIHelper {
   /**
    * Parse a CFI to extract spine index and location info
    */
-  static parse(
-    cfi: CFI,
-  ): { spineIndex: number; path: string; offset: number } | null {
+  static parse(cfi: CFI): { spineIndex: number; path: string; offset: number } | null {
     if (!cfi || !cfi.startsWith("epubcfi(")) return null;
 
     try {
@@ -40,16 +33,12 @@ export class CFIHelper {
 
       const spinePart = parts[0];
       const spineMatch = spinePart.match(/\/6\/(\d+)/);
-      const spineIndex = spineMatch
-        ? Math.floor(parseInt(spineMatch[1]) / 2) - 1
-        : 0;
+      const spineIndex = spineMatch ? Math.floor(parseInt(spineMatch[1]) / 2) - 1 : 0;
 
       const locationPart = parts[1];
       const lastSlash = locationPart.lastIndexOf("/");
-      const path =
-        lastSlash > 0 ? locationPart.slice(0, lastSlash) : locationPart;
-      const offset =
-        lastSlash > 0 ? parseInt(locationPart.slice(lastSlash + 1)) || 0 : 0;
+      const path = lastSlash > 0 ? locationPart.slice(0, lastSlash) : locationPart;
+      const offset = lastSlash > 0 ? parseInt(locationPart.slice(lastSlash + 1)) || 0 : 0;
 
       return { spineIndex, path, offset };
     } catch (e) {
@@ -107,10 +96,7 @@ export class CFIHelper {
     return current;
   }
 
-  static locateTextPosition(
-    root: HTMLElement,
-    absoluteOffset: number,
-  ): { node: Text; offset: number } | null {
+  static locateTextPosition(root: HTMLElement, absoluteOffset: number): { node: Text; offset: number } | null {
     try {
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
       let currentOffset = 0;
@@ -132,17 +118,11 @@ export class CFIHelper {
     return null;
   }
 
-  static getTargetCharClientRect(
-    element: Element,
-    offset: number,
-  ): DOMRect | null {
+  static getTargetCharClientRect(element: Element, offset: number): DOMRect | null {
     const startOffset = Math.max(0, offset || 0);
     const maxLookahead = 64;
 
-    const startPos = this.locateTextPosition(
-      element as HTMLElement,
-      startOffset,
-    );
+    const startPos = this.locateTextPosition(element as HTMLElement, startOffset);
     if (!startPos) return element.getBoundingClientRect();
 
     try {

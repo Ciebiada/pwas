@@ -2,19 +2,15 @@
   outline: none;
 }
 
+.editor-container {
+  height: 100%;
+  position: relative;
+}
+
 .editor[contenteditable="true"] {
-  min-height: 100vh;
-  padding-bottom: calc(var(--keyboard-offset, 0) + 32px);
+  min-height: 100%;
+  padding-bottom: var(--keyboard-offset, 0);
 }
-
-/* @keyframes blink_input_opacity_to_prevent_scrolling_when_focus {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
-}
-
-.editor:focus {
-    animation: blink_input_opacity_to_prevent_scrolling_when_focus 0.5s;
-} */
 
 .markdown-delimiter,
 .markdown-prefix {
@@ -76,7 +72,6 @@ input[type="checkbox"]::before {
   content: "";
   position: absolute;
   inset: -6px;
-  /* z-index: -100; */
 }
 
 .md-ordered-marker,

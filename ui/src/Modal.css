@@ -12,13 +12,11 @@ body.modal-open {
 }
 
 .modal-overlay[data-expanded] {
-  animation: overlay-fade-in var(--animation-duration)
-    cubic-bezier(0.36, 0.66, 0.04, 1) forwards;
+  animation: overlay-fade-in var(--animation-duration) cubic-bezier(0.36, 0.66, 0.04, 1) forwards;
 }
 
 .modal-overlay[data-closed] {
-  animation: overlay-fade-out var(--animation-duration)
-    cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  animation: overlay-fade-out var(--animation-duration) cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
 @keyframes overlay-fade-in {
@@ -101,8 +99,6 @@ body.modal-open {
   align-items: center;
   flex-shrink: 0;
   cursor: grab;
-  user-select: none;
-  -webkit-user-select: none;
 }
 
 .modal-fixed-header:active {
@@ -150,12 +146,8 @@ body.modal-open {
   margin: 8px 16px;
   padding: 12px 16px;
   border-radius: 32px;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
   position: relative;
   overflow: hidden;
-  -webkit-tap-highlight-color: transparent;
   transition: background-color 0.1s ease;
   touch-action: pan-y;
 }
@@ -171,21 +163,13 @@ body.modal-open {
 
 @media (hover: hover) {
   .modal-button:hover {
-    background-color: color-mix(
-      in srgb,
-      var(--element-background-color),
-      var(--text-color) 8%
-    );
+    background-color: color-mix(in srgb, var(--element-background-color), var(--text-color) 8%);
   }
 }
 
 .modal-button.activated,
 .modal-native-select.activated + .modal-button {
-  background-color: color-mix(
-    in srgb,
-    var(--element-background-color),
-    var(--text-color) 15%
-  );
+  background-color: color-mix(in srgb, var(--element-background-color), var(--text-color) 15%);
 }
 
 .modal-toggle {
@@ -196,9 +180,6 @@ body.modal-open {
   margin: 8px 16px;
   padding: 12px 16px;
   border-radius: 32px;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
 }
 
 .modal-toggle-label {
@@ -280,13 +261,11 @@ body.modal-open {
 }
 
 .modal-page[data-animate="forward"] {
-  animation: page-slide-in-forward var(--animation-duration)
-    cubic-bezier(0.36, 0.66, 0.04, 1);
+  animation: page-slide-in-forward var(--animation-duration) cubic-bezier(0.36, 0.66, 0.04, 1);
 }
 
 .modal-page[data-animate="backward"] {
-  animation: page-slide-in-backward var(--animation-duration)
-    cubic-bezier(0.36, 0.66, 0.04, 1);
+  animation: page-slide-in-backward var(--animation-duration) cubic-bezier(0.36, 0.66, 0.04, 1);
 }
 
 .modal-content p {
@@ -322,9 +301,6 @@ body.modal-open {
 
 .modal-select-wrapper {
   position: relative;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
 }
 
 .modal-select-content {
@@ -347,22 +323,14 @@ body.modal-open {
   height: calc(100% - 16px);
   -webkit-appearance: none;
   appearance: none;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
   touch-action: pan-y;
 }
 
 .modal-slider-wrapper {
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
   background-image: linear-gradient(
     90deg,
     color-mix(in srgb, var(--text-color), transparent 90%) 0%,
-    color-mix(in srgb, var(--text-color), transparent 90%)
-      var(--slider-progress),
+    color-mix(in srgb, var(--text-color), transparent 90%) var(--slider-progress),
     transparent var(--slider-progress),
     transparent 100%
   );

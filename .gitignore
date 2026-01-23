@@ -26,3 +26,5 @@ npm-debug.log*
 # Other
 Thumbs.db
 app.config.timestamp_*.js
+
+.agent/skills/

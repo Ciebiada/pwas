@@ -12,13 +12,9 @@ import { renderMarkdown } from "../services/markdown/renderer";
 import { splitNote } from "../services/note";
 import { useCustomCaret } from "../services/customCaret";
 import { isIOS } from "../../../ui/src/platform";
-import {
-  isCustomCaretEnabled,
-  isMonospaceEnabled,
-} from "../services/preferences";
-import "./Editor.css";
-import { debounce } from "../services/debounce";
+import { isCustomCaretEnabled, isMonospaceEnabled } from "../services/preferences";
 import { handleTab } from "../services/markdown/input";
+import "./Editor.css";
 
 export type EditorAPI = {
   focus: () => void;
@@ -41,8 +37,6 @@ export const Editor = (_props: EditorProps) => {
   let editor: HTMLDivElement;
   let container: HTMLDivElement | undefined;
   let iosReplacementText = "";
-  let ghostInput: HTMLInputElement | undefined;
-  let touchStart: { x: number; y: number } | null = null;
 
   if (isCustomCaretEnabled()) {
     useCustomCaret(
@@ -58,15 +52,17 @@ export const Editor = (_props: EditorProps) => {
 
   const applyEdit = (newContent: string, cursor: number) => {
     setContent(newContent);
-    setSelection(editor, cursor, { scroll: true });
+    setSelection(editor, cursor);
     emitChange();
+    requestAnimationFrame(() => {
+      scrollCursorIntoView(window.getSelection()!, "smooth");
+    });
   };
 
   onMount(() => {
     props.onReady?.({
       focus: () => {
-        editor.focus({ preventScroll: true });
-        scrollCursorIntoView(window.getSelection()!, "instant");
+        editor.focus();
       },
       replaceContent: (name: string, noteContent: string) => {
         const newContent = name + (noteContent ? "\n" + noteContent : "");
@@ -80,11 +76,11 @@ export const Editor = (_props: EditorProps) => {
       },
     });
 
-    setSelection(editor, props.initialCursor, { scroll: true });
+    const selection = setSelection(editor, props.initialCursor);
+    if (selection) scrollCursorIntoView(selection, "instant");
 
     if (props.autoFocus && !isIOS) {
-      editor.focus({ preventScroll: true });
-      scrollCursorIntoView(window.getSelection()!, "instant");
+      editor.focus();
     } else {
       editor.blur();
     }
@@ -94,60 +90,32 @@ export const Editor = (_props: EditorProps) => {
       if (isIOS) fixCursorPositionForZeroWidthSpace();
       props.onCursorChange?.(getSelection(editor).start);
     };
-    const onTextInput = (event: any) => (iosReplacementText = event.data);
-    const fixCursorPosition = debounce((e: Event) => {
-      if (document.activeElement !== editor) return;
-      if (isIOS) {
-        const vv = e.target as VisualViewport;
-        // Capture only initial resize event
-        // document.documentElement.scrollTo(0, 0);
-        // if (vv.offsetTop == vv.pageTop) scrollCursorIntoView(window.getSelection()!, "instant");
-      }
-    }, 100);
 
     document.addEventListener("selectionchange", onSelectionChange);
-    editor.addEventListener("textInput", onTextInput);
-
-    if (window.visualViewport)
-      window.visualViewport.addEventListener("resize", fixCursorPosition);
 
     onCleanup(() => {
       document.removeEventListener("selectionchange", onSelectionChange);
-      editor.removeEventListener("textInput", onTextInput);
-
-      if (window.visualViewport)
-        window.visualViewport.removeEventListener("resize", fixCursorPosition);
     });
   });
 
+  const onTextInput = (event: InputEvent) => (iosReplacementText = event.data || "");
+
   const handleKeyDown = (event: KeyboardEvent) => {
-    if (
-      event.key === "Tab" &&
-      !event.ctrlKey &&
-      !event.metaKey &&
-      !event.altKey
-    ) {
+    if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey) {
       event.preventDefault();
       const result = handleTab(content(), getSelection(editor), event.shiftKey);
       applyEdit(result.content, result.cursor);
+      return;
     }
   };
 
   const handleBeforeInput = (event: InputEvent) => {
     event.preventDefault();
 
-    const result = processBeforeInput(
-      event.inputType,
-      content(),
-      getSelection(editor),
-      {
-        eventData:
-          event.inputType === "insertFromPaste"
-            ? event.dataTransfer?.getData("text/plain")
-            : event.data,
-        iosReplacementText,
-      },
-    );
+    const result = processBeforeInput(event.inputType, content(), getSelection(editor), {
+      eventData: event.inputType === "insertFromPaste" ? event.dataTransfer?.getData("text/plain") : event.data,
+      iosReplacementText,
+    });
 
     if (result) {
       applyEdit(result.content, result.cursor);
@@ -160,71 +128,22 @@ export const Editor = (_props: EditorProps) => {
     emitChange();
   };
 
-  const handleTouchStart = (e: TouchEvent) => {
-    if (isIOS && document.activeElement !== editor) {
-      touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    }
-  };
-
-  const handleTouchEnd = (e: TouchEvent) => {
-    if (!touchStart || !ghostInput) return;
-
-    const touchEnd = e.changedTouches[0];
-    const distance = Math.hypot(
-      touchEnd.clientX - touchStart.x,
-      touchEnd.clientY - touchStart.y,
-    );
-
-    touchStart = null;
-
-    if (distance < 10) {
-      e.preventDefault();
-
-      const range = document.caretRangeFromPoint(
-        touchEnd.clientX,
-        touchEnd.clientY,
-      );
-
-      ghostInput.focus({ preventScroll: true });
-
-      setTimeout(() => {
-        editor.focus({ preventScroll: true });
-        if (range) {
-          const selection = window.getSelection();
-          selection?.removeAllRanges();
-          selection?.addRange(range);
-        }
-        scrollCursorIntoView(window.getSelection()!, "smooth");
-      }, 150);
-    }
-  };
-
   return (
-    <div
-      style={{ position: "relative" }}
-      ref={container}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-    >
-      <input
-        ref={(e) => (ghostInput = e)}
-        style={{
-          position: "fixed",
-          top: "0",
-          left: "0",
-          opacity: "0",
-          "pointer-events": "none",
-          height: "0",
-          width: "0",
-        }}
-      />
+    <div class="editor-container" ref={container}>
       <div
         ref={(e) => (editor = e)}
         classList={{ editor: true, monospace: isMonospaceEnabled() }}
         contentEditable={true}
         spellcheck={false}
+        onFocus={() => {
+          editor.focus({ preventScroll: true });
+          setTimeout(() => {
+            scrollCursorIntoView(window.getSelection()!, "smooth");
+          }, 150);
+        }}
         onBeforeInput={handleBeforeInput}
         onKeyDown={handleKeyDown}
+        on:textInput={onTextInput}
       >
         {renderMarkdown(content(), handleCheckboxToggle)}
       </div>

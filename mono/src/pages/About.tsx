@@ -21,15 +21,12 @@ export const About = () => {
 
   return (
     <>
-      <Page
-        header={
-          <Header>
-            <HeaderButton onClick={() => navigate("/", { back: true })}>
-              <BackIcon />
-            </HeaderButton>
-          </Header>
-        }
-      >
+      <Header>
+        <HeaderButton onClick={() => navigate(-1, { back: true })}>
+          <BackIcon />
+        </HeaderButton>
+      </Header>
+      <Page>
         <div class="page-content">
           <div class="editor">
             <h1>About Mono</h1>

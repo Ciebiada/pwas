@@ -7,22 +7,12 @@ export const TodoListFeature: MarkdownFeature = {
   pattern: /^(\s*[-*] )\[([ x])\]\s/,
 
   onEnter(content, selection, match, lineRange) {
-    const emptyLineResult = handleEmptyLineEnter(
-      content,
-      selection,
-      match,
-      lineRange,
-      this.onBackspace!.bind(this),
-    );
+    const emptyLineResult = handleEmptyLineEnter(content, selection, match, lineRange, this.onBackspace!.bind(this));
     if (emptyLineResult) return emptyLineResult;
 
     const newPrefix = match[1] + "[ ] ";
     return {
-      content:
-        content.slice(0, selection.start) +
-        "\n" +
-        newPrefix +
-        content.slice(selection.end),
+      content: content.slice(0, selection.start) + "\n" + newPrefix + content.slice(selection.end),
       cursor: selection.start + 1 + newPrefix.length,
     };
   },
@@ -34,10 +24,7 @@ export const TodoListFeature: MarkdownFeature = {
     const { start: lineStart, line } = lineRange;
     const prefixLength = match[0].length;
     return {
-      content:
-        content.slice(0, lineStart) +
-        line.slice(prefixLength) +
-        content.slice(lineEnd(content, lineStart)),
+      content: content.slice(0, lineStart) + line.slice(prefixLength) + content.slice(lineEnd(content, lineStart)),
       cursor: lineStart,
     };
   },

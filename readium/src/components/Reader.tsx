@@ -4,16 +4,7 @@ import { db } from "../db";
 import { settings, updateSettings, THEMES } from "../store/settings";
 import type { Theme } from "../store/settings";
 import { EpubParser, EpubRenderer } from "../lib/epub";
-import {
-  Header,
-  HeaderButton,
-  Modal,
-  ModalPage,
-  ModalSelect,
-  ModalSlider,
-  ModalToggle,
-  BackIcon,
-} from "rams";
+import { Header, HeaderButton, Modal, ModalPage, ModalSelect, ModalSlider, ModalToggle, BackIcon } from "rams";
 import { useTap } from "../hooks/useTap";
 
 const Reader = (props: { onClose: () => void }) => {
@@ -23,9 +14,7 @@ const Reader = (props: { onClose: () => void }) => {
   let viewerRef: HTMLDivElement | undefined;
   let rendererRef: EpubRenderer | undefined;
 
-  const [renderer, setRenderer] = createSignal<EpubRenderer | undefined>(
-    undefined,
-  );
+  const [renderer, setRenderer] = createSignal<EpubRenderer | undefined>(undefined);
   const [showControls, setShowControls] = createSignal(false);
   const [showSettings, setShowSettings] = createSignal(false);
   const [progress, setProgress] = createSignal<{
@@ -67,9 +56,7 @@ const Reader = (props: { onClose: () => void }) => {
 
   const getEffectiveTheme = (theme: Theme): "light" | "dark" => {
     if (theme === "system") {
-      return window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light";
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     }
     return theme as "light" | "dark";
   };
@@ -121,9 +108,7 @@ const Reader = (props: { onClose: () => void }) => {
       db.books.update(bookId(), { lastOpened: Date.now() });
 
       const arrayBuffer =
-        bookData.data instanceof ArrayBuffer
-          ? bookData.data
-          : await new Blob([bookData.data]).arrayBuffer();
+        bookData.data instanceof ArrayBuffer ? bookData.data : await new Blob([bookData.data]).arrayBuffer();
 
       const parser = new EpubParser();
       const packageData = await parser.load(arrayBuffer);
@@ -283,8 +268,7 @@ const Reader = (props: { onClose: () => void }) => {
             }}
           >
             {progress()?.current} / {progress()?.total}
-            {progress()?.percentage !== undefined &&
-              ` • ${progress()?.percentage?.toFixed(2)}%`}
+            {progress()?.percentage !== undefined && ` • ${progress()?.percentage?.toFixed(2)}%`}
           </div>
         </Show>
       </div>
@@ -306,12 +290,7 @@ const Reader = (props: { onClose: () => void }) => {
           </Header>
         </div>
 
-        <Modal
-          open={showSettings}
-          setOpen={setShowSettings}
-          title="Appearance"
-          height="auto"
-        >
+        <Modal open={showSettings} setOpen={setShowSettings} title="Appearance" height="auto">
           <ModalPage id="root">
             <ModalSelect
               label="Theme"
@@ -330,9 +309,7 @@ const Reader = (props: { onClose: () => void }) => {
             >
               <option value="Literata, Georgia, serif">Literata</option>
               <option value="Merriweather, Georgia, serif">Merriweather</option>
-              <option value="'Open Sans', Helvetica, sans-serif">
-                Open Sans
-              </option>
+              <option value="'Open Sans', Helvetica, sans-serif">Open Sans</option>
               <option value="Georgia, serif">Georgia</option>
               <option value="Helvetica, sans-serif">Helvetica</option>
               <option value="'Courier New', monospace">Monospace</option>
@@ -341,9 +318,7 @@ const Reader = (props: { onClose: () => void }) => {
             <ModalSelect
               label="Margin"
               value={settings().margin}
-              onChange={(val: string) =>
-                updateSettings({ margin: parseInt(val) })
-              }
+              onChange={(val: string) => updateSettings({ margin: parseInt(val) })}
             >
               <option value="0">None</option>
               <option value="20">Normal</option>

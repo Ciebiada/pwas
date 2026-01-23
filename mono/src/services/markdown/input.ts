@@ -1,19 +1,7 @@
-import {
-  INDENT,
-  INDENT_SIZE,
-  InputResult,
-  LIST_PATTERN,
-  TABLE_PATTERN,
-  Selection,
-  getLineRange,
-} from "./utils";
+import { INDENT, INDENT_SIZE, InputResult, LIST_PATTERN, TABLE_PATTERN, Selection, getLineRange } from "./utils";
 import { MARKDOWN_FEATURES } from "./features";
 
-export const handleBlockTab = (
-  content: string,
-  selection: Selection,
-  shiftKey: boolean,
-): InputResult | null => {
+export const handleBlockTab = (content: string, selection: Selection, shiftKey: boolean): InputResult | null => {
   const lineRange = getLineRange(content, selection.start);
   const { start: lineStart, line } = lineRange;
 
@@ -25,13 +13,7 @@ export const handleBlockTab = (
   for (const feature of MARKDOWN_FEATURES) {
     const match = line.match(feature.pattern);
     if (match && feature.onTab) {
-      const result = feature.onTab(
-        content,
-        selection,
-        shiftKey,
-        match,
-        lineRange,
-      );
+      const result = feature.onTab(content, selection, shiftKey, match, lineRange);
       if (result) return result;
     }
   }
@@ -41,20 +23,13 @@ export const handleBlockTab = (
     if (shiftKey) {
       if (!line.startsWith(INDENT)) return null;
       return {
-        content:
-          content.slice(0, lineStart) +
-          line.slice(INDENT_SIZE) +
-          content.slice(lineRange.end),
+        content: content.slice(0, lineStart) + line.slice(INDENT_SIZE) + content.slice(lineRange.end),
         cursor: selection.start - INDENT_SIZE,
       };
     }
 
     return {
-      content:
-        content.slice(0, lineStart) +
-        INDENT +
-        line +
-        content.slice(lineRange.end),
+      content: content.slice(0, lineStart) + INDENT + line + content.slice(lineRange.end),
       cursor: selection.start + INDENT_SIZE,
     };
   }
@@ -62,21 +37,14 @@ export const handleBlockTab = (
   return null;
 };
 
-export const handleTab = (
-  content: string,
-  selection: Selection,
-  shiftKey: boolean,
-): InputResult => {
+export const handleTab = (content: string, selection: Selection, shiftKey: boolean): InputResult => {
   const blockResult = handleBlockTab(content, selection, shiftKey);
   if (blockResult) return blockResult;
 
   return shiftKey
     ? { content, cursor: selection.start }
     : {
-        content:
-          content.slice(0, selection.start) +
-          INDENT +
-          content.slice(selection.end),
+        content: content.slice(0, selection.start) + INDENT + content.slice(selection.end),
         cursor: selection.start + INDENT_SIZE,
       };
 };
@@ -93,18 +61,12 @@ const trimLineBeforeNewline = (result: InputResult): InputResult => {
   if (removed === 0) return result;
 
   return {
-    content:
-      result.content.slice(0, lineStart) +
-      trimmed +
-      result.content.slice(newlinePos),
+    content: result.content.slice(0, lineStart) + trimmed + result.content.slice(newlinePos),
     cursor: result.cursor - removed,
   };
 };
 
-export const handleEnter = (
-  content: string,
-  selection: Selection,
-): InputResult => {
+export const handleEnter = (content: string, selection: Selection): InputResult => {
   const { start, end } = selection;
   const lineRange = getLineRange(content, start);
   const { start: lineStart, line: lineContent } = lineRange;
@@ -135,10 +97,7 @@ export const handleEnter = (
   return trimLineBeforeNewline(result);
 };
 
-export const handleBackspaceAtListStart = (
-  content: string,
-  selection: Selection,
-): InputResult | null => {
+export const handleBackspaceAtListStart = (content: string, selection: Selection): InputResult | null => {
   const { start, end } = selection;
   if (start !== end) return null;
 
@@ -157,12 +116,7 @@ export const handleBackspaceAtListStart = (
       for (const feature of MARKDOWN_FEATURES) {
         const fMatch = line.match(feature.pattern);
         if (fMatch && feature.onBackspace) {
-          const result = feature.onBackspace(
-            content,
-            selection,
-            fMatch,
-            lineRange,
-          );
+          const result = feature.onBackspace(content, selection, fMatch, lineRange);
           if (result) return result;
         }
       }
@@ -174,12 +128,7 @@ export const handleBackspaceAtListStart = (
     for (const feature of MARKDOWN_FEATURES) {
       const fMatch = line.match(feature.pattern);
       if (fMatch && feature.onBackspace) {
-        const result = feature.onBackspace(
-          content,
-          selection,
-          fMatch,
-          lineRange,
-        );
+        const result = feature.onBackspace(content, selection, fMatch, lineRange);
         if (result) return result;
       }
     }
@@ -188,11 +137,7 @@ export const handleBackspaceAtListStart = (
   return null;
 };
 
-export const handleInput = (
-  char: string,
-  content: string,
-  selection: Selection,
-): InputResult | null => {
+export const handleInput = (char: string, content: string, selection: Selection): InputResult | null => {
   for (const feature of MARKDOWN_FEATURES) {
     if (feature.onInput) {
       const result = feature.onInput(char, content, selection);
