@@ -202,7 +202,6 @@ body.modal-open {
   height: 28px;
   flex-shrink: 0;
   cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
   touch-action: pan-y;
 }
 

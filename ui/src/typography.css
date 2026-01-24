@@ -36,7 +36,6 @@ a {
   color: var(--text-color);
   text-decoration: underline;
   text-underline-offset: 2px;
-  -webkit-tap-highlight-color: transparent;
 }
 
 a:hover {
@@ -51,5 +50,4 @@ a:hover {
   top: -1px;
   cursor: pointer;
   color: var(--text-color);
-  -webkit-tap-highlight-color: transparent;
 }
