@@ -12,7 +12,7 @@ export const UnorderedListFeature: MarkdownFeature = {
 
     const prefix = match[1];
     return {
-      content: content.slice(0, selection.start) + "\n" + prefix + content.slice(selection.end),
+      content: `${content.slice(0, selection.start)}\n${prefix}${content.slice(selection.end)}`,
       cursor: selection.start + 1 + prefix.length,
     };
   },
@@ -37,7 +37,7 @@ export const UnorderedListFeature: MarkdownFeature = {
 
     // 1. Simple expansion
     if (linePrefix === "*" || linePrefix === "-") {
-      const replacement = linePrefix + " ";
+      const replacement = `${linePrefix} `;
       return {
         content: insert(content, lineStart, start, replacement),
         cursor: lineStart + replacement.length,
@@ -48,15 +48,15 @@ export const UnorderedListFeature: MarkdownFeature = {
     const patterns = [
       {
         pattern: /^(\s*)[-*] [-*]$/,
-        replace: (m: RegExpMatchArray) => m[1] + INDENT + "- ",
+        replace: (m: RegExpMatchArray) => `${m[1] + INDENT}- `,
       },
       {
         pattern: /^(\s*)[-*] \[[ x]\] [-*]$/,
-        replace: (m: RegExpMatchArray) => m[1] + "- ",
+        replace: (m: RegExpMatchArray) => `${m[1]}- `,
       },
       {
         pattern: /^(\s*)\d+\. [-*]$/,
-        replace: (m: RegExpMatchArray) => m[1] + "- ",
+        replace: (m: RegExpMatchArray) => `${m[1]}- `,
       },
     ];
 

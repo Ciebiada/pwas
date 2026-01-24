@@ -33,7 +33,7 @@ export class EpubStyler {
 
     const styleTags = Array.from(doc.querySelectorAll("style"));
     for (const tag of styleTags) {
-      combinedCss += (await this.resolver.resolveUrlsInCss(tag.textContent || "", baseHref)) + "\n";
+      combinedCss += `${await this.resolver.resolveUrlsInCss(tag.textContent || "", baseHref)}\n`;
     }
 
     const links = Array.from(doc.querySelectorAll('link[rel="stylesheet"]'));

@@ -4,7 +4,7 @@ import { createStore, reconcile, type SetStoreFunction } from "solid-js/store";
 
 type ReconcileOptions = Parameters<typeof reconcile>[1];
 
-type NotArray<T> = T extends any[] ? never : T;
+type NotArray<T> = T extends unknown[] ? never : T;
 
 export function createDexieSignalQuery<T>(
   querier: () => NotArray<T> | PromiseExtended<NotArray<T>>,

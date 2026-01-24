@@ -1,5 +1,5 @@
 import { CFIHelper } from "./epub-cfi";
-import type { EpubPackage, RendererOptions } from "./epub-types";
+import type { EpubLocation, EpubPackage, RendererOptions } from "./epub-types";
 
 export class LocationTracker {
   private totalBookSize: number = 0;
@@ -26,7 +26,7 @@ export class LocationTracker {
     currentSpineIndex: number,
     options: RendererOptions,
     basicOnly: boolean = false,
-  ): any {
+  ): EpubLocation | null {
     const currentSpineItem = this.packageData.spine[currentSpineIndex];
     if (!currentSpineItem) return null;
 
@@ -57,7 +57,7 @@ export class LocationTracker {
     const containerWidth = options.container.clientWidth;
     const stride = containerWidth - margin * 2 + margin;
 
-    const dpr = (globalThis as any).devicePixelRatio ?? 1;
+    const dpr = (globalThis as unknown as { devicePixelRatio?: number }).devicePixelRatio ?? 1;
     const fuzzPx = Math.max(2, Math.min(10, dpr * 2));
     const visibleMin = currentPage * stride + margin;
 
@@ -98,7 +98,7 @@ export class LocationTracker {
     const visibleMin = currentPage * stride + margin;
     const visibleMax = visibleMin + columnWidth;
 
-    const dpr = (globalThis as any).devicePixelRatio ?? 1;
+    const dpr = (globalThis as unknown as { devicePixelRatio?: number }).devicePixelRatio ?? 1;
     const fuzzPx = Math.max(2, Math.min(10, dpr * 2));
 
     let node: Node | null;

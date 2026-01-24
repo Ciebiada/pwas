@@ -15,7 +15,7 @@ const parseTableRow = (line: string): string[] | null => {
   return row;
 };
 
-const ensureClosingPipe = (line: string): string => (line.endsWith("|") ? line : line + "|");
+const ensureClosingPipe = (line: string): string => (line.endsWith("|") ? line : `${line}|`);
 
 const getTableBlock = (content: string, lineIndex: number) => {
   const lines = content.split("\n");
@@ -103,7 +103,7 @@ export const TableFeature: MarkdownFeature = {
   name: "table",
   pattern: TABLE_PATTERN,
 
-  onEnter(content, selection, match, lineRange) {
+  onEnter(content, _selection, _match, lineRange) {
     const { start: lineStart, line } = lineRange;
 
     // Ensure line has closing pipe for proper parsing
@@ -133,7 +133,7 @@ export const TableFeature: MarkdownFeature = {
     const { formatted, columnWidths } = formatTable(tableLines);
 
     // Construct the new empty row based on widths
-    const newRowCells = columnWidths.map((w) => " " + " ".repeat(w) + " ");
+    const newRowCells = columnWidths.map((w) => ` ${" ".repeat(w)} `);
     const newRow = `|${newRowCells.join("|")}|`;
 
     // Insert into the formatted lines
@@ -146,7 +146,7 @@ export const TableFeature: MarkdownFeature = {
     const newTableBlock = formatted.join("\n");
 
     const newContent =
-      (start > 0 ? beforeTable + "\n" : "") + newTableBlock + (end < lines.length - 1 ? "\n" + afterTable : "");
+      (start > 0 ? `${beforeTable}\n` : "") + newTableBlock + (end < lines.length - 1 ? `\n${afterTable}` : "");
 
     // Calculate new cursor position
     const newRowStart =
@@ -158,7 +158,7 @@ export const TableFeature: MarkdownFeature = {
     };
   },
 
-  onTab(content, selection, shiftKey, match, lineRange) {
+  onTab(content, selection, shiftKey, _match, lineRange) {
     const { start: lineStart, line } = lineRange;
     const relativeCursor = selection.start - lineStart;
 
@@ -209,7 +209,7 @@ export const TableFeature: MarkdownFeature = {
     return null;
   },
 
-  onBackspace(content, selection, match, lineRange) {
+  onBackspace(content, _selection, _match, lineRange) {
     const { start: lineStart, line } = lineRange;
     const cells = parseTableRow(line);
     if (!cells) return null;

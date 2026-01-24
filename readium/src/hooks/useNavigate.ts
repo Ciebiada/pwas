@@ -21,8 +21,8 @@ export const useNavigate = () => {
       await asyncSpinLock(isRouting);
     });
 
-    if (options?.back && (transition as any).types) {
-      (transition as any).types.add("back-transition");
+    if (options?.back && "types" in transition) {
+      (transition as unknown as { types: Set<string> }).types.add("back-transition");
     }
   };
 };

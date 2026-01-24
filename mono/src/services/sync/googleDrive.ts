@@ -267,8 +267,8 @@ export const getFileMetadata = async (fileId: string): Promise<GoogleDriveFile |
     const url = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,mimeType,modifiedTime,size`;
     const res = await fetchWithAuth(url);
     return await res.json();
-  } catch (e: any) {
-    if (e.message.includes("404") || e.message.includes("Not Found")) {
+  } catch (e: unknown) {
+    if (e instanceof Error && (e.message.includes("404") || e.message.includes("Not Found"))) {
       return null;
     }
     throw e;
@@ -288,7 +288,7 @@ export const uploadFile = async (
 ): Promise<GoogleDriveFile> => {
   const folderId = await getAppFolderId();
 
-  const metadata: any = {
+  const metadata: Partial<GoogleDriveFile> = {
     mimeType: "text/markdown",
   };
 

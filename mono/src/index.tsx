@@ -1,6 +1,7 @@
 /* @refresh reload */
 
 import { Route, Router } from "@solidjs/router";
+import type { ParentProps } from "solid-js";
 import { render } from "solid-js/web";
 import "solid-devtools";
 
@@ -25,7 +26,7 @@ if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
   );
 }
 
-const App = (props: any) => {
+const App = (props: ParentProps) => {
   const location = useLocation();
   const saved = getScrollPosition(location.pathname);
   setIsScrolled(saved !== undefined ? saved > 10 : false);

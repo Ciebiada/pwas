@@ -14,7 +14,7 @@ export const GoogleDriveProvider: SyncProvider = {
   getAuthUrl: async () => {
     return "";
   },
-  listFiles: async (path: string): Promise<RemoteFile[]> => {
+  listFiles: async (_path: string): Promise<RemoteFile[]> => {
     const files = await listFiles();
     return files.map((f) => ({
       id: f.id,

@@ -5,7 +5,7 @@ import { BackIcon, ChevronUpDownIcon, CloseIcon } from "./Icons";
 import "./Modal.css";
 import { triggerHaptic } from "./haptic";
 import { isIOS } from "./platform";
-import { setIsScrolled, setIsScrolling } from "./scrollState";
+import { setIsScrolling } from "./scrollState";
 import { useActivatable } from "./useActivatable";
 import { useModalStack } from "./useModalStack";
 import { useSheetDrag } from "./useSheetDrag";
@@ -197,7 +197,7 @@ export const ModalPage = (props: ModalPageProps) => {
     }
   };
 
-  const handleScroll = (e: Event) => {
+  const handleScroll = (_e: Event) => {
     if (pageRef) {
       setIsScrolling(true);
     }

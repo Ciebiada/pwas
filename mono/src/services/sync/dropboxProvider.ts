@@ -1,5 +1,4 @@
 import {
-  DropboxFile,
   deleteFile,
   downloadFile,
   getAuthUrl,

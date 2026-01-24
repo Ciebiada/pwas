@@ -10,9 +10,9 @@ export const TodoListFeature: MarkdownFeature = {
     const emptyLineResult = handleEmptyLineEnter(content, selection, match, lineRange, this.onBackspace!.bind(this));
     if (emptyLineResult) return emptyLineResult;
 
-    const newPrefix = match[1] + "[ ] ";
+    const newPrefix = `${match[1]}[ ] `;
     return {
-      content: content.slice(0, selection.start) + "\n" + newPrefix + content.slice(selection.end),
+      content: `${content.slice(0, selection.start)}\n${newPrefix}${content.slice(selection.end)}`,
       cursor: selection.start + 1 + newPrefix.length,
     };
   },
@@ -48,27 +48,27 @@ export const TodoListFeature: MarkdownFeature = {
     const patterns = [
       {
         pattern: /^(\s*)[-*] \[\]$/,
-        replace: (m: RegExpMatchArray) => m[1] + "- [ ] ",
+        replace: (m: RegExpMatchArray) => `${m[1]}- [ ] `,
       },
       {
         pattern: /^(\s*)[-*] [xX]$/,
-        replace: (m: RegExpMatchArray) => m[1] + "- [ ] ",
+        replace: (m: RegExpMatchArray) => `${m[1]}- [ ] `,
       },
       {
         pattern: /^(\s*)[-*] \[[ x]\] \[\]$/,
-        replace: (m: RegExpMatchArray) => m[1] + INDENT + "- [ ] ",
+        replace: (m: RegExpMatchArray) => `${m[1] + INDENT}- [ ] `,
       },
       {
         pattern: /^(\s*)[-*] \[[ x]\] [xX]$/,
-        replace: (m: RegExpMatchArray) => m[1] + INDENT + "- [ ] ",
+        replace: (m: RegExpMatchArray) => `${m[1] + INDENT}- [ ] `,
       },
       {
         pattern: /^(\s*)\d+\. \[\]$/,
-        replace: (m: RegExpMatchArray) => m[1] + "- [ ] ",
+        replace: (m: RegExpMatchArray) => `${m[1]}- [ ] `,
       },
       {
         pattern: /^(\s*)\d+\. [xX]$/,
-        replace: (m: RegExpMatchArray) => m[1] + "- [ ] ",
+        replace: (m: RegExpMatchArray) => `${m[1]}- [ ] `,
       },
     ];
 

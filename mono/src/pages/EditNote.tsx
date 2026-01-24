@@ -14,7 +14,7 @@ import { syncNote, wasSynced } from "../services/sync";
 
 export const EditNote = () => {
   const navigate = useNavigate();
-  const noteId = parseInt(useParams().id ?? "0");
+  const noteId = parseInt(useParams().id ?? "0", 10);
   const [modalOpen, setModalOpen] = createSignal(false);
   let editorApi: EditorAPI;
   let lastSeenSync = 0;
@@ -98,7 +98,7 @@ export const EditNote = () => {
         <div class="page-content">
           <Show when={note()}>
             <Editor
-              initialContent={`${note()!.name}${note()!.content ? "\n" + note()!.content : ""}`}
+              initialContent={`${note()!.name}${note()!.content ? `\n${note()!.content}` : ""}`}
               initialCursor={note()!.cursor}
               autoFocus
               onReady={(api) => (editorApi = api)}

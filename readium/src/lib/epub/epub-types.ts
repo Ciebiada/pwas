@@ -46,3 +46,21 @@ export type RendererOptions = {
   theme: "light" | "dark";
   invertImages: boolean;
 };
+
+export type EpubLocationDisplayed = {
+  page: number;
+  total: number;
+  spineIndex: number;
+  spineTotal: number;
+  percentage: number;
+};
+
+export type EpubLocationStart = {
+  cfi?: string;
+  displayed: EpubLocationDisplayed;
+};
+
+export type EpubLocation = {
+  start: EpubLocationStart;
+  basic?: boolean;
+};

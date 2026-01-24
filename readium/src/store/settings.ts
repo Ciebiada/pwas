@@ -59,12 +59,12 @@ export const getThemeRules = (s: Settings) => {
       background: s.theme === "dark" ? "#000000 !important" : "#ffffff !important",
     },
     p: {
-      "font-family": s.fontFamily + " !important",
+      "font-family": `${s.fontFamily} !important`,
       "line-height": "1.6 !important",
     },
     "h1, h2, h3, h4, h5, h6": {
       color: "inherit !important",
-      "font-family": s.fontFamily + " !important",
+      "font-family": `${s.fontFamily} !important`,
     },
     a: {
       color: s.theme === "dark" ? "#646cff !important" : "inherit !important",
@@ -77,7 +77,7 @@ export const getThemeRules = (s: Settings) => {
         color: "#dedede !important",
         "background-color": "transparent !important",
         "border-color": "#444 !important",
-        "font-family": s.fontFamily + " !important",
+        "font-family": `${s.fontFamily} !important`,
       },
       body: {
         color: "#dedede !important",
@@ -90,7 +90,7 @@ export const getThemeRules = (s: Settings) => {
         color: "#000000 !important",
         "background-color": "transparent !important",
         "border-color": "#ddd !important",
-        "font-family": s.fontFamily + " !important",
+        "font-family": `${s.fontFamily} !important`,
       },
       body: {
         color: "#000000 !important",

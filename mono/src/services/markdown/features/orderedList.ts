@@ -6,7 +6,7 @@ export const OrderedListFeature: MarkdownFeature = {
   name: "orderedList",
   pattern: /^(\s*)(\d+)\.\s/,
 
-  onTab(content, selection, shiftKey, match, lineRange) {
+  onTab(content, selection, shiftKey, _match, lineRange) {
     const { start: lineStart, line } = lineRange;
 
     if (shiftKey) {
@@ -45,10 +45,10 @@ export const OrderedListFeature: MarkdownFeature = {
     if (emptyLineResult) return emptyLineResult;
 
     const indent = match[1];
-    const num = parseInt(match[2]);
+    const num = parseInt(match[2], 10);
     const newPrefix = `${indent}${num + 1}. `;
     const result = {
-      content: content.slice(0, selection.start) + "\n" + newPrefix + content.slice(selection.end),
+      content: `${content.slice(0, selection.start)}\n${newPrefix}${content.slice(selection.end)}`,
       cursor: selection.start + 1 + newPrefix.length,
     };
 
@@ -103,15 +103,15 @@ export const OrderedListFeature: MarkdownFeature = {
     const patterns = [
       {
         pattern: /^(\s*)[-*] 1\.$/,
-        replace: (m: RegExpMatchArray) => m[1] + "1. ",
+        replace: (m: RegExpMatchArray) => `${m[1]}1. `,
       },
       {
         pattern: /^(\s*)[-*] \[[ x]\] 1\.$/,
-        replace: (m: RegExpMatchArray) => m[1] + "1. ",
+        replace: (m: RegExpMatchArray) => `${m[1]}1. `,
       },
       {
         pattern: /^(\s*)\d+\. 1\.$/,
-        replace: (m: RegExpMatchArray) => m[1] + INDENT + "1. ",
+        replace: (m: RegExpMatchArray) => `${m[1] + INDENT}1. `,
       },
     ];
 

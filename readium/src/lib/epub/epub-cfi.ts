@@ -5,24 +5,24 @@
 
 export type CFI = string;
 
-export class CFIHelper {
+export const CFIHelper = {
   /**
    * Generate a simplified CFI from a spine index and character offset
    * Format: epubcfi(/6/[spineIndex]!/4/[paragraphIndex]/[characterOffset])
    */
-  static generate(spineIndex: number, element: Element | null, root: Element, offset: number = 0): CFI {
+  generate: (spineIndex: number, element: Element | null, root: Element, offset: number = 0): CFI => {
     if (!element || !root) {
       return `epubcfi(/6/${(spineIndex + 1) * 2}!/0)`;
     }
 
     const path = CFIHelper.getElementPath(element, root);
     return `epubcfi(/6/${(spineIndex + 1) * 2}!${path}/${offset})`;
-  }
+  },
 
   /**
    * Parse a CFI to extract spine index and location info
    */
-  static parse(cfi: CFI): { spineIndex: number; path: string; offset: number } | null {
+  parse: (cfi: CFI): { spineIndex: number; path: string; offset: number } | null => {
     if (!cfi || !cfi.startsWith("epubcfi(")) return null;
 
     try {
@@ -33,28 +33,28 @@ export class CFIHelper {
 
       const spinePart = parts[0];
       const spineMatch = spinePart.match(/\/6\/(\d+)/);
-      const spineIndex = spineMatch ? Math.floor(parseInt(spineMatch[1]) / 2) - 1 : 0;
+      const spineIndex = spineMatch ? Math.floor(parseInt(spineMatch[1], 10) / 2) - 1 : 0;
 
       const locationPart = parts[1];
       const lastSlash = locationPart.lastIndexOf("/");
       const path = lastSlash > 0 ? locationPart.slice(0, lastSlash) : locationPart;
-      const offset = lastSlash > 0 ? parseInt(locationPart.slice(lastSlash + 1)) || 0 : 0;
+      const offset = lastSlash > 0 ? parseInt(locationPart.slice(lastSlash + 1), 10) || 0 : 0;
 
       return { spineIndex, path, offset };
     } catch (e) {
       console.error("[CFI] Parse error:", e);
       return null;
     }
-  }
+  },
 
   /**
    * Get the path to an element relative to a root
    */
-  private static getElementPath(element: Element, root: Element): string {
+  getElementPath: (element: Element, root: Element): string => {
     const path: number[] = [];
     let current: Element | null = element;
 
-    while (current && current.parentElement && current !== root) {
+    while (current?.parentElement && current !== root) {
       const parent: HTMLElement | null = current.parentElement;
       const children = Array.from(parent.children);
       const index = children.indexOf(current);
@@ -66,19 +66,19 @@ export class CFIHelper {
       current = parent;
     }
 
-    return "/" + path.join("/");
-  }
+    return `/${path.join("/")}`;
+  },
 
   /**
    * Navigate to an element using a path
    */
-  static getElementByPath(root: Element, path: string): Element | null {
+  getElementByPath: (root: Element, path: string): Element | null => {
     if (!path || path === "/0") return null;
 
     const steps = path
       .split("/")
       .filter((s) => s)
-      .map((s) => parseInt(s));
+      .map((s) => parseInt(s, 10));
     let current: Element = root;
 
     for (let i = 0; i < steps.length; i++) {
@@ -94,9 +94,9 @@ export class CFIHelper {
     }
 
     return current;
-  }
+  },
 
-  static locateTextPosition(root: HTMLElement, absoluteOffset: number): { node: Text; offset: number } | null {
+  locateTextPosition: (root: HTMLElement, absoluteOffset: number): { node: Text; offset: number } | null => {
     try {
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
       let currentOffset = 0;
@@ -116,9 +116,9 @@ export class CFIHelper {
       // ignore
     }
     return null;
-  }
+  },
 
-  static getTargetCharClientRect(element: Element, offset: number): DOMRect | null {
+  getTargetCharClientRect: (element: Element, offset: number): DOMRect | null => {
     const startOffset = Math.max(0, offset || 0);
     const maxLookahead = 64;
 
@@ -169,5 +169,5 @@ export class CFIHelper {
     } catch {
       return element.getBoundingClientRect();
     }
-  }
-}
+  },
+};

@@ -99,7 +99,7 @@ export const handleEnter = (content: string, selection: Selection): InputResult 
 
   // Default enter behavior
   const result = {
-    content: content.slice(0, start) + "\n" + content.slice(end),
+    content: `${content.slice(0, start)}\n${content.slice(end)}`,
     cursor: start + 1,
   };
   return trimLineBeforeNewline(result);

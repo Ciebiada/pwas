@@ -57,12 +57,13 @@ export const handleAuthCallback = async (code: string): Promise<boolean> => {
     dbxAuth.setCodeVerifier(codeVerifier as string);
 
     const response = await dbxAuth.getAccessTokenFromCode(redirectUri, code);
+    const result = response.result as { access_token: string; refresh_token?: string };
 
-    if (response?.result && (response.result as any).access_token) {
-      setAccessToken((response.result as any).access_token);
+    if (result?.access_token) {
+      setAccessToken(result.access_token);
 
-      if ((response.result as any).refresh_token) {
-        localStorage.setItem("dropbox_refresh_token", (response.result as any).refresh_token);
+      if (result.refresh_token) {
+        localStorage.setItem("dropbox_refresh_token", result.refresh_token);
       }
 
       return true;
@@ -109,8 +110,9 @@ export const refreshAccessToken = async (): Promise<boolean> => {
 const withRetryOnAuth = async <T>(operation: () => Promise<T>): Promise<T> => {
   try {
     return await operation();
-  } catch (error: any) {
-    if (error?.status === 401 || error?.response?.status === 401) {
+  } catch (error: unknown) {
+    const err = error as { status?: number; response?: { status?: number } };
+    if (err?.status === 401 || err?.response?.status === 401) {
       console.log("Received 401 error, attempting to refresh token and retry...");
 
       const refreshed = await refreshAccessToken();
@@ -144,14 +146,24 @@ export const listFiles = async (path: string = ""): Promise<DropboxFile[]> => {
       include_has_explicit_shared_members: false,
     });
 
-    return response.result.entries.map((entry: any) => ({
-      id: entry.id,
-      name: entry.name,
-      path: entry.path_display,
-      isFolder: entry[".tag"] === "folder",
-      size: entry.size || 0,
-      lastModified: entry.server_modified || "",
-    }));
+    return response.result.entries.map((entry) => {
+      const file = entry as {
+        id: string;
+        name: string;
+        path_display?: string;
+        size?: number;
+        server_modified?: string;
+        ".tag": string;
+      };
+      return {
+        id: file.id,
+        name: file.name,
+        path: file.path_display || "",
+        isFolder: file[".tag"] === "folder",
+        size: file.size || 0,
+        lastModified: file.server_modified || "",
+      };
+    });
   });
 };
 
@@ -163,19 +175,28 @@ export const getFileMetadata = async (path: string): Promise<DropboxFile | null>
   return withRetryOnAuth(async () => {
     try {
       const response = await dbx.filesGetMetadata({ path });
-      const result: any = response.result;
-      const entry = result.metadata || result; // Handle RelocationResult or direct metadata
+      const entry = response.result as {
+        id: string;
+        name: string;
+        path_display?: string;
+        size?: number;
+        server_modified?: string;
+        ".tag": string;
+        metadata?: unknown;
+      };
+      const actualEntry = entry.metadata || entry; // Handle RelocationResult or direct metadata
 
       return {
-        id: entry.id,
-        name: entry.name,
-        path: entry.path_display,
-        isFolder: entry[".tag"] === "folder",
-        size: entry.size || 0,
-        lastModified: entry.server_modified || "",
+        id: actualEntry.id,
+        name: actualEntry.name,
+        path: actualEntry.path_display || "",
+        isFolder: actualEntry[".tag"] === "folder",
+        size: actualEntry.size || 0,
+        lastModified: actualEntry.server_modified || "",
       };
-    } catch (error: any) {
-      if (error?.status === 409) {
+    } catch (error: unknown) {
+      const err = error as { status?: number };
+      if (err?.status === 409) {
         // File not found
         return null;
       }
@@ -220,8 +241,8 @@ export const downloadFile = async (path: string): Promise<string> => {
 
   return withRetryOnAuth(async () => {
     const response = await dbx.filesDownload({ path });
-    const fileBlob = (response.result as any).fileBlob;
-    return fileBlob ? await fileBlob.text() : "";
+    const result = response.result as { fileBlob?: Blob };
+    return result.fileBlob ? await result.fileBlob.text() : "";
   });
 };
 
@@ -246,11 +267,18 @@ export const moveFile = async (fromPath: string, toPath: string): Promise<Dropbo
       to_path: toPath,
     });
 
-    const entry: any = response.result;
+    const entry = response.result as unknown as {
+      id: string;
+      name: string;
+      path_display?: string;
+      size?: number;
+      server_modified?: string;
+      ".tag": string;
+    };
     return {
       id: entry.id,
       name: entry.name,
-      path: entry.path_display,
+      path: entry.path_display || "",
       isFolder: entry[".tag"] === "folder",
       size: entry.size || 0,
       lastModified: entry.server_modified || "",

@@ -132,7 +132,7 @@ const renderInlineToken = (token: InlineToken) => {
             e.preventDefault();
             let url = token.url!;
             if (!/^https?:\/\//i.test(url)) {
-              url = "https://" + url;
+              url = `https://${url}`;
             }
             window.open(url, "_blank");
           }}

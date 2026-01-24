@@ -65,7 +65,7 @@ export const Editor = (_props: EditorProps) => {
         editor.focus();
       },
       replaceContent: (name: string, noteContent: string) => {
-        const newContent = name + (noteContent ? "\n" + noteContent : "");
+        const newContent = name + (noteContent ? `\n${noteContent}` : "");
         const { start } = getSelection(editor);
         const newCursor = calculateCursorPosition(content(), newContent, start);
 

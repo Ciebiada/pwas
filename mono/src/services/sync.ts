@@ -210,7 +210,7 @@ const handleRename = async (note: Note, remoteMetadata: RemoteFile, provider: Sy
     let newLastSync = new Date(movedFile.lastModified).getTime();
     let newRemoteId = movedFile.id;
 
-    if (isNaN(newLastSync) || newLastSync === 0) {
+    if (Number.isNaN(newLastSync) || newLastSync === 0) {
       // Fallback if provider doesn't return full metadata on move
       const meta = await provider.getFileMetadata(newRemoteId);
       if (meta) {
@@ -397,7 +397,7 @@ const importRemoteNotes = async (
       const content = await provider.downloadFile(file.id);
       const name = file.name.replace(/\.md$/, "");
 
-      const newNote = {
+      const newNote: Omit<Note, "id"> = {
         name,
         content,
         cursor: 0,
@@ -409,8 +409,8 @@ const importRemoteNotes = async (
       };
 
       // Add ID for the current provider
-      if (provider.name === "dropbox") (newNote as any).dropboxId = file.id;
-      if (provider.name === "googledrive") (newNote as any).googleDriveId = file.id;
+      if (provider.name === "dropbox") newNote.dropboxId = file.id;
+      if (provider.name === "googledrive") newNote.googleDriveId = file.id;
 
       await db.notes.add(newNote);
     } else {

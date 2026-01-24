@@ -1,7 +1,7 @@
 import { type CFI, CFIHelper } from "./epub-cfi";
 import type { EpubParser } from "./epub-parser";
 import { EpubStyler } from "./epub-styler";
-import type { EpubPackage, RendererOptions } from "./epub-types";
+import type { EpubLocation, EpubPackage, RendererOptions } from "./epub-types";
 import { LocationTracker } from "./location-tracker";
 import { ResourceResolver } from "./resource-resolver";
 
@@ -24,7 +24,7 @@ export class EpubRenderer {
 
   private isBusy: boolean = false;
   private resizeObserver: ResizeObserver;
-  private onRelocated?: (location: any) => void;
+  private onRelocated?: (location: EpubLocation) => void;
 
   constructor(parser: EpubParser, packageData: EpubPackage, options: RendererOptions) {
     this.parser = parser;
@@ -41,7 +41,7 @@ export class EpubRenderer {
     this.resizeObserver.observe(this.options.container);
   }
 
-  setOnRelocated(callback: (location: any) => void) {
+  setOnRelocated(callback: (location: EpubLocation) => void) {
     this.onRelocated = callback;
   }
 
@@ -97,7 +97,7 @@ export class EpubRenderer {
           const columnWidth = containerWidth - margin * 2;
           const stride = columnWidth + margin;
 
-          const dpr = (globalThis as any).devicePixelRatio ?? 1;
+          const dpr = (globalThis as unknown as { devicePixelRatio?: number }).devicePixelRatio ?? 1;
           const fuzzPx = Math.max(2, Math.min(10, dpr * 2));
 
           // Robust absolute offset for multi-column nested elements
@@ -191,7 +191,7 @@ export class EpubRenderer {
       const styles = await this.epubStyler.resolveCombinedStyles(doc, manifestItem.href);
 
       // Extract body attributes
-      const attributes: any = {};
+      const attributes: Record<string, string> = {};
       const body = doc.body;
       if (body) {
         Array.from(body.attributes).forEach((attr) => {
@@ -222,11 +222,11 @@ export class EpubRenderer {
   private async waitResourcesReady(): Promise<void> {
     if (!this.contentElement) return;
 
-    const promises: Promise<any>[] = [];
+    const promises: Promise<unknown>[] = [];
 
     // 1. Fonts
     try {
-      promises.push((document as any).fonts.ready);
+      promises.push((document as unknown as { fonts: { ready: Promise<void> } }).fonts.ready);
     } catch (e) {
       console.warn("[Renderer] Font loading timeout or error", e);
     }
@@ -262,7 +262,7 @@ export class EpubRenderer {
     void this.contentElement.offsetWidth;
   }
 
-  private renderHtml(html: string, attributes?: any, preserveTransform: boolean = false) {
+  private renderHtml(html: string, attributes?: Record<string, string>, preserveTransform: boolean = false) {
     if (!this.shadowHost) {
       this.shadowHost = document.createElement("div");
       this.shadowHost.className = "epub-shadow-host";
@@ -281,9 +281,9 @@ export class EpubRenderer {
     if (attributes) {
       Object.keys(attributes).forEach((key) => {
         if (key === "class") {
-          this.contentElement!.classList.add(...attributes[key].split(" "));
+          this.contentElement!.classList.add(...(attributes[key] || "").split(" "));
         } else {
-          this.contentElement!.setAttribute(key, attributes[key]);
+          this.contentElement!.setAttribute(key, attributes[key] || "");
         }
       });
     }
@@ -379,7 +379,7 @@ export class EpubRenderer {
     return false;
   }
 
-  getCurrentLocation(basicOnly: boolean = false): any {
+  getCurrentLocation(basicOnly: boolean = false): EpubLocation {
     return this.locationTracker.getCurrentLocation(
       this.contentElement,
       this.currentPage,
@@ -387,7 +387,7 @@ export class EpubRenderer {
       this.currentSpineIndex,
       this.options,
       basicOnly,
-    );
+    )!;
   }
 
   private notifyRelocated(basic: boolean = false) {

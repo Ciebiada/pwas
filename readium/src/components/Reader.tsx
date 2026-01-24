@@ -9,7 +9,7 @@ import { settings, THEMES, updateSettings } from "../store/settings";
 
 const Reader = (props: { onClose: () => void }) => {
   const params = useParams<{ id: string }>();
-  const bookId = () => parseInt(params.id);
+  const bookId = () => parseInt(params.id, 10);
 
   let viewerRef: HTMLDivElement | undefined;
   let rendererRef: EpubRenderer | undefined;
@@ -25,15 +25,19 @@ const Reader = (props: { onClose: () => void }) => {
 
   let pendingLocation: string | undefined;
   let allowSave = false;
-  let wakeLock: any = null;
-  let debounceTimer: any = null;
+  let wakeLock: WakeLockSentinel | null = null;
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   // --- Helpers ---
 
   const requestWakeLock = async () => {
     try {
       if ("wakeLock" in navigator) {
-        wakeLock = await (navigator as any).wakeLock.request("screen");
+        wakeLock = await (
+          navigator as unknown as {
+            wakeLock: { request: (type: string) => Promise<WakeLockSentinel> };
+          }
+        ).wakeLock.request("screen");
       }
     } catch (err) {
       console.error("[Reader] Wake Lock error:", err);
@@ -61,7 +65,7 @@ const Reader = (props: { onClose: () => void }) => {
     return theme as "light" | "dark";
   };
 
-  const updateProgressUI = (location: any) => {
+  const updateProgressUI = (location: EpubLocation) => {
     if (location?.start?.displayed) {
       const d = location.start.displayed;
       setProgress({
@@ -132,7 +136,7 @@ const Reader = (props: { onClose: () => void }) => {
             if (fullLoc?.start?.cfi) {
               pendingLocation = fullLoc.start.cfi;
               if (allowSave) {
-                const cfiFragment = "#" + pendingLocation;
+                const cfiFragment = `#${pendingLocation}`;
                 if (window.location.hash !== cfiFragment) {
                   history.replaceState({}, "", cfiFragment);
                 }
@@ -147,7 +151,7 @@ const Reader = (props: { onClose: () => void }) => {
           pendingLocation = location.start.cfi;
 
           if (allowSave) {
-            const cfiFragment = "#" + pendingLocation;
+            const cfiFragment = `#${pendingLocation}`;
             if (window.location.hash !== cfiFragment) {
               history.replaceState({}, "", cfiFragment);
             }
@@ -163,7 +167,7 @@ const Reader = (props: { onClose: () => void }) => {
       const hashLocation = window.location.hash.slice(1);
       let initialLocation: string | number | undefined;
 
-      if (hashLocation && hashLocation.startsWith("epubcfi(")) {
+      if (hashLocation?.startsWith("epubcfi(")) {
         initialLocation = hashLocation;
       } else if (typeof bookData.progress === "string" && bookData.progress) {
         initialLocation = bookData.progress;
@@ -295,7 +299,7 @@ const Reader = (props: { onClose: () => void }) => {
             <ModalSelect
               label="Theme"
               value={settings().theme}
-              onChange={(val: string) => updateSettings({ theme: val as any })}
+              onChange={(val: string) => updateSettings({ theme: val as "light" | "dark" | "system" })}
             >
               <option value="system">System</option>
               <option value="light">Light</option>
@@ -318,7 +322,7 @@ const Reader = (props: { onClose: () => void }) => {
             <ModalSelect
               label="Margin"
               value={settings().margin}
-              onChange={(val: string) => updateSettings({ margin: parseInt(val) })}
+              onChange={(val: string) => updateSettings({ margin: parseInt(val, 10) })}
             >
               <option value="0">None</option>
               <option value="20">Normal</option>
