@@ -47,7 +47,6 @@ body.modal-open {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  touch-action: none;
 }
 
 .modal-content {
@@ -59,6 +58,8 @@ body.modal-open {
   background-color: var(--modal-background-color);
   display: flex;
   flex-direction: column;
+  --modal-header-height: 76px;
+  overflow: hidden;
 }
 
 .modal-content .header-button {
@@ -93,12 +94,18 @@ body.modal-open {
 }
 
 .modal-fixed-header {
-  padding: 16px;
+  height: var(--modal-header-height);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 0 16px;
   display: flex;
-  position: relative;
   align-items: center;
-  flex-shrink: 0;
   cursor: grab;
+  z-index: 5;
+  z-index: 5;
+  background: linear-gradient(to bottom, var(--modal-background-color), transparent);
 }
 
 .modal-fixed-header:active {
@@ -244,6 +251,9 @@ body.modal-open {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
 }
 
 .modal-page {
@@ -252,8 +262,8 @@ body.modal-open {
   flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
-  touch-action: none;
   height: 100%;
+  padding-top: var(--modal-header-height);
 }
 
 .modal-page-scrollable {

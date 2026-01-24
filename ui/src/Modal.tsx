@@ -402,7 +402,6 @@ export const ModalSlider = (props: ModalSliderProps) => {
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
       style={{
-        "touch-action": "pan-y",
         "--slider-progress": `${percentage()}%`,
       }}
     >

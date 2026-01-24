@@ -102,11 +102,6 @@
   left: 0;
   right: 0;
   bottom: 0;
-  /* height: calc(100dvh - env(safe-area-inset-top)); */
-  /* height: 100vh; */
-  /* user-select: none;
-    -webkit-user-select: none;
-    touch-action: none; */
   display: flex;
   flex-direction: column;
 }

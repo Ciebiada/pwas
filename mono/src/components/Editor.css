@@ -112,7 +112,7 @@ input[type="checkbox"]::before {
   font-size: 0.85em;
 }
 
-.md-link,.md-link:hover {
+.md-link,
+.md-link:hover {
   color: var(--main-color);
 }
-
