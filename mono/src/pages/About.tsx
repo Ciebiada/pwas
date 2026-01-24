@@ -4,17 +4,22 @@ import { useNavigate } from "../hooks/useNavigate";
 import { renderMarkdown } from "../services/markdown/renderer";
 import { Page } from "ui/Page";
 
-const ABOUT_CONTENT = `### Private & Secure
-Unlike most other note-taking apps, Mono is **open source** and runs entirely in your browser. There is no backend - your notes are synced by calling the official APIs of your storage provider directly from your device. Your data remains under your control.
+const ABOUT_CONTENT = `
+Mono is a minimalist, local-first markdown editor.
 
-### No Proprietary Lock-in
-Mono uses **Markdown**, the industry standard for plain-text notes. You can access your synced notes folder on your computer and edit them in any editor you like. If you ever decide to move on, your notes are already in a portable format that works everywhere.
+### Markdown Basics
+\`# Heading\` creates a title
+\`## Subheading\` for sections
+\`- list\` or \`1. ordered\` for lists
+\`x task\` for todos
 
-### Offline First
-Even though Mono is a web app, it is built to be offline-first. You can view, create, and edit notes without an internet connection, and your changes will automatically sync once you're back online.
-
-### Cross-Platform
-Mono is optimized for both mobile (as a PWA) and desktop. Whether you use iOS, Android, Windows, macOS, or Linux, Mono provides a seamless experience and keeps your notes in sync across all your devices.`.trim();
+### Shortcuts
+Mono uses intuitive shortcuts to keep you in the flow
+- **Nest**: Type \`-\` or \`x\` after a bullet/checkbox to indent
+- **Convert**: Type \`x\` after a list bullet to make it a task
+- **Revert**: Type \`-\` after a checkbox to turn it back into a list
+- **Tables**: Start a line with \`|\` to create a table
+`.trim();
 
 export const About = () => {
   const navigate = useNavigate();

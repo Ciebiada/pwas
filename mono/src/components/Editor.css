@@ -102,3 +102,17 @@ input[type="checkbox"]::before {
   white-space: pre;
   overflow-x: auto;
 }
+
+.md-inline-code {
+  font-family: "SF Mono", "Menlo", "Monaco", "Consolas", monospace;
+  color: var(--main-color);
+  background-color: var(--bg-secondary-color);
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+.md-link,.md-link:hover {
+  color: var(--main-color);
+}
+

@@ -2,7 +2,7 @@ import { JSX } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { triggerHaptic } from "../../hooks/useHaptic";
 
-type InlineTokenType = "text" | "strong" | "emphasis" | "strikethrough" | "link";
+type InlineTokenType = "text" | "strong" | "emphasis" | "strikethrough" | "link" | "code";
 type BlockType = "h1" | "h2" | "h3" | "paragraph" | "checkbox" | "list" | "orderedList" | "table";
 
 type InlineToken = {
@@ -27,6 +27,7 @@ type InlinePattern = {
 };
 
 const INLINE_PATTERNS: InlinePattern[] = [
+  { type: "code", regex: /^`([^`]+)`/, delimiter: "`" },
   {
     type: "link",
     regex: /^\[([^\]]*)\]\(([^)]*)\)/,
@@ -139,6 +140,8 @@ const renderInlineToken = (token: InlineToken) => {
           {token.raw}
         </a>
       );
+    case "code":
+      return <code class="md-inline-code">{wrapWithDelimiters(token.content, token.delimiter!)}</code>;
     default:
       return token.content;
   }
