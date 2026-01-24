@@ -1,15 +1,15 @@
-import { timeFromNow } from "../services/date";
+import { createSignal, For, onCleanup, onMount } from "solid-js";
 import { Header, HeaderButton } from "ui/Header";
-import { MoreIcon, AddIcon, ChevronRightIcon } from "ui/Icons";
-import { createDexieArrayQuery } from "../services/solid-dexie";
+import { AddIcon, ChevronRightIcon, MoreIcon } from "ui/Icons";
 import { useNavigate } from "../hooks/useNavigate";
+import { timeFromNow } from "../services/date";
 import { db } from "../services/db";
-import { createSignal, For, onMount, onCleanup } from "solid-js";
+import { createDexieArrayQuery } from "../services/solid-dexie";
 import "./NotesList.css";
-import { sync } from "../services/sync";
-import { SettingsModal } from "../components/SettingsModal";
 import { Page } from "ui/Page";
 import { useActivatable } from "ui/useActivatable";
+import { SettingsModal } from "../components/SettingsModal";
+import { sync } from "../services/sync";
 
 export const NotesList = () => {
   const navigate = useNavigate();

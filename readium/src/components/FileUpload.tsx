@@ -1,6 +1,6 @@
 import { createSignal, Show } from "solid-js";
-import { EpubParser } from "../lib/epub";
 import { db } from "../db";
+import { EpubParser } from "../lib/epub";
 
 const FileUpload = (props: { onUpload: () => void }) => {
   const [isDragOver, setIsDragOver] = createSignal(false);

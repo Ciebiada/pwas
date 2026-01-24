@@ -1,6 +1,6 @@
 import { INDENT, INDENT_SIZE, insert, lineEnd } from "../utils";
 import { handleEmptyLineEnter, handleIndentBackspace } from "./helpers";
-import { MarkdownFeature } from "./types";
+import type { MarkdownFeature } from "./types";
 
 export const OrderedListFeature: MarkdownFeature = {
   name: "orderedList",

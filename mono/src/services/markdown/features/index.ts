@@ -1,5 +1,5 @@
-import { TableFeature } from "./table";
 import { OrderedListFeature } from "./orderedList";
+import { TableFeature } from "./table";
 import { TodoListFeature } from "./todoList";
 import { UnorderedListFeature } from "./unorderedList";
 

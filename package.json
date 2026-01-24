@@ -4,10 +4,7 @@
   "scripts": {
     "build:mono": "npm run build --workspace=mono",
     "build:readium": "npm run build --workspace=readium",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "check": "biome check --write ."
   },
   "workspaces": [
     "mono",
@@ -15,12 +12,7 @@
     "ui"
   ],
   "devDependencies": {
-    "@eslint/js": "^9.39.2",
-    "eslint": "^9.39.2",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-solid": "^0.14.5",
-    "prettier": "^3.7.4",
-    "typescript": "^5.7.2",
-    "typescript-eslint": "^8.50.0"
+    "@biomejs/biome": "2.3.12",
+    "typescript": "^5.7.2"
   }
 }

@@ -1,9 +1,9 @@
 import { Route } from "@solidjs/router";
-import { useNavigate } from "./hooks/useNavigate";
+import { createEffect } from "solid-js";
+import About from "./components/About";
 import Library from "./components/Library";
 import Reader from "./components/Reader";
-import About from "./components/About";
-import { createEffect } from "solid-js";
+import { useNavigate } from "./hooks/useNavigate";
 import { settings } from "./store/settings";
 import "./App.css";
 

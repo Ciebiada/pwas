@@ -1,9 +1,9 @@
+import { type CFI, CFIHelper } from "./epub-cfi";
 import type { EpubParser } from "./epub-parser";
-import type { EpubPackage, RendererOptions } from "./epub-types";
-import { CFIHelper, type CFI } from "./epub-cfi";
-import { ResourceResolver } from "./resource-resolver";
 import { EpubStyler } from "./epub-styler";
+import type { EpubPackage, RendererOptions } from "./epub-types";
 import { LocationTracker } from "./location-tracker";
+import { ResourceResolver } from "./resource-resolver";
 
 export class EpubRenderer {
   private parser: EpubParser;

@@ -1,7 +1,7 @@
-import { onMount } from "solid-js";
 import { useSearchParams } from "@solidjs/router";
-import { handleAuthCallback } from "../services/sync/dropbox";
+import { onMount } from "solid-js";
 import { useNavigate } from "../hooks/useNavigate";
+import { handleAuthCallback } from "../services/sync/dropbox";
 
 export const DropboxCallback = () => {
   const navigate = useNavigate();

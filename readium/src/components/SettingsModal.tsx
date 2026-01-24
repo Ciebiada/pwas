@@ -1,6 +1,6 @@
-import { useNavigate } from "../hooks/useNavigate";
 import { ChevronRightIcon, Modal, ModalButton, ModalPage } from "rams";
-import { type Accessor, type Setter } from "solid-js";
+import type { Accessor, Setter } from "solid-js";
+import { useNavigate } from "../hooks/useNavigate";
 import "./SettingsModal.css";
 
 type SettingsModalProps = {

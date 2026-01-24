@@ -1,5 +1,5 @@
-import { TABLE_PATTERN, lineEnd } from "../utils";
-import { MarkdownFeature } from "./types";
+import { lineEnd, TABLE_PATTERN } from "../utils";
+import type { MarkdownFeature } from "./types";
 
 const parseTableRow = (line: string): string[] | null => {
   if (!line.startsWith("|")) return null;

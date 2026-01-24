@@ -1,6 +1,6 @@
 import { INDENT, insert, lineEnd } from "../utils";
 import { handleEmptyLineEnter, handleIndentBackspace } from "./helpers";
-import { MarkdownFeature } from "./types";
+import type { MarkdownFeature } from "./types";
 
 export const UnorderedListFeature: MarkdownFeature = {
   name: "unorderedList",

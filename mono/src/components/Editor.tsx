@@ -1,19 +1,19 @@
 import { createSignal, mergeProps, onCleanup, onMount } from "solid-js";
+import { isIOS } from "ui/platform";
 import {
-  getSelection,
-  setSelection,
   calculateCursorPosition,
   fixCursorPositionForZeroWidthSpace,
+  getSelection,
   scrollCursorIntoView,
+  setSelection,
 } from "../services/cursor";
+import { useCustomCaret } from "../services/customCaret";
 import { processBeforeInput } from "../services/editorInput";
 import { toggleCheckbox } from "../services/markdown/features/todoList";
+import { handleTab } from "../services/markdown/input";
 import { renderMarkdown } from "../services/markdown/renderer";
 import { splitNote } from "../services/note";
-import { useCustomCaret } from "../services/customCaret";
-import { isIOS } from "../../../ui/src/platform";
 import { isCustomCaretEnabled, isMonospaceEnabled } from "../services/preferences";
-import { handleTab } from "../services/markdown/input";
 import "./Editor.css";
 
 export type EditorAPI = {

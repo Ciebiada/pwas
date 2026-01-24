@@ -1,5 +1,13 @@
-import { INDENT, INDENT_SIZE, InputResult, LIST_PATTERN, TABLE_PATTERN, Selection, getLineRange } from "./utils";
 import { MARKDOWN_FEATURES } from "./features";
+import {
+  getLineRange,
+  INDENT,
+  INDENT_SIZE,
+  type InputResult,
+  LIST_PATTERN,
+  type Selection,
+  TABLE_PATTERN,
+} from "./utils";
 
 export const handleBlockTab = (content: string, selection: Selection, shiftKey: boolean): InputResult | null => {
   const lineRange = getLineRange(content, selection.start);

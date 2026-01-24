@@ -1,6 +1,6 @@
-import { handleBackspaceAtListStart, handleEnter, handleInput } from "./markdown/input";
-import { insert, INDENT, INDENT_SIZE } from "./markdown/utils";
 import { renumberOrderedList } from "./markdown/features/orderedList";
+import { handleBackspaceAtListStart, handleEnter, handleInput } from "./markdown/input";
+import { INDENT, INDENT_SIZE, insert } from "./markdown/utils";
 
 type Selection = { start: number; end: number };
 type EditResult = { content: string; cursor: number };

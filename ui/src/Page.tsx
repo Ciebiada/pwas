@@ -1,8 +1,8 @@
-import { JSX, onMount, onCleanup } from "solid-js";
-import { useLocation, useBeforeLeave } from "@solidjs/router";
+import { useBeforeLeave, useLocation } from "@solidjs/router";
+import { type JSX, onCleanup, onMount } from "solid-js";
 import "./Page.css";
 import { isIOS } from "./platform";
-import { setIsScrolling, setIsScrolled, saveScrollPosition, getScrollPosition } from "./scrollState";
+import { getScrollPosition, saveScrollPosition, setIsScrolled, setIsScrolling } from "./scrollState";
 
 type PageProps = {
   children: JSX.Element;

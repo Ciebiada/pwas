@@ -1,8 +1,8 @@
 import { Header, HeaderButton } from "ui/Header";
 import { BackIcon } from "ui/Icons";
+import { Page } from "ui/Page";
 import { useNavigate } from "../hooks/useNavigate";
 import { renderMarkdown } from "../services/markdown/renderer";
-import { Page } from "ui/Page";
 
 const ABOUT_CONTENT = `
 Mono is a minimalist, local-first markdown editor.

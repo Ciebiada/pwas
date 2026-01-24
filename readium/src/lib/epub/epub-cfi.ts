@@ -15,7 +15,7 @@ export class CFIHelper {
       return `epubcfi(/6/${(spineIndex + 1) * 2}!/0)`;
     }
 
-    const path = this.getElementPath(element, root);
+    const path = CFIHelper.getElementPath(element, root);
     return `epubcfi(/6/${(spineIndex + 1) * 2}!${path}/${offset})`;
   }
 
@@ -122,7 +122,7 @@ export class CFIHelper {
     const startOffset = Math.max(0, offset || 0);
     const maxLookahead = 64;
 
-    const startPos = this.locateTextPosition(element as HTMLElement, startOffset);
+    const startPos = CFIHelper.locateTextPosition(element as HTMLElement, startOffset);
     if (!startPos) return element.getBoundingClientRect();
 
     try {

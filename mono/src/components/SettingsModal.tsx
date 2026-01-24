@@ -1,18 +1,18 @@
-import { createSignal, Show, Accessor, Setter } from "solid-js";
-import { Modal, ModalButton, ModalToggle, ModalPage, useModal } from "ui/Modal";
-import { ChevronRightIcon, CheckIcon } from "ui/Icons";
-import { DropboxIcon, GoogleDriveIcon } from "./Icons";
-import { DropboxProvider } from "../services/sync/dropboxProvider";
-import { GoogleDriveProvider } from "../services/sync/googleDriveProvider";
+import { type Accessor, createSignal, type Setter, Show } from "solid-js";
+import { CheckIcon, ChevronRightIcon } from "ui/Icons";
+import { Modal, ModalButton, ModalPage, ModalToggle, useModal } from "ui/Modal";
 import { useNavigate } from "../hooks/useNavigate";
 import {
   isCustomCaretEnabled,
-  setCustomCaretEnabled,
   isMonospaceEnabled,
+  setCustomCaretEnabled,
   setMonospaceEnabled,
 } from "../services/preferences";
 import { disconnectDropbox } from "../services/sync/dropbox";
-import { getAuthUrl as getGoogleAuthUrl, disconnectGoogleDrive } from "../services/sync/googleDrive";
+import { DropboxProvider } from "../services/sync/dropboxProvider";
+import { disconnectGoogleDrive, getAuthUrl as getGoogleAuthUrl } from "../services/sync/googleDrive";
+import { GoogleDriveProvider } from "../services/sync/googleDriveProvider";
+import { DropboxIcon, GoogleDriveIcon } from "./Icons";
 import "./SettingsModal.css";
 
 type SettingsModalProps = {

@@ -1,4 +1,4 @@
-import { createSignal, batch } from "solid-js";
+import { batch, createSignal } from "solid-js";
 
 const MODAL_ANIMATION_DURATION = 400;
 

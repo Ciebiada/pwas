@@ -1,14 +1,14 @@
+import type { Accessor, JSX, Setter } from "solid-js";
+import { batch, createContext, createEffect, createSignal, onCleanup, Show, useContext } from "solid-js";
 import { Portal } from "solid-js/web";
-import { createContext, useContext, createSignal, createEffect, Show, onCleanup, batch } from "solid-js";
-import type { JSX, Accessor, Setter } from "solid-js";
-import { BackIcon, CloseIcon, ChevronUpDownIcon } from "./Icons";
+import { BackIcon, ChevronUpDownIcon, CloseIcon } from "./Icons";
 import "./Modal.css";
-import { useModalStack } from "./useModalStack";
-import { useSheetDrag } from "./useSheetDrag";
-import { setIsScrolling, setIsScrolled } from "./scrollState";
-import { useActivatable } from "./useActivatable";
 import { triggerHaptic } from "./haptic";
 import { isIOS } from "./platform";
+import { setIsScrolled, setIsScrolling } from "./scrollState";
+import { useActivatable } from "./useActivatable";
+import { useModalStack } from "./useModalStack";
+import { useSheetDrag } from "./useSheetDrag";
 
 const MODAL_ANIMATION_DURATION = 400;
 const MODAL_FAST_ANIMATION_DURATION = 100;

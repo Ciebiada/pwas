@@ -1,8 +1,8 @@
+import DiffMatchPatch from "diff-match-patch";
 import { db, type Note } from "./db";
-import { SyncProvider, RemoteFile } from "./sync/syncProvider";
 import { DropboxProvider } from "./sync/dropboxProvider";
 import { GoogleDriveProvider } from "./sync/googleDriveProvider";
-import DiffMatchPatch from "diff-match-patch";
+import type { RemoteFile, SyncProvider } from "./sync/syncProvider";
 
 type SyncAction = "uploaded" | "downloaded" | "merged" | "deleted" | "renamed" | "none";
 

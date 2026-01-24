@@ -1,16 +1,16 @@
-import { createSignal, Show, onMount, onCleanup, createEffect } from "solid-js";
 import { useParams } from "@solidjs/router";
-import { Editor, EditorAPI } from "../components/Editor";
+import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { Header, HeaderButton } from "ui/Header";
-import { Modal, ModalButton, ModalPage } from "ui/Modal";
 import { BackIcon, MoreIcon } from "ui/Icons";
+import { Modal, ModalButton, ModalPage } from "ui/Modal";
+import { Page } from "ui/Page";
+import { Editor, type EditorAPI } from "../components/Editor";
 import { useNavigate } from "../hooks/useNavigate";
 import { db } from "../services/db";
-import { syncNote, wasSynced } from "../services/sync";
 
 import { debounce } from "../services/debounce";
 import { createDexieSignalQuery } from "../services/solid-dexie";
-import { Page } from "ui/Page";
+import { syncNote, wasSynced } from "../services/sync";
 
 export const EditNote = () => {
   const navigate = useNavigate();

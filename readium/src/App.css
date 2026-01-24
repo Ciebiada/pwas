@@ -35,7 +35,7 @@
 }
 
 .book-cover {
-  aspect-ratio: 2/3;
+  aspect-ratio: 2 / 3;
   background: #333;
   display: flex;
   align-items: center;

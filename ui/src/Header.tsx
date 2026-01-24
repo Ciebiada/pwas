@@ -1,7 +1,7 @@
 import type { JSX } from "solid-js";
 import "./Header.css";
-import { useActivatable } from "./useActivatable";
 import { isScrolled } from "./scrollState";
+import { useActivatable } from "./useActivatable";
 
 export const Header = (props: { children: JSX.Element; title?: string }) => {
   return (

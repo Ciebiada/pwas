@@ -1,5 +1,5 @@
 import JSZip from "jszip";
-import type { EpubPackage, EpubMetadata, EpubManifestItem, EpubSpineItem, EpubNavPoint } from "./epub-types";
+import type { EpubManifestItem, EpubMetadata, EpubNavPoint, EpubPackage, EpubSpineItem } from "./epub-types";
 
 export class EpubParser {
   private zip: JSZip | null = null;

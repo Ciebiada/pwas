@@ -1,11 +1,11 @@
-import { createSignal, onMount, onCleanup, Show, createEffect } from "solid-js";
 import { useParams } from "@solidjs/router";
+import { BackIcon, Header, HeaderButton, Modal, ModalPage, ModalSelect, ModalSlider, ModalToggle } from "rams";
+import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { db } from "../db";
-import { settings, updateSettings, THEMES } from "../store/settings";
-import type { Theme } from "../store/settings";
-import { EpubParser, EpubRenderer } from "../lib/epub";
-import { Header, HeaderButton, Modal, ModalPage, ModalSelect, ModalSlider, ModalToggle, BackIcon } from "rams";
 import { useTap } from "../hooks/useTap";
+import { EpubParser, EpubRenderer } from "../lib/epub";
+import type { Theme } from "../store/settings";
+import { settings, THEMES, updateSettings } from "../store/settings";
 
 const Reader = (props: { onClose: () => void }) => {
   const params = useParams<{ id: string }>();

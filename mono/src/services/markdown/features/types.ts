@@ -1,4 +1,4 @@
-import { InputResult, Selection } from "../utils";
+import type { InputResult, Selection } from "../utils";
 
 export type LineRange = { start: number; end: number; line: string };
 

@@ -1,7 +1,7 @@
-import { defineConfig } from "vite";
-import solidPlugin from "vite-plugin-solid";
 import devtools from "solid-devtools/vite";
+import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
+import solidPlugin from "vite-plugin-solid";
 
 export default defineConfig({
   envPrefix: "GOOGLE_",

@@ -1,5 +1,5 @@
-import { useNavigate } from "../hooks/useNavigate";
 import { BackIcon, Header, HeaderButton } from "rams";
+import { useNavigate } from "../hooks/useNavigate";
 
 export const About = () => {
   const navigate = useNavigate();

@@ -101,7 +101,7 @@ export class LocationTracker {
     const dpr = (globalThis as any).devicePixelRatio ?? 1;
     const fuzzPx = Math.max(2, Math.min(10, dpr * 2));
 
-    let node;
+    let node: Node | null;
     let cumulativeOffset = 0;
 
     while ((node = walker.nextNode())) {

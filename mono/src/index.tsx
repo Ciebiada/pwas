@@ -1,19 +1,20 @@
 /* @refresh reload */
-import { render } from "solid-js/web";
+
 import { Route, Router } from "@solidjs/router";
+import { render } from "solid-js/web";
 import "solid-devtools";
-import { NotesList } from "./pages/NotesList";
-import { EditNote } from "./pages/EditNote";
-import { NewNote } from "./pages/NewNote";
 
 import { About } from "./pages/About";
 import { DropboxCallback } from "./pages/DropboxCallback";
+import { EditNote } from "./pages/EditNote";
 import { GoogleDriveCallback } from "./pages/GoogleDriveCallback";
+import { NewNote } from "./pages/NewNote";
+import { NotesList } from "./pages/NotesList";
 import "ui/reset.css";
 import "ui/theme.css";
 import "ui/typography.css";
 import { useLocation } from "@solidjs/router";
-import { setIsScrolled, getScrollPosition } from "ui/scrollState";
+import { getScrollPosition, setIsScrolled } from "ui/scrollState";
 import "./pwa";
 
 const root = document.getElementById("root");

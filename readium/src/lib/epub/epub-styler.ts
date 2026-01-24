@@ -1,6 +1,6 @@
 import type { EpubParser } from "./epub-parser";
-import type { ResourceResolver } from "./resource-resolver";
 import type { RendererOptions } from "./epub-types";
+import type { ResourceResolver } from "./resource-resolver";
 
 const UA_STYLES = `
             p { text-indent: 1.5em; }

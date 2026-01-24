@@ -1,15 +1,15 @@
-import { SyncProvider, RemoteFile, UploadResponse } from "./syncProvider";
 import {
-  isDropboxInitialized,
-  getAuthUrl,
-  listFiles,
-  getFileMetadata,
-  uploadFile,
-  downloadFile,
-  deleteFile,
-  moveFile,
   DropboxFile,
+  deleteFile,
+  downloadFile,
+  getAuthUrl,
+  getFileMetadata,
+  isDropboxInitialized,
+  listFiles,
+  moveFile,
+  uploadFile,
 } from "./dropbox";
+import type { RemoteFile, SyncProvider, UploadResponse } from "./syncProvider";
 
 export const DropboxProvider: SyncProvider = {
   name: "dropbox",

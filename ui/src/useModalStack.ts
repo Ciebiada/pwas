@@ -1,4 +1,4 @@
-import { createSignal, batch } from "solid-js";
+import { batch, createSignal } from "solid-js";
 
 export const useModalStack = (initialTitle: string) => {
   const [pageStack, setPageStack] = createSignal<string[]>(["root"]);

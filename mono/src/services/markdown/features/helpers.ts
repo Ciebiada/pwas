@@ -1,5 +1,5 @@
-import { INDENT, INDENT_SIZE, InputResult, Selection, lineEnd } from "../utils";
-import { LineRange } from "./types";
+import { INDENT, INDENT_SIZE, type InputResult, lineEnd, type Selection } from "../utils";
+import type { LineRange } from "./types";
 
 export const handleIndentBackspace = (
   content: string,

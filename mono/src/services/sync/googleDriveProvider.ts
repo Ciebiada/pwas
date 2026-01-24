@@ -1,12 +1,12 @@
-import { SyncProvider, RemoteFile, UploadResponse } from "./syncProvider";
 import {
+  deleteFile,
+  downloadFile,
+  getFileMetadata,
   isGoogleDriveInitialized,
   listFiles,
-  getFileMetadata,
   uploadFile,
-  downloadFile,
-  deleteFile,
 } from "./googleDrive";
+import type { RemoteFile, SyncProvider, UploadResponse } from "./syncProvider";
 
 export const GoogleDriveProvider: SyncProvider = {
   name: "googledrive",
