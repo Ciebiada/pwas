@@ -120,19 +120,22 @@ export const useCustomCaret = (
       const range = getValidCollapsedRange();
       if (range) {
         updateCaretPosition();
-        showCaret();
+        // Have to delay showing the caret in order to update the position first
+        requestAnimationFrame(showCaret);
       } else {
         hideCaret();
       }
     };
 
     const handleFocus = () => handleSelectionChange();
+    // This is needed because of delayed showCaret in handleSelectionChange
+    const handleBlur = () => requestAnimationFrame(hideCaret);
     const handleVisibilityChange = () => (document.hidden ? hideCaret() : handleSelectionChange());
 
     document.addEventListener("selectionchange", handleSelectionChange);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("resize", updateCaretPosition);
-    editor.addEventListener("blur", hideCaret);
+    editor.addEventListener("blur", () => handleBlur);
     editor.addEventListener("focus", handleFocus);
 
     onCleanup(() => {
@@ -140,7 +143,7 @@ export const useCustomCaret = (
       document.removeEventListener("selectionchange", handleSelectionChange);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("resize", updateCaretPosition);
-      editor.removeEventListener("blur", hideCaret);
+      editor.removeEventListener("blur", handleBlur);
       editor.removeEventListener("focus", handleFocus);
       caret.remove();
     });

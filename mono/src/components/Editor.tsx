@@ -82,6 +82,7 @@ export const Editor = (_props: EditorProps) => {
     if (props.autoFocus && !isIOS) {
       editor.focus();
     } else {
+      // This is to blur the forced focus after the initialCursor position has been set
       editor.blur();
     }
 
@@ -139,7 +140,7 @@ export const Editor = (_props: EditorProps) => {
           editor.focus({ preventScroll: true });
           setTimeout(() => {
             scrollCursorIntoView(window.getSelection()!, "smooth");
-          }, 150);
+          }, 200);
         }}
         onBeforeInput={handleBeforeInput}
         onKeyDown={handleKeyDown}
