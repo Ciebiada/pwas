@@ -127,16 +127,15 @@ export const useCustomCaret = (
       }
     };
 
-    const handleFocus = () => handleSelectionChange();
-    // This is needed because of delayed showCaret in handleSelectionChange
+    // RAF is needed because of delayed showCaret in handleSelectionChange
     const handleBlur = () => requestAnimationFrame(hideCaret);
     const handleVisibilityChange = () => (document.hidden ? hideCaret() : handleSelectionChange());
 
     document.addEventListener("selectionchange", handleSelectionChange);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("resize", updateCaretPosition);
-    editor.addEventListener("blur", () => handleBlur);
-    editor.addEventListener("focus", handleFocus);
+    editor.addEventListener("blur", handleBlur);
+    editor.addEventListener("focus", handleSelectionChange);
 
     onCleanup(() => {
       clearBlinkTimer();
@@ -144,7 +143,7 @@ export const useCustomCaret = (
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("resize", updateCaretPosition);
       editor.removeEventListener("blur", handleBlur);
-      editor.removeEventListener("focus", handleFocus);
+      editor.removeEventListener("focus", handleSelectionChange);
       caret.remove();
     });
   });
