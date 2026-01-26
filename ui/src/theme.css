@@ -27,7 +27,7 @@ html {
     --text-strong-color: black;
     --text-color: hsl(0, 0%, 30%);
     --text-secondary-color: hsl(0, 0%, 50%);
-    --main-color: hsl(47, 84%, 40%);
+    --main-color: hsl(47, 84%, 48%);
     --green-color: #34c759;
     --danger-color: #ff3b30;
 
@@ -48,7 +48,7 @@ html {
   --text-strong-color: black;
   --text-color: hsl(0, 0%, 30%);
   --text-secondary-color: hsl(0, 0%, 50%);
-  --main-color: hsl(47, 84%, 38%);
+  --main-color: hsl(47, 84%, 48%);
   --green-color: #34c759;
   --danger-color: #ff3b30;
 

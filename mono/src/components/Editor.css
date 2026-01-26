@@ -106,8 +106,7 @@ input[type="checkbox"]::before {
 .md-inline-code {
   font-family: "SF Mono", "Menlo", "Monaco", "Consolas", monospace;
   color: var(--main-color);
-  background-color: var(--bg-secondary-color);
-  /* background-color: var(--element-background-color); */
+  background-color: hsl(from var(--main-color) h 40% 60% / 0.15);
   padding: 0.1rem 0.3rem;
   border-radius: 4px;
   font-size: 0.85em;

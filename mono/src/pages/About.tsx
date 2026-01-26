@@ -5,20 +5,10 @@ import { useNavigate } from "../hooks/useNavigate";
 import { renderMarkdown } from "../services/markdown/renderer";
 
 const ABOUT_CONTENT = `
-Mono is a minimalist, local-first markdown editor.
-
-### Markdown Basics
-\`# Heading\` creates a title
-\`## Subheading\` for sections
-\`- list\` or \`1. ordered\` for lists
-\`x task\` for todos
-
-### Shortcuts
-Mono uses intuitive shortcuts to keep you in the flow
-- **Nest**: Type \`-\` or \`x\` after a bullet/checkbox to indent
-- **Convert**: Type \`x\` after a list bullet to make it a task
-- **Revert**: Type \`-\` after a checkbox to turn it back into a list
-- **Tables**: Start a line with \`|\` to create a table
+Use \`#\` followed by a space for headings.
+Try \`x\` and a space to create a task.
+Start a line with \`|\` to create a table.
+Use \`**bold**\` and  \`*italic*\` for styling.
 `.trim();
 
 export const About = () => {
