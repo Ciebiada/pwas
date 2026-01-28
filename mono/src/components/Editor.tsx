@@ -127,9 +127,9 @@ export const Editor = (_props: EditorProps) => {
   };
 
   const handleCheckboxToggle = (lineIndex: number) => {
+    const { start } = getSelection(editor);
     const newContent = toggleCheckbox(content(), lineIndex);
-    setContent(newContent);
-    emitChange();
+    applyEdit(newContent, start);
   };
 
   return (
