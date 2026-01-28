@@ -1,5 +1,5 @@
 import { onCleanup, onMount } from "solid-js";
-import "./customCaret.css";
+import "./useCustomCaret.css";
 
 const BLINK_DELAY_MS = 300;
 

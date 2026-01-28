@@ -1,5 +1,7 @@
 import { createSignal, mergeProps, onCleanup, onMount } from "solid-js";
 import { isIOS } from "ui/platform";
+import { useAnimatedCheckbox } from "../hooks/useAnimatedCheckbox";
+import { useCustomCaret } from "../hooks/useCustomCaret";
 import {
   calculateCursorPosition,
   fixCursorPositionForZeroWidthSpace,
@@ -7,7 +9,6 @@ import {
   scrollCursorIntoView,
   setSelection,
 } from "../services/cursor";
-import { useCustomCaret } from "../services/customCaret";
 import { processBeforeInput } from "../services/editorInput";
 import { toggleCheckbox } from "../services/markdown/features/todoList";
 import { handleTab } from "../services/markdown/input";
@@ -44,6 +45,8 @@ export const Editor = (_props: EditorProps) => {
       () => editor,
     );
   }
+
+  useAnimatedCheckbox(() => editor);
 
   const emitChange = () => {
     const { name, content: noteContent } = splitNote(content());

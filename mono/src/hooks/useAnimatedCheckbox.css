@@ -1,0 +1,111 @@
+/* Animated Checkbox Styles */
+.animated-checkbox {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.animated-checkbox::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+
+.animated-checkbox span {
+  display: inline-block;
+  /* vertical-align: middle; */
+  transform: translate3d(0, 0, 0);
+}
+
+.animated-checkbox .checkbox-icon {
+  position: relative;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  transform: scale(1);
+  /* vertical-align: middle; */
+  border: 2px solid var(--text-secondary-color);
+  transition: all 0.2s ease;
+}
+
+.animated-checkbox .checkbox-icon svg {
+  position: absolute;
+  z-index: 1;
+  top: 4px;
+  left: 3px;
+  fill: none;
+  stroke: black;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 16px;
+  stroke-dashoffset: 16px;
+  transition: all 0.3s ease;
+  transition-delay: 0.1s;
+  transform: translate3d(0, 0, 0);
+}
+
+.animated-checkbox .checkbox-icon::before {
+  content: "";
+  width: 100%;
+  height: 100%;
+  background: var(--main-color);
+  display: block;
+  transform: scale(0);
+  opacity: 1;
+  border-radius: 50%;
+  transition-delay: 0.2s;
+}
+
+.animated-checkbox:hover .checkbox-icon {
+  border-color: var(--main-color);
+}
+
+/* Hidden native checkbox */
+.animated-checkbox-input {
+  display: none;
+}
+
+/* Checked state - static styles */
+.animated-checkbox-input:checked + .animated-checkbox .checkbox-icon {
+  border-color: var(--main-color);
+  background: var(--main-color);
+}
+
+/* Animations - only when explicitly triggered */
+.checkbox-animations-ready .animating .animated-checkbox-input:checked + .animated-checkbox .checkbox-icon {
+  animation: checkbox-bounce 0.6s ease;
+}
+
+.animated-checkbox-input:checked + .animated-checkbox .checkbox-icon svg {
+  stroke-dashoffset: 0;
+}
+
+.checkbox-animations-ready .animating .animated-checkbox-input:checked + .animated-checkbox .checkbox-icon svg {
+  animation: stroke-draw 0.3s ease 0.1s both;
+}
+
+@keyframes stroke-draw {
+  from {
+    stroke-dashoffset: 16px;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animated-checkbox-input:checked + .animated-checkbox .checkbox-icon::before {
+  transform: scale(2.2);
+  opacity: 0;
+  transition: all 0.6s ease;
+}
+
+@keyframes checkbox-bounce {
+  50% {
+    transform: scale(1.2);
+  }
+}
