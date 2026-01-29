@@ -1,8 +1,5 @@
 /* Animated Checkbox Styles */
 .animated-checkbox {
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -17,7 +14,6 @@
 
 .animated-checkbox span {
   display: inline-block;
-  /* vertical-align: middle; */
   transform: translate3d(0, 0, 0);
 }
 
@@ -27,7 +23,6 @@
   height: 21px;
   border-radius: 50%;
   transform: scale(1);
-  /* vertical-align: middle; */
   border: 2px solid var(--text-secondary-color);
   transition: all 0.2s ease;
 }
@@ -65,9 +60,14 @@
   border-color: var(--main-color);
 }
 
-/* Hidden native checkbox */
-.animated-checkbox-input {
-  display: none;
+/* Hidden native checkbox - using opacity and position to preserve triple-click selection */
+input.animated-checkbox-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Checked state - static styles */
