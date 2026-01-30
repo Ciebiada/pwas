@@ -55,8 +55,6 @@
   position: absolute;
   left: 0;
   top: 0;
-
-  user-select: text;
 }
 
 .md-ordered-marker,
@@ -102,12 +100,13 @@
   color: var(--main-color);
 }
 
+/* checkbox styles */
 .md-checkbox input {
   accent-color: var(--main-color);
   width: 18px;
   height: 18px;
   cursor: pointer;
-  pointer-events: auto;
+  top: 1px;
 }
 
 input[type="checkbox"] {
@@ -118,4 +117,8 @@ input[type="checkbox"]::before {
   content: "";
   position: absolute;
   inset: -6px;
+}
+
+.animated-checkbox {
+  display: none;
 }

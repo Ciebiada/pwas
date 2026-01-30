@@ -7,12 +7,19 @@
 * {
   margin: 0;
   line-height: calc(1em + 0.5rem);
+}
 
+button,
+button *,
+a,
+a *,
+header,
+header * {
   /* Prevent selection and touch callouts to mimic native apps */
-  /* user-select: none;
+  user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none; */
+  -webkit-touch-callout: none;
 }
 
 html {

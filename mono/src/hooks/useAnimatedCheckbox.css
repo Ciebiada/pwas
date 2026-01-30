@@ -1,7 +1,7 @@
 /* Animated Checkbox Styles */
 .animated-checkbox {
+  display: flex !important;
   cursor: pointer;
-  display: flex;
   align-items: center;
   position: relative;
 }
@@ -63,12 +63,6 @@
 /* Hidden native checkbox - using opacity and position to preserve triple-click selection */
 input.animated-checkbox-input {
   display: none;
-  /* position: absolute;
-  width: 0;
-  height: 0;
-  margin: 0;
-  opacity: 0; */
-  pointer-events: none;
 }
 
 /* Checked state - static styles */
