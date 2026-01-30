@@ -46,7 +46,7 @@ export const Editor = (_props: EditorProps) => {
     );
   }
 
-  useAnimatedCheckbox(() => editor);
+  // useAnimatedCheckbox(() => editor);
 
   const emitChange = () => {
     const { name, content: noteContent } = splitNote(content());
