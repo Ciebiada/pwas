@@ -3,12 +3,12 @@ import { CheckIcon, ChevronRightIcon } from "ui/Icons";
 import { Modal, ModalButton, ModalPage, ModalToggle, useModal } from "ui/Modal";
 import { useNavigate } from "../hooks/useNavigate";
 import {
-  isCustomCaretEnabled,
   isMonospaceEnabled,
-  isPrettyCheckboxEnabled,
-  setCustomCaretEnabled,
+  isPrettyCaretEnabled,
+  isPrettyCheckboxesEnabled,
   setMonospaceEnabled,
-  setPrettyCheckboxEnabled,
+  setPrettyCaretEnabled,
+  setPrettyCheckboxesEnabled,
 } from "../services/preferences";
 import { disconnectDropbox } from "../services/sync/dropbox";
 import { DropboxProvider } from "../services/sync/dropboxProvider";
@@ -27,18 +27,18 @@ const SettingsModalContent = () => {
   const navigate = useNavigate();
   const [isDropboxConnected, setIsDropboxConnected] = createSignal(DropboxProvider.isAuthenticated());
   const [isGoogleDriveConnected, setIsGoogleDriveConnected] = createSignal(GoogleDriveProvider.isAuthenticated());
-  const [customCaretEnabled, setCustomCaretEnabledSignal] = createSignal(isCustomCaretEnabled());
-  const [prettyCheckboxEnabled, setPrettyCheckboxEnabledSignal] = createSignal(isPrettyCheckboxEnabled());
+  const [prettyCaretEnabled, setPrettyCaretEnabledSignal] = createSignal(isPrettyCaretEnabled());
+  const [prettyCheckboxesEnabled, setPrettyCheckboxesEnabledSignal] = createSignal(isPrettyCheckboxesEnabled());
   const [monospaceEnabled, setMonospaceEnabledSignal] = createSignal(isMonospaceEnabled());
 
-  const handleCustomCaretChange = (enabled: boolean) => {
-    setCustomCaretEnabled(enabled);
-    setCustomCaretEnabledSignal(enabled);
+  const handlePrettyCaretChange = (enabled: boolean) => {
+    setPrettyCaretEnabled(enabled);
+    setPrettyCaretEnabledSignal(enabled);
   };
 
-  const handlePrettyCheckboxChange = (enabled: boolean) => {
-    setPrettyCheckboxEnabled(enabled);
-    setPrettyCheckboxEnabledSignal(enabled);
+  const handlePrettyCheckboxesChange = (enabled: boolean) => {
+    setPrettyCheckboxesEnabled(enabled);
+    setPrettyCheckboxesEnabledSignal(enabled);
   };
 
   const handleMonospaceChange = (enabled: boolean) => {
@@ -162,8 +162,12 @@ const SettingsModalContent = () => {
       </ModalPage>
 
       <ModalPage id="preferences">
-        <ModalToggle label="Pretty Caret" checked={customCaretEnabled} onChange={handleCustomCaretChange} />
-        <ModalToggle label="Pretty Checkbox" checked={prettyCheckboxEnabled} onChange={handlePrettyCheckboxChange} />
+        <ModalToggle label="Pretty Caret" checked={prettyCaretEnabled} onChange={handlePrettyCaretChange} />
+        <ModalToggle
+          label="Pretty Checkboxes"
+          checked={prettyCheckboxesEnabled}
+          onChange={handlePrettyCheckboxesChange}
+        />
         <ModalToggle label="Monospace Font" checked={monospaceEnabled} onChange={handleMonospaceChange} />
       </ModalPage>
     </>

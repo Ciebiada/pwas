@@ -1,5 +1,5 @@
 import { onCleanup, onMount } from "solid-js";
-import "./useCustomCaret.css";
+import "./usePrettyCaret.css";
 
 const BLINK_DELAY_MS = 300;
 
@@ -19,7 +19,7 @@ const getVisibleRect = (node: Node, atEnd: boolean): DOMRect | null => {
   return rect.height > 0 ? rect : null;
 };
 
-export const useCustomCaret = (
+export const usePrettyCaret = (
   getContainer: () => HTMLElement | undefined,
   getEditor: () => HTMLElement | undefined,
 ) => {

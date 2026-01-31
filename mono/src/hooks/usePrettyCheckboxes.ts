@@ -1,13 +1,12 @@
 import { onCleanup, onMount } from "solid-js";
-import "./useAnimatedCheckbox.css";
+import "./usePrettyCheckboxes.css";
 
-export const useAnimatedCheckbox = (getEditor: () => HTMLElement | undefined) => {
+export const usePrettyCheckboxes = (getEditor: () => HTMLElement | undefined) => {
   onMount(() => {
     const editor = getEditor();
     if (!editor) return;
 
-    // Enable animations only after first mount
-    editor.closest(".editor-container")?.classList.add("checkbox-animations-ready");
+    editor.closest(".editor")?.classList.add("checkbox-animations-ready");
 
     let lastClickedId: string | null = null;
 
@@ -21,7 +20,6 @@ export const useAnimatedCheckbox = (getEditor: () => HTMLElement | undefined) =>
     };
 
     const handleAnimationEnd = (e: AnimationEvent) => {
-      // Clean up the animating class after bounce completes
       if (e.animationName === "checkbox-bounce") {
         (e.target as Element).closest(".md-line")?.classList.remove("animating");
       }
@@ -34,7 +32,7 @@ export const useAnimatedCheckbox = (getEditor: () => HTMLElement | undefined) =>
           const line = input.closest(".md-line");
           if (line) {
             line.classList.add("animating");
-            lastClickedId = null; // Mark as handled
+            lastClickedId = null;
           }
         }
       }

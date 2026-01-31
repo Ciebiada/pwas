@@ -1,7 +1,7 @@
 import { createSignal, mergeProps, onCleanup, onMount } from "solid-js";
 import { isIOS } from "ui/platform";
-import { useAnimatedCheckbox } from "../hooks/useAnimatedCheckbox";
-import { useCustomCaret } from "../hooks/useCustomCaret";
+import { usePrettyCaret } from "../hooks/usePrettyCaret";
+import { usePrettyCheckboxes } from "../hooks/usePrettyCheckboxes";
 import {
   calculateCursorPosition,
   fixCursorPositionForZeroWidthSpace,
@@ -14,7 +14,7 @@ import { toggleCheckbox } from "../services/markdown/features/todoList";
 import { handleTab } from "../services/markdown/input";
 import { renderMarkdown } from "../services/markdown/renderer";
 import { splitNote } from "../services/note";
-import { isCustomCaretEnabled, isMonospaceEnabled, isPrettyCheckboxEnabled } from "../services/preferences";
+import { isMonospaceEnabled, isPrettyCaretEnabled, isPrettyCheckboxesEnabled } from "../services/preferences";
 import "./Editor.css";
 
 export type EditorAPI = {
@@ -39,15 +39,15 @@ export const Editor = (_props: EditorProps) => {
   let container: HTMLDivElement | undefined;
   let iosReplacementText = "";
 
-  if (isCustomCaretEnabled()) {
-    useCustomCaret(
+  if (isPrettyCaretEnabled()) {
+    usePrettyCaret(
       () => container,
       () => editor,
     );
   }
 
-  if (isPrettyCheckboxEnabled()) {
-    useAnimatedCheckbox(() => editor);
+  if (isPrettyCheckboxesEnabled()) {
+    usePrettyCheckboxes(() => editor);
   }
 
   const emitChange = () => {
@@ -138,11 +138,39 @@ export const Editor = (_props: EditorProps) => {
     emitChange();
   };
 
+  const handleCopy = (event: ClipboardEvent) => {
+    event.preventDefault();
+    const { start, end } = getSelection(editor);
+    if (start === end) return;
+
+    const selectedText = content().slice(start, end);
+    event.clipboardData?.setData("text/plain", selectedText);
+  };
+
+  const handleCut = (event: ClipboardEvent) => {
+    event.preventDefault();
+    const selection = getSelection(editor);
+    const { start, end } = selection;
+    if (start === end) return;
+
+    const selectedText = content().slice(start, end);
+    event.clipboardData?.setData("text/plain", selectedText);
+
+    const result = processBeforeInput("deleteByCut", content(), selection, {});
+    if (result) {
+      applyEdit(result.content, result.cursor);
+    }
+  };
+
   return (
-    <div class="editor-container" ref={container} classList={{ "pretty-checkboxes": isPrettyCheckboxEnabled() }}>
+    <div class="editor-container" ref={container}>
       <div
         ref={(e) => (editor = e)}
-        classList={{ editor: true, monospace: isMonospaceEnabled() }}
+        classList={{
+          editor: true,
+          monospace: isMonospaceEnabled(),
+          "pretty-checkboxes": isPrettyCheckboxesEnabled(),
+        }}
         contentEditable={true}
         spellcheck={false}
         onFocus={() => {
@@ -154,6 +182,8 @@ export const Editor = (_props: EditorProps) => {
         onBeforeInput={handleBeforeInput}
         onKeyDown={handleKeyDown}
         on:textInput={onTextInput}
+        onCopy={handleCopy}
+        onCut={handleCut}
       >
         {renderMarkdown(content(), handleCheckboxToggle)}
       </div>
