@@ -12,7 +12,7 @@
     "@solidjs/router": "^0.15.4",
     "dexie": "^4.2.1",
     "jszip": "^3.10.1",
-    "rams": "file:../ui",
+    "ui": "file:../ui",
     "solid-js": "^1.9.10"
   },
   "devDependencies": {

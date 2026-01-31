@@ -1,6 +1,8 @@
 import { useParams } from "@solidjs/router";
-import { BackIcon, Header, HeaderButton, Modal, ModalPage, ModalSelect, ModalSlider, ModalToggle } from "rams";
 import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
+import { Header, HeaderButton } from "ui/Header";
+import { BackIcon } from "ui/Icons";
+import { Modal, ModalPage, ModalSelect, ModalSlider, ModalToggle } from "ui/Modal";
 import { db } from "../db";
 import { useTap } from "../hooks/useTap";
 import { EpubParser, EpubRenderer } from "../lib/epub";
@@ -217,7 +219,7 @@ const Reader = (props: { onClose: () => void }) => {
       invertImages: s.invertImages,
     });
 
-    // Sync data-theme attribute for rams CSS
+    // Sync data-theme attribute for ui CSS
     document.documentElement.dataset.theme = s.theme;
   });
 

@@ -339,6 +339,7 @@ body.modal-open {
   height: calc(100% - 16px);
   -webkit-appearance: none;
   appearance: none;
+  z-index: 1;
   touch-action: pan-y;
 }
 

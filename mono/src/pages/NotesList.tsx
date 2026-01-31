@@ -57,18 +57,7 @@ export const NotesList = () => {
           <MoreIcon />
         </HeaderButton>
       </Header>
-      <Page
-        header={
-          <Header title="Notes">
-            <HeaderButton right onClick={() => navigate("/new")}>
-              <AddIcon />
-            </HeaderButton>
-            <HeaderButton onClick={() => setModalOpen(true)}>
-              <MoreIcon />
-            </HeaderButton>
-          </Header>
-        }
-      >
+      <Page>
         <For
           each={notes}
           fallback={

@@ -1,4 +1,6 @@
-import { BackIcon, Header, HeaderButton } from "rams";
+import { Header, HeaderButton } from "ui/Header";
+import { BackIcon } from "ui/Icons";
+import { Page } from "ui/Page";
 import { useNavigate } from "../hooks/useNavigate";
 
 export const About = () => {
@@ -7,16 +9,16 @@ export const About = () => {
   return (
     <>
       <Header>
-        <HeaderButton onClick={() => navigate("/", { back: true })}>
+        <HeaderButton onClick={() => navigate(-1, { back: true })}>
           <BackIcon />
         </HeaderButton>
       </Header>
-      <div class="page-container with-header">
+      <Page>
         <div class="page-content">
-          <h1>About Readium</h1>
+          <h1>About Mono</h1>
           <p>Description under development. Please come back later.</p>
         </div>
-      </div>
+      </Page>
     </>
   );
 };

@@ -1,5 +1,7 @@
-import { AddIcon, Header, HeaderButton, MoreIcon } from "rams";
 import { createEffect, createSignal, For, onCleanup, onMount, Show } from "solid-js";
+import { Header, HeaderButton } from "ui/Header";
+import { AddIcon, MoreIcon } from "ui/Icons";
+import { Page } from "ui/Page";
 import { type Book, db } from "../db";
 import { useNavigate } from "../hooks/useNavigate";
 import FileUpload from "./FileUpload";
@@ -32,7 +34,7 @@ const Library = (props: { onSelect: (id: number) => void }) => {
 
   return (
     <>
-      <Header>
+      <Header title="My Library">
         <HeaderButton right onClick={() => document.getElementById("file-input")?.click()}>
           <AddIcon />
         </HeaderButton>
@@ -40,16 +42,11 @@ const Library = (props: { onSelect: (id: number) => void }) => {
           <MoreIcon />
         </HeaderButton>
       </Header>
-      <div class="page-container">
-        <div class="page-title">
-          <h1>My Library</h1>
-        </div>
-
-        {/* FileUpload hidden but active for logic */}
-        <div style={{ display: "none" }}>
-          <FileUpload onUpload={loadBooks} />
-        </div>
+      <Page>
         <div class="page-content">
+          <div style={{ display: "none" }}>
+            <FileUpload onUpload={loadBooks} />
+          </div>
           <Show
             when={books().length > 0}
             fallback={
@@ -83,7 +80,7 @@ const Library = (props: { onSelect: (id: number) => void }) => {
             </div>
           </Show>
         </div>
-      </div>
+      </Page>
       <SettingsModal open={settingsOpen} setOpen={setSettingsOpen} />
     </>
   );

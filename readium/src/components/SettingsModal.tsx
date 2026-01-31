@@ -1,5 +1,6 @@
-import { ChevronRightIcon, Modal, ModalButton, ModalPage } from "rams";
 import type { Accessor, Setter } from "solid-js";
+import { ChevronRightIcon } from "ui/Icons";
+import { Modal, ModalButton, ModalPage } from "ui/Modal";
 import { useNavigate } from "../hooks/useNavigate";
 import "./SettingsModal.css";
 
