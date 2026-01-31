@@ -211,7 +211,7 @@ const renderListItem = (
               }}
               onPointerDown={(e) => e.preventDefault()}
             />
-            <label class="animated-checkbox" for={`cbx-${index}`}>
+            <label for={`cbx-${index}`}>
               <span class="checkbox-icon">
                 <svg width="12px" height="9px" viewBox="0 0 12 9">
                   <polyline points="1 5 4 8 11 1" />

@@ -14,7 +14,7 @@ import { toggleCheckbox } from "../services/markdown/features/todoList";
 import { handleTab } from "../services/markdown/input";
 import { renderMarkdown } from "../services/markdown/renderer";
 import { splitNote } from "../services/note";
-import { isCustomCaretEnabled, isMonospaceEnabled } from "../services/preferences";
+import { isCustomCaretEnabled, isMonospaceEnabled, isPrettyCheckboxEnabled } from "../services/preferences";
 import "./Editor.css";
 
 export type EditorAPI = {
@@ -46,7 +46,9 @@ export const Editor = (_props: EditorProps) => {
     );
   }
 
-  useAnimatedCheckbox(() => editor);
+  if (isPrettyCheckboxEnabled()) {
+    useAnimatedCheckbox(() => editor);
+  }
 
   const emitChange = () => {
     const { name, content: noteContent } = splitNote(content());
@@ -137,7 +139,7 @@ export const Editor = (_props: EditorProps) => {
   };
 
   return (
-    <div class="editor-container" ref={container}>
+    <div class="editor-container" ref={container} classList={{ "pretty-checkboxes": isPrettyCheckboxEnabled() }}>
       <div
         ref={(e) => (editor = e)}
         classList={{ editor: true, monospace: isMonospaceEnabled() }}

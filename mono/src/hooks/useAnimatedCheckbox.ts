@@ -7,13 +7,13 @@ export const useAnimatedCheckbox = (getEditor: () => HTMLElement | undefined) =>
     if (!editor) return;
 
     // Enable animations only after first mount
-    editor.classList.add("checkbox-animations-ready");
+    editor.closest(".editor-container")?.classList.add("checkbox-animations-ready");
 
     let lastClickedId: string | null = null;
 
     const handlePointerDown = (e: PointerEvent) => {
       const target = e.target as HTMLElement;
-      const label = target.closest(".animated-checkbox") as HTMLLabelElement;
+      const label = target.closest(".md-list-marker")?.querySelector("label") as HTMLLabelElement;
       if (label) {
         e.preventDefault();
         lastClickedId = label.getAttribute("for");

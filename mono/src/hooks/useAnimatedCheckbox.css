@@ -1,23 +1,23 @@
-/* Animated Checkbox Styles */
-.animated-checkbox {
-  display: flex !important;
+/* Animated Checkbox Styles - Only active when .pretty-checkboxes is present on container */
+.pretty-checkboxes .md-list-marker label {
+  display: flex;
   cursor: pointer;
   align-items: center;
   position: relative;
 }
 
-.animated-checkbox::before {
+.pretty-checkboxes .md-list-marker label::before {
   content: "";
   position: absolute;
   inset: -6px;
 }
 
-.animated-checkbox span {
+.pretty-checkboxes .md-list-marker label span {
   display: inline-block;
   transform: translate3d(0, 0, 0);
 }
 
-.animated-checkbox .checkbox-icon {
+.pretty-checkboxes .md-list-marker label .checkbox-icon {
   position: relative;
   width: 21px;
   height: 21px;
@@ -27,7 +27,7 @@
   transition: all 0.2s ease;
 }
 
-.animated-checkbox .checkbox-icon svg {
+.pretty-checkboxes .md-list-marker label .checkbox-icon svg {
   position: absolute;
   z-index: 1;
   top: 4px;
@@ -44,7 +44,7 @@
   transform: translate3d(0, 0, 0);
 }
 
-.animated-checkbox .checkbox-icon::before {
+.pretty-checkboxes .md-list-marker label .checkbox-icon::before {
   content: "";
   width: 100%;
   height: 100%;
@@ -56,31 +56,31 @@
   transition-delay: 0.2s;
 }
 
-.animated-checkbox:hover .checkbox-icon {
+.pretty-checkboxes .md-list-marker label:hover .checkbox-icon {
   border-color: var(--main-color);
 }
 
 /* Hidden native checkbox - using opacity and position to preserve triple-click selection */
-input.animated-checkbox-input {
+.pretty-checkboxes input.animated-checkbox-input {
   display: none;
 }
 
 /* Checked state - static styles */
-.animated-checkbox-input:checked + .animated-checkbox .checkbox-icon {
+.pretty-checkboxes .animated-checkbox-input:checked + label .checkbox-icon {
   border-color: var(--main-color);
   background: var(--main-color);
 }
 
 /* Animations - only when explicitly triggered */
-.checkbox-animations-ready .animating .animated-checkbox-input:checked + .animated-checkbox .checkbox-icon {
+.pretty-checkboxes.checkbox-animations-ready .animating .animated-checkbox-input:checked + label .checkbox-icon {
   animation: checkbox-bounce 0.6s ease;
 }
 
-.animated-checkbox-input:checked + .animated-checkbox .checkbox-icon svg {
+.pretty-checkboxes .animated-checkbox-input:checked + label .checkbox-icon svg {
   stroke-dashoffset: 0;
 }
 
-.checkbox-animations-ready .animating .animated-checkbox-input:checked + .animated-checkbox .checkbox-icon svg {
+.pretty-checkboxes.checkbox-animations-ready .animating .animated-checkbox-input:checked + label .checkbox-icon svg {
   animation: stroke-draw 0.3s ease 0.1s both;
 }
 
@@ -93,7 +93,7 @@ input.animated-checkbox-input {
   }
 }
 
-.animated-checkbox-input:checked + .animated-checkbox .checkbox-icon::before {
+.pretty-checkboxes .animated-checkbox-input:checked + label .checkbox-icon::before {
   transform: scale(2.2);
   opacity: 0;
   transition: all 0.6s ease;

@@ -5,8 +5,10 @@ import { useNavigate } from "../hooks/useNavigate";
 import {
   isCustomCaretEnabled,
   isMonospaceEnabled,
+  isPrettyCheckboxEnabled,
   setCustomCaretEnabled,
   setMonospaceEnabled,
+  setPrettyCheckboxEnabled,
 } from "../services/preferences";
 import { disconnectDropbox } from "../services/sync/dropbox";
 import { DropboxProvider } from "../services/sync/dropboxProvider";
@@ -26,11 +28,17 @@ const SettingsModalContent = () => {
   const [isDropboxConnected, setIsDropboxConnected] = createSignal(DropboxProvider.isAuthenticated());
   const [isGoogleDriveConnected, setIsGoogleDriveConnected] = createSignal(GoogleDriveProvider.isAuthenticated());
   const [customCaretEnabled, setCustomCaretEnabledSignal] = createSignal(isCustomCaretEnabled());
+  const [prettyCheckboxEnabled, setPrettyCheckboxEnabledSignal] = createSignal(isPrettyCheckboxEnabled());
   const [monospaceEnabled, setMonospaceEnabledSignal] = createSignal(isMonospaceEnabled());
 
   const handleCustomCaretChange = (enabled: boolean) => {
     setCustomCaretEnabled(enabled);
     setCustomCaretEnabledSignal(enabled);
+  };
+
+  const handlePrettyCheckboxChange = (enabled: boolean) => {
+    setPrettyCheckboxEnabled(enabled);
+    setPrettyCheckboxEnabledSignal(enabled);
   };
 
   const handleMonospaceChange = (enabled: boolean) => {
@@ -154,7 +162,8 @@ const SettingsModalContent = () => {
       </ModalPage>
 
       <ModalPage id="preferences">
-        <ModalToggle label="Animate Cursor" checked={customCaretEnabled} onChange={handleCustomCaretChange} />
+        <ModalToggle label="Pretty Caret" checked={customCaretEnabled} onChange={handleCustomCaretChange} />
+        <ModalToggle label="Pretty Checkbox" checked={prettyCheckboxEnabled} onChange={handlePrettyCheckboxChange} />
         <ModalToggle label="Monospace Font" checked={monospaceEnabled} onChange={handleMonospaceChange} />
       </ModalPage>
     </>

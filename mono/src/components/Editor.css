@@ -119,6 +119,6 @@ input[type="checkbox"]::before {
   inset: -6px;
 }
 
-.animated-checkbox {
+.md-list-marker label {
   display: none;
 }
