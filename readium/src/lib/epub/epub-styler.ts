@@ -127,8 +127,12 @@ export class EpubStyler {
             .epub-content dt,
             .epub-content dd,
             .epub-content th,
-            .epub-content td {
+            .epub-content td,
+            .epub-content span,
+            .epub-content a,
+            .epub-content br {
                 line-height: ${lineHeight}px !important;
+                vertical-align: top !important;
             }
             .epub-content td {
                 line-height: ${lineHeight}px !important;
@@ -150,6 +154,9 @@ export class EpubStyler {
                 max-height: ${container.clientHeight}px !important;
                 break-inside: avoid;
                 ${options.invertImages ? "filter: invert(1) hue-rotate(180deg);" : ""}
+            }
+            .epub-content br {
+                display: inline !important;
             }
         `;
   }
@@ -199,25 +206,17 @@ export class EpubStyler {
       }
     });
 
-    this.normalizeInlineElements(contentElement);
-  }
-
-  normalizeInlineElements(contentElement: HTMLElement) {
-    const inlineElements = contentElement.querySelectorAll("p span, p a, div span, div a");
-
-    const defaultFontSize = parseFloat(getComputedStyle(contentElement).fontSize);
-
-    inlineElements.forEach((el) => {
+    // Handle elements with font-size larger than the grid unit
+    const textElements = contentElement.querySelectorAll("h1, h2, h3, h4, h5, h6, p, div, span, a");
+    textElements.forEach((el) => {
       const element = el as HTMLElement;
       const computed = getComputedStyle(element);
       const fontSize = parseFloat(computed.fontSize);
 
-      // If font size is significantly larger than base text (e.g., > 1.2x),
-      // it's likely a drop cap or emphasis that might break the grid.
-      // We fix this by enforcing vertical-align: text-bottom and line-height: inherit.
-      if (fontSize > defaultFontSize * 1.2) {
-        element.style.setProperty("vertical-align", "text-bottom", "important");
-        element.style.setProperty("line-height", "inherit", "important");
+      if (fontSize > gridUnit) {
+        const multiple = Math.ceil(fontSize / gridUnit);
+        const newLineHeight = multiple * gridUnit;
+        element.style.setProperty("line-height", `${newLineHeight}px`, "important");
       }
     });
   }
