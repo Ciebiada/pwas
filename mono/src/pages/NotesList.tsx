@@ -1,4 +1,4 @@
-import { createSignal, For, onCleanup, onMount } from "solid-js";
+import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { Header, HeaderButton } from "ui/Header";
 import { AddIcon, ChevronRightIcon, MoreIcon } from "ui/Icons";
 import { useNavigate } from "../hooks/useNavigate";
@@ -58,48 +58,50 @@ export const NotesList = () => {
         </HeaderButton>
       </Header>
       <Page>
-        <For
-          each={notes}
-          fallback={
-            <div class="page-content">
-              <p>
-                Tap{" "}
-                <button class="inline-icon-button" onClick={() => navigate("/new")}>
-                  <AddIcon />
-                </button>{" "}
-                to create a note.
-              </p>
-              <p>
-                Read{" "}
-                <a
-                  href="/about"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate("/about");
-                  }}
-                >
-                  about Mono
-                </a>
-              </p>
-            </div>
-          }
-        >
-          {(note) => {
-            const activatable = useActivatable();
-            return (
-              <button ref={activatable} class="note-item" onClick={() => navigate(`/note/${note.id}`)}>
-                <div class="note-item-content">
-                  <div class="note-item-name">{note.name}</div>
-                  <div class="note-item-preview">{getPreview(note.content)}</div>
-                </div>
-                <div class="note-item-date">
-                  {timeFromNow(note.lastModified)}
-                  <ChevronRightIcon />
-                </div>
-              </button>
-            );
-          }}
-        </For>
+        <Show when={notes.loaded()}>
+          <For
+            each={notes.data}
+            fallback={
+              <div class="page-content">
+                <p>
+                  Tap{" "}
+                  <button class="inline-icon-button" onClick={() => navigate("/new")}>
+                    <AddIcon />
+                  </button>{" "}
+                  to create a note.
+                </p>
+                <p>
+                  Read{" "}
+                  <a
+                    href="/about"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate("/about");
+                    }}
+                  >
+                    about Mono
+                  </a>
+                </p>
+              </div>
+            }
+          >
+            {(note) => {
+              const activatable = useActivatable();
+              return (
+                <button ref={activatable} class="note-item" onClick={() => navigate(`/note/${note.id}`)}>
+                  <div class="note-item-content">
+                    <div class="note-item-name">{note.name}</div>
+                    <div class="note-item-preview">{getPreview(note.content)}</div>
+                  </div>
+                  <div class="note-item-date">
+                    {timeFromNow(note.lastModified)}
+                    <ChevronRightIcon />
+                  </div>
+                </button>
+              );
+            }}
+          </For>
+        </Show>
       </Page>
       <SettingsModal open={modalOpen} setOpen={setModalOpen} />
     </>
