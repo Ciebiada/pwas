@@ -43,3 +43,4 @@ Assume the dev server is already running - don't start it.
 
 - Minimal code, no explanatory comments
 - When testing the Mono editor, remember the first line is always the note name - add a second line to test other content
+- Use colors from theme.css
