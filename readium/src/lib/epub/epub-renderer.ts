@@ -338,7 +338,11 @@ export class EpubRenderer {
     const margin = this.options.margin;
     const stride = containerWidth - margin * 2 + margin;
 
-    this.contentElement.style.transform = `translateX(-${this.currentPage * stride}px)`;
+    // iOS Safari renders multi-column's first column 1px higher than other columns.
+    // Compensate by shifting page 0 down by 1px so all pages align visually.
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const yOffset = isIOS && this.currentPage === 0 ? 1 : 0;
+    this.contentElement.style.transform = `translateX(-${this.currentPage * stride}px) translateY(${yOffset}px)`;
     if (!internal) {
       this.notifyRelocated(true);
     }
