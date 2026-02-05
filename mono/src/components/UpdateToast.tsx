@@ -8,13 +8,16 @@ export const UpdateToast = () => {
       <div class="update-toast">
         <span>Update available</span>
         <div class="update-toast-buttons">
-          <button class="update-toast-button" onClick={() => { setUpdateAvailable(false); triggerUpdate(); }}>
+          <button
+            class="update-toast-button"
+            onClick={() => {
+              setUpdateAvailable(false);
+              triggerUpdate();
+            }}
+          >
             Reload
           </button>
-          <button
-            class="update-toast-button update-toast-dismiss"
-            onClick={() => setUpdateAvailable(false)}
-          >
+          <button class="update-toast-button update-toast-dismiss" onClick={() => setUpdateAvailable(false)}>
             ✕
           </button>
         </div>

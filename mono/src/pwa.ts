@@ -23,6 +23,3 @@ init();
 export const triggerUpdate = () => {
   updateSW?.();
 };
-
-// @ts-expect-error - temporary debug helper
-window.showUpdateModal = () => setUpdateAvailable(true);
