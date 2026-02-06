@@ -26,6 +26,7 @@ export class LocationTracker {
     currentSpineIndex: number,
     options: RendererOptions,
     basicOnly: boolean = false,
+    layoutWidth?: number,
   ): EpubLocation | null {
     const currentSpineItem = this.packageData.spine[currentSpineIndex];
     if (!currentSpineItem) return null;
@@ -49,12 +50,12 @@ export class LocationTracker {
       return { basic: true, start: { displayed } };
     }
 
-    const element = this.getFirstVisibleElement(contentElement, options);
+    const element = this.getFirstVisibleElement(contentElement, options, layoutWidth);
     if (!element || !contentElement) return { start: { displayed } };
 
     const contentRect = contentElement.getBoundingClientRect();
     const margin = options.margin;
-    const containerWidth = options.container.clientWidth;
+    const containerWidth = layoutWidth ?? options.container.clientWidth;
     const stride = containerWidth - margin * 2 + margin;
 
     const dpr = (globalThis as unknown as { devicePixelRatio?: number }).devicePixelRatio ?? 1;
@@ -68,7 +69,7 @@ export class LocationTracker {
     const elementLeftInContent = rect.left - contentRect.left;
 
     if (elementLeftInContent < visibleMin - fuzzPx) {
-      offset = this.findFirstVisibleCharOffset(element, contentElement, currentPage, options);
+      offset = this.findFirstVisibleCharOffset(element, contentElement, currentPage, options, layoutWidth);
     }
 
     const cfi = CFIHelper.generate(currentSpineIndex, element, contentElement, offset);
@@ -86,11 +87,12 @@ export class LocationTracker {
     contentElement: HTMLElement,
     currentPage: number,
     options: RendererOptions,
+    layoutWidth?: number,
   ): number {
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
     const contentRect = contentElement.getBoundingClientRect();
     const margin = options.margin;
-    const containerWidth = options.container.clientWidth;
+    const containerWidth = layoutWidth ?? options.container.clientWidth;
     const columnWidth = containerWidth - margin * 2;
     const stride = columnWidth + margin;
 
@@ -159,7 +161,11 @@ export class LocationTracker {
     return 0;
   }
 
-  getFirstVisibleElement(contentElement: HTMLElement | null, options: RendererOptions): Element | null {
+  getFirstVisibleElement(
+    contentElement: HTMLElement | null,
+    options: RendererOptions,
+    layoutWidth?: number,
+  ): Element | null {
     if (!contentElement) return null;
 
     const containerRect = options.container.getBoundingClientRect();
@@ -185,10 +191,12 @@ export class LocationTracker {
 
     // Fallback: iterate through children to find the first visible one
     const candidates = contentElement.querySelectorAll("p, h1, h2, h3, h4, h5, h6, img, li");
+    const rightEdge = layoutWidth ? containerRect.left + layoutWidth : containerRect.right;
+
     for (const cand of Array.from(candidates)) {
       const rect = cand.getBoundingClientRect();
       // Element is visible if its left edge is within the visible column
-      if (rect.left >= containerRect.left - 5 && rect.left < containerRect.right - margin) {
+      if (rect.left >= containerRect.left - 5 && rect.left < rightEdge - margin) {
         return cand;
       }
     }

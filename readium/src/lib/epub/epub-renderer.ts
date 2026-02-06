@@ -17,6 +17,7 @@ export class EpubRenderer {
   private currentSpineIndex: number = 0;
   private currentPage: number = 0;
   private totalPages: number = 0;
+  private lastKnownCfi: string | undefined;
 
   private shadowHost: HTMLElement | null = null;
   private shadowRoot: ShadowRoot | null = null;
@@ -64,6 +65,32 @@ export class EpubRenderer {
     }
   }
 
+  private getLayoutInfo() {
+    const containerWidth = this.options.container.clientWidth;
+    const containerHeight = this.options.container.clientHeight;
+    const margin = this.options.margin;
+    // Match the logic in epub-styler.ts
+    const isTwoColumn = containerWidth > containerHeight;
+
+    const columnWidth = isTwoColumn ? Math.floor((containerWidth - margin * 3) / 2) : containerWidth - margin * 2;
+
+    const gap = margin;
+    const singleColumnStride = columnWidth + gap;
+    const columnsPerScreen = isTwoColumn ? 2 : 1;
+    // The visual shift for one "page" turn
+    const pageStride = singleColumnStride * columnsPerScreen;
+
+    return {
+      columnWidth,
+      gap,
+      singleColumnStride,
+      columnsPerScreen,
+      pageStride,
+      containerWidth,
+      margin,
+    };
+  }
+
   async displayCFI(cfi: CFI, internal: boolean = false, suppressPaint: boolean = false): Promise<void> {
     if (!internal && this.isBusy) return;
     if (!internal) this.isBusy = true;
@@ -81,9 +108,6 @@ export class EpubRenderer {
       }
 
       // Display the correct chapter (spine index) but silently
-      // For restores we prefer a fully-settled layout (fonts + multi-column) to avoid
-      // Safari occasionally restoring to the previous page due to late layout shifts.
-      // We hide during this work if `suppressPaint` is true.
       await this.displaySpineIndex(parsed.spineIndex, true, true, "async");
 
       // Find element by path and scroll to it
@@ -92,10 +116,7 @@ export class EpubRenderer {
 
         const element = CFIHelper.getElementByPath(this.contentElement, parsed.path);
         if (element instanceof HTMLElement) {
-          const containerWidth = this.options.container.clientWidth;
-          const margin = this.options.margin;
-          const columnWidth = containerWidth - margin * 2;
-          const stride = columnWidth + margin;
+          const { pageStride, margin } = this.getLayoutInfo();
 
           const dpr = (globalThis as unknown as { devicePixelRatio?: number }).devicePixelRatio ?? 1;
           const fuzzPx = Math.max(2, Math.min(10, dpr * 2));
@@ -115,18 +136,24 @@ export class EpubRenderer {
           }
 
           // elementLeft is relative to contentElement origin (left padding edge).
-          // Subpixel undershoot on Safari can cause elementLeft to be slightly less than
-          // the expected column start. Adding fuzzPx makes the floor robust.
-          let pageIndex = Math.floor((elementLeft - margin + fuzzPx) / stride);
+          // We want to find which "screen" this element falls into.
+          let pageIndex = Math.floor((elementLeft - margin + fuzzPx) / pageStride);
           pageIndex = Math.max(0, Math.min(pageIndex, this.totalPages - 1));
 
-          // Verification: check if the target X actually falls in the chosen page's column
-          const colStart = pageIndex * stride + margin;
-          const colEnd = colStart + columnWidth;
+          // Verification: check if the target X actually falls in the chosen page's column(s)
+          const screenStart = pageIndex * pageStride + margin;
+          // The screen covers 'pageStride' width, but the content ends at 'columnWidth' before the gap of the next page?
+          // Actually, visually the screen covers 'pageStride' (minus one gap at the end? no).
+          // If 2 columns: [Col1][gap][Col2][gap]...
+          // Screen 0: [Col1][gap][Col2]
+          // Screen width = Col1 + gap + Col2 = 2*Col + gap.
+          // pageStride = 2*Col + 2*gap.
+          // So there is a gap between Screen 0 and Screen 1.
+          const screenEnd = screenStart + pageStride; // Approximation
 
-          if (elementLeft < colStart - fuzzPx) {
+          if (elementLeft < screenStart - fuzzPx) {
             pageIndex -= 1;
-          } else if (elementLeft > colEnd + fuzzPx) {
+          } else if (elementLeft > screenEnd + fuzzPx) {
             pageIndex += 1;
           }
           pageIndex = Math.max(0, Math.min(pageIndex, this.totalPages - 1));
@@ -298,8 +325,17 @@ export class EpubRenderer {
     this.isBusy = true;
 
     try {
-      const currentLocation = this.getCurrentLocation();
-      const cfi = currentLocation?.start?.cfi;
+      // Use the last known CFI if available, as calculating it during resize
+      // (where container dimensions have changed but content layout hasn't)
+      // is error-prone.
+      let cfi = this.lastKnownCfi;
+
+      if (!cfi) {
+        // Fallback if we don't have a stored CFI (e.g. rarely happens if just initialized)
+        // We attempt to calculate it, but we might be in a mixed state.
+        const currentLocation = this.getCurrentLocation();
+        cfi = currentLocation?.start?.cfi;
+      }
 
       // Preserve the current transform while restyling to avoid flashing page 1.
       this.epubStyler.applyStyles(this.contentElement, this.shadowRoot, this.options, true);
@@ -321,28 +357,25 @@ export class EpubRenderer {
   private calculatePages() {
     if (!this.contentElement) return;
 
-    const containerWidth = this.options.container.clientWidth;
-    const margin = this.options.margin;
-    const columnWidth = containerWidth - margin * 2;
-    const stride = columnWidth + margin;
-
+    const { pageStride, margin } = this.getLayoutInfo();
     const scrollWidth = this.contentElement.scrollWidth;
-    this.totalPages = Math.max(1, Math.round((scrollWidth - margin) / stride));
+    // We want the number of screens.
+    // scrollWidth approx total pages * stride
+    this.totalPages = Math.max(1, Math.round((scrollWidth - margin) / pageStride));
   }
 
   private goToPage(pageIndex: number, internal: boolean = false) {
     if (!this.contentElement) return;
 
     this.currentPage = Math.max(0, Math.min(pageIndex, this.totalPages - 1));
-    const containerWidth = this.options.container.clientWidth;
-    const margin = this.options.margin;
-    const stride = containerWidth - margin * 2 + margin;
+    const { pageStride, columnsPerScreen } = this.getLayoutInfo();
 
     // iOS Safari renders multi-column's first column 1px higher than other columns.
     // Compensate by shifting page 0 down by 1px so all pages align visually.
+    // This issue only manifests in single-column (portrait) mode on iOS.
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const yOffset = isIOS && this.currentPage === 0 ? 1 : 0;
-    this.contentElement.style.transform = `translateX(-${this.currentPage * stride}px) translateY(${yOffset}px)`;
+    const yOffset = isIOS && columnsPerScreen === 1 && this.currentPage === 0 ? 1 : 0;
+    this.contentElement.style.transform = `translateX(-${this.currentPage * pageStride}px) translateY(${yOffset}px)`;
     if (!internal) {
       this.notifyRelocated(true);
     }
@@ -384,20 +417,32 @@ export class EpubRenderer {
   }
 
   getCurrentLocation(basicOnly: boolean = false): EpubLocation {
-    return this.locationTracker.getCurrentLocation(
+    const { containerWidth } = this.getLayoutInfo();
+    const loc = this.locationTracker.getCurrentLocation(
       this.contentElement,
       this.currentPage,
       this.totalPages,
       this.currentSpineIndex,
       this.options,
       basicOnly,
+      containerWidth,
     )!;
+
+    if (loc?.start?.cfi) {
+      this.lastKnownCfi = loc.start.cfi;
+    }
+
+    return loc;
   }
 
   private notifyRelocated(basic: boolean = false) {
     if (this.isBusy) return;
     if (this.onRelocated) {
-      this.onRelocated(this.getCurrentLocation(basic));
+      const loc = this.getCurrentLocation(basic);
+      if (loc?.start?.cfi) {
+        this.lastKnownCfi = loc.start.cfi;
+      }
+      this.onRelocated(loc);
     }
   }
 
