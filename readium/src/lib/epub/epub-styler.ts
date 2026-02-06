@@ -86,6 +86,14 @@ export class EpubStyler {
       columnWidth = containerWidth - margin * 2;
     }
 
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua) || (ua.includes("Mac") && "ontouchend" in document);
+    if (isIOS) {
+      contentElement.dataset.iosFirstColumnFix = "1";
+    } else {
+      delete contentElement.dataset.iosFirstColumnFix;
+    }
+
     contentElement.style.cssText = `
             --user-font-scale: ${userScale};
             box-sizing: border-box;
@@ -125,6 +133,12 @@ export class EpubStyler {
                 display: block;
                 width: 100%;
                 height: 100%;
+            }
+            .epub-content[data-ios-first-column-fix="1"]::before {
+                content: "";
+                display: block;
+                height: 1px;
+                width: 100%;
             }
             .epub-content * {
                 font-family: ${fontFamily} !important;

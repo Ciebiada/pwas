@@ -368,14 +368,8 @@ export class EpubRenderer {
     if (!this.contentElement) return;
 
     this.currentPage = Math.max(0, Math.min(pageIndex, this.totalPages - 1));
-    const { pageStride, columnsPerScreen } = this.getLayoutInfo();
-
-    // iOS Safari renders multi-column's first column 1px higher than other columns.
-    // Compensate by shifting page 0 down by 1px so all pages align visually.
-    // This issue only manifests in single-column (portrait) mode on iOS.
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const yOffset = isIOS && columnsPerScreen === 1 && this.currentPage === 0 ? 1 : 0;
-    this.contentElement.style.transform = `translateX(-${this.currentPage * pageStride}px) translateY(${yOffset}px)`;
+    const { pageStride } = this.getLayoutInfo();
+    this.contentElement.style.transform = `translateX(-${this.currentPage * pageStride}px)`;
     if (!internal) {
       this.notifyRelocated(true);
     }
