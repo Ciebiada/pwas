@@ -75,12 +75,13 @@ export class EpubStyler {
     // You might want to tune the threshold (e.g. width > height, or width > 600px)
     const isTwoColumn = containerWidth > containerHeight;
 
+    const gap = isTwoColumn && margin === 0 ? 8 : margin;
     let columnWidth: number;
 
     if (isTwoColumn) {
       // 2 columns: (width - 3*margin) / 2
       // margins: left, middle, right
-      columnWidth = Math.floor((containerWidth - margin * 3) / 2);
+      columnWidth = Math.floor((containerWidth - margin * 2 - gap) / 2);
     } else {
       // 1 column
       columnWidth = containerWidth - margin * 2;
@@ -103,7 +104,7 @@ export class EpubStyler {
             width: 100%;
             column-width: ${columnWidth}px;
             column-count: auto;
-            column-gap: ${margin}px;
+            column-gap: ${gap}px;
             column-fill: auto;
             height: 100%;
             overflow: visible;

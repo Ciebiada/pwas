@@ -71,10 +71,11 @@ export class EpubRenderer {
     const margin = this.options.margin;
     // Match the logic in epub-styler.ts
     const isTwoColumn = containerWidth > containerHeight;
+    const gap = isTwoColumn && margin === 0 ? 8 : margin;
 
-    const columnWidth = isTwoColumn ? Math.floor((containerWidth - margin * 3) / 2) : containerWidth - margin * 2;
-
-    const gap = margin;
+    const columnWidth = isTwoColumn
+      ? Math.floor((containerWidth - margin * 2 - gap) / 2)
+      : containerWidth - margin * 2;
     const singleColumnStride = columnWidth + gap;
     const columnsPerScreen = isTwoColumn ? 2 : 1;
     // The visual shift for one "page" turn
