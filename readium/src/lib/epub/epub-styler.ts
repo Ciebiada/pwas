@@ -2,6 +2,7 @@ import { computeLayoutInfo } from "./epub-layout";
 import type { EpubParser } from "./epub-parser";
 import type { RendererOptions } from "./epub-types";
 import type { ResourceResolver } from "./resource-resolver";
+import { isIOS } from "ui/platform";
 
 const UA_STYLES = `
             p { text-indent: 1.5em; }
@@ -71,8 +72,6 @@ export class EpubStyler {
 
     const { columnWidth, gap } = computeLayoutInfo(options);
 
-    const ua = navigator.userAgent;
-    const isIOS = /iPad|iPhone|iPod/.test(ua) || (ua.includes("Mac") && "ontouchend" in document);
     if (isIOS) {
       contentElement.dataset.iosFirstColumnFix = "1";
     } else {

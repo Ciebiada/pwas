@@ -1,1 +1,2 @@
-export const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+const ua = navigator.userAgent;
+export const isIOS = /iPhone|iPad|iPod/i.test(ua) || (ua.includes("Mac") && "ontouchend" in document);
