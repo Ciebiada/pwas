@@ -1,4 +1,5 @@
 import { CFIHelper } from "./epub-cfi";
+import { computeLayoutInfo } from "./epub-layout";
 import type { EpubLocation, EpubPackage, RendererOptions } from "./epub-types";
 
 export class LocationTracker {
@@ -54,13 +55,11 @@ export class LocationTracker {
     if (!element || !contentElement) return { start: { displayed } };
 
     const contentRect = contentElement.getBoundingClientRect();
-    const margin = options.margin;
-    const containerWidth = layoutWidth ?? options.container.clientWidth;
-    const stride = containerWidth - margin * 2 + margin;
+    const { columnWidth, pageStride, margin } = computeLayoutInfo(options, { containerWidth: layoutWidth });
 
     const dpr = (globalThis as unknown as { devicePixelRatio?: number }).devicePixelRatio ?? 1;
     const fuzzPx = Math.max(2, Math.min(10, dpr * 2));
-    const visibleMin = currentPage * stride + margin;
+    const visibleMin = currentPage * pageStride + margin;
 
     // Calculate offset if element starts off-screen (to the left of current visible column)
     let offset = 0;
@@ -91,13 +90,10 @@ export class LocationTracker {
   ): number {
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
     const contentRect = contentElement.getBoundingClientRect();
-    const margin = options.margin;
-    const containerWidth = layoutWidth ?? options.container.clientWidth;
-    const columnWidth = containerWidth - margin * 2;
-    const stride = columnWidth + margin;
+    const { columnWidth, pageStride, margin } = computeLayoutInfo(options, { containerWidth: layoutWidth });
 
     // The current visible range in content coordinates
-    const visibleMin = currentPage * stride + margin;
+    const visibleMin = currentPage * pageStride + margin;
     const visibleMax = visibleMin + columnWidth;
 
     const dpr = (globalThis as unknown as { devicePixelRatio?: number }).devicePixelRatio ?? 1;

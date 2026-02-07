@@ -68,9 +68,8 @@ export type EpubLocation = {
 export type LayoutInfo = {
   columnWidth: number;
   gap: number;
-  singleColumnStride: number;
-  columnsPerScreen: number;
   pageStride: number;
   containerWidth: number;
   margin: number;
+  isTwoColumn: boolean;
 };

@@ -1,4 +1,5 @@
 import { type CFI, CFIHelper } from "./epub-cfi";
+import { computeLayoutInfo } from "./epub-layout";
 import type { EpubParser } from "./epub-parser";
 import { EpubStyler } from "./epub-styler";
 import type { EpubLocation, EpubPackage, RendererOptions } from "./epub-types";
@@ -66,30 +67,7 @@ export class EpubRenderer {
   }
 
   private getLayoutInfo() {
-    const containerWidth = this.options.container.clientWidth;
-    const containerHeight = this.options.container.clientHeight;
-    const margin = this.options.margin;
-    // Match the logic in epub-styler.ts
-    const isTwoColumn = containerWidth > containerHeight;
-    const gap = isTwoColumn && margin === 0 ? 8 : margin;
-
-    const columnWidth = isTwoColumn
-      ? Math.floor((containerWidth - margin * 2 - gap) / 2)
-      : containerWidth - margin * 2;
-    const singleColumnStride = columnWidth + gap;
-    const columnsPerScreen = isTwoColumn ? 2 : 1;
-    // The visual shift for one "page" turn
-    const pageStride = singleColumnStride * columnsPerScreen;
-
-    return {
-      columnWidth,
-      gap,
-      singleColumnStride,
-      columnsPerScreen,
-      pageStride,
-      containerWidth,
-      margin,
-    };
+    return computeLayoutInfo(this.options);
   }
 
   async displayCFI(cfi: CFI, internal: boolean = false, suppressPaint: boolean = false): Promise<void> {

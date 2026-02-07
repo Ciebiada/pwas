@@ -1,3 +1,4 @@
+import { computeLayoutInfo } from "./epub-layout";
 import type { EpubParser } from "./epub-parser";
 import type { RendererOptions } from "./epub-types";
 import type { ResourceResolver } from "./resource-resolver";
@@ -68,24 +69,7 @@ export class EpubStyler {
     const { fontSize, fontFamily, margin, container } = options;
     const userScale = fontSize / 100;
 
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
-
-    // Check if we should use two columns (landscape-ish)
-    // You might want to tune the threshold (e.g. width > height, or width > 600px)
-    const isTwoColumn = containerWidth > containerHeight;
-
-    const gap = isTwoColumn && margin === 0 ? 8 : margin;
-    let columnWidth: number;
-
-    if (isTwoColumn) {
-      // 2 columns: (width - 3*margin) / 2
-      // margins: left, middle, right
-      columnWidth = Math.floor((containerWidth - margin * 2 - gap) / 2);
-    } else {
-      // 1 column
-      columnWidth = containerWidth - margin * 2;
-    }
+    const { columnWidth, gap } = computeLayoutInfo(options);
 
     const ua = navigator.userAgent;
     const isIOS = /iPad|iPhone|iPod/.test(ua) || (ua.includes("Mac") && "ontouchend" in document);
