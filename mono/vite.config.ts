@@ -9,7 +9,7 @@ export default defineConfig({
     devtools(),
     solidPlugin(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       injectRegister: null,
       manifest: {
         name: "Mono",

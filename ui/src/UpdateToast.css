@@ -10,9 +10,7 @@
   z-index: 9999;
   animation: toast-slide-up 0.3s ease-out;
   white-space: nowrap;
-  /* background: transparent; */
   background: var(--bg-secondary-color);
-  /* border: 1px solid rgba(128, 128, 128, 0.4); */
   color: var(--text-strong-color);
   cursor: pointer;
   border: none;
