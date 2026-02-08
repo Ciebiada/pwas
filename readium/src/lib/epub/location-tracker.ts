@@ -55,7 +55,7 @@ export class LocationTracker {
     if (!element || !contentElement) return { start: { displayed } };
 
     const contentRect = contentElement.getBoundingClientRect();
-    const { columnWidth, pageStride, margin } = computeLayoutInfo(options, { containerWidth: layoutWidth });
+    const { pageStride, margin } = computeLayoutInfo(options, { containerWidth: layoutWidth });
 
     const dpr = (globalThis as unknown as { devicePixelRatio?: number }).devicePixelRatio ?? 1;
     const fuzzPx = Math.max(2, Math.min(10, dpr * 2));

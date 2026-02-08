@@ -7,6 +7,7 @@ import {
   fixCursorPositionForZeroWidthSpace,
   getSelection,
   scrollCursorIntoView,
+  scrollWhenViewportStable,
   setSelection,
 } from "../services/cursor";
 import { processBeforeInput } from "../services/editorInput";
@@ -175,9 +176,7 @@ export const Editor = (_props: EditorProps) => {
         spellcheck={false}
         onFocus={() => {
           editor.focus({ preventScroll: true });
-          setTimeout(() => {
-            scrollCursorIntoView(window.getSelection()!, "smooth");
-          }, 200);
+          scrollWhenViewportStable(() => scrollCursorIntoView(window.getSelection()!, "smooth"));
         }}
         onBeforeInput={handleBeforeInput}
         onKeyDown={handleKeyDown}

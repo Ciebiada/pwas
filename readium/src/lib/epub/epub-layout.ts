@@ -11,9 +11,7 @@ export function computeLayoutInfo(
   const isTwoColumn = containerWidth > containerHeight;
   const gap = isTwoColumn && margin === 0 ? 16 : margin;
 
-  const columnWidth = isTwoColumn
-    ? Math.floor((containerWidth - margin * 2 - gap) / 2)
-    : containerWidth - margin * 2;
+  const columnWidth = isTwoColumn ? Math.floor((containerWidth - margin * 2 - gap) / 2) : containerWidth - margin * 2;
 
   const singleColumnStride = columnWidth + gap;
   const pageStride = singleColumnStride * (isTwoColumn ? 2 : 1);

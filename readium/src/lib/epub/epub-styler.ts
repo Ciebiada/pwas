@@ -1,8 +1,8 @@
+import { isIOS } from "ui/platform";
 import { computeLayoutInfo } from "./epub-layout";
 import type { EpubParser } from "./epub-parser";
 import type { RendererOptions } from "./epub-types";
 import type { ResourceResolver } from "./resource-resolver";
-import { isIOS } from "ui/platform";
 
 const UA_STYLES = `
             p { text-indent: 1.5em; }

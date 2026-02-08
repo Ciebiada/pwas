@@ -183,6 +183,40 @@ export const scrollCursorIntoView = (selection: Selection, behavior: ScrollBehav
   }
 };
 
+export const scrollWhenViewportStable = (run: () => void, maxWaitMs = 1000) => {
+  const viewport = window.visualViewport;
+  requestAnimationFrame(run);
+  if (!viewport) return;
+
+  let lastHeight = viewport.height;
+  let lastTop = viewport.offsetTop;
+  let stable = 0;
+  let changed = false;
+  const start = performance.now();
+
+  const tick = () => {
+    const height = viewport.height;
+    const top = viewport.offsetTop;
+
+    if (Math.abs(height - lastHeight) < 1 && Math.abs(top - lastTop) < 1) {
+      if (changed) stable += 1;
+    } else {
+      changed = true;
+      stable = 0;
+      lastHeight = height;
+      lastTop = top;
+    }
+
+    if (changed && stable >= 2) return run();
+    if (changed && performance.now() - start > maxWaitMs) return run();
+    if (performance.now() - start > maxWaitMs) return;
+
+    requestAnimationFrame(tick);
+  };
+
+  requestAnimationFrame(tick);
+};
+
 export const getSelection = (element: HTMLElement): CursorPosition => {
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0) return { start: 0, end: 0 };
