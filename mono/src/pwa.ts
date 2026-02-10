@@ -4,9 +4,14 @@ import { createSignal } from "solid-js";
 export const [updateAvailable, setUpdateAvailable] = createSignal(false);
 let updateSW: (() => Promise<void>) | null = null;
 let registration: ServiceWorkerRegistration | undefined;
+let updateIntervalId: number | null = null;
 
 const init = () => {
   if (!("serviceWorker" in navigator)) return;
+
+  const checkForUpdate = () => {
+    registration?.update();
+  };
 
   updateSW = registerSW({
     onNeedRefresh() {
@@ -14,12 +19,14 @@ const init = () => {
     },
     onRegisteredSW(_, r) {
       registration = r;
+      checkForUpdate();
+      if (updateIntervalId === null) {
+        updateIntervalId = window.setInterval(() => {
+          if (document.visibilityState === "visible") checkForUpdate();
+        }, 5 * 1000);
+      }
     },
   });
-
-  const checkForUpdate = () => {
-    registration?.update();
-  };
 
   window.addEventListener("focus", checkForUpdate);
   window.addEventListener("pageshow", checkForUpdate);
