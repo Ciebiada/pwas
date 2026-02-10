@@ -1,4 +1,4 @@
-import { createSignal, mergeProps, onCleanup, onMount } from "solid-js";
+import { createMemo, createSignal, mergeProps, onCleanup, onMount } from "solid-js";
 import { isIOS } from "ui/platform";
 import { usePrettyCaret } from "../hooks/usePrettyCaret";
 import { usePrettyCheckboxes } from "../hooks/usePrettyCheckboxes";
@@ -16,6 +16,7 @@ import { handleTab } from "../services/markdown/input";
 import { renderMarkdown } from "../services/markdown/renderer";
 import { splitNote } from "../services/note";
 import { isMonospaceEnabled, isPrettyCaretEnabled, isPrettyCheckboxesEnabled } from "../services/preferences";
+import { TouchHint } from "./TouchHint";
 import "./Editor.css";
 
 export type EditorAPI = {
@@ -35,6 +36,10 @@ type EditorProps = {
 export const Editor = (_props: EditorProps) => {
   const props = mergeProps({ initialCursor: 0 }, _props);
   const [content, setContent] = createSignal(props.initialContent);
+  const isEmpty = createMemo(() => {
+    const { name, content: body } = splitNote(content());
+    return name.trim().length === 0 && body.trim().length === 0;
+  });
 
   let editor: HTMLDivElement;
   let container: HTMLDivElement | undefined;
@@ -186,6 +191,7 @@ export const Editor = (_props: EditorProps) => {
       >
         {renderMarkdown(content(), handleCheckboxToggle)}
       </div>
+      <TouchHint isVisible={isEmpty()} />
     </div>
   );
 };

@@ -1,0 +1,69 @@
+.touch-hint {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 96px;
+  height: 96px;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  color: var(--text-secondary-color);
+  transition:
+    opacity 200ms ease,
+    transform 260ms ease;
+}
+
+.touch-hint::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 64px;
+  height: 88px;
+  transform: translateX(-50%);
+  background-color: color-mix(in srgb, currentColor 55%, transparent);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20256%20256%27%3E%3Cpath%20d%3D%27M64%2C76a52%2C52%2C0%2C0%2C1%2C104%2C0%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%20stroke-width%3D%2716%27/%3E%3Cpath%20d%3D%27M72%2C224%2C42.68%2C174a20%2C20%2C0%2C0%2C1%2C34.64-20L96%2C184V76a20%2C20%2C0%2C0%2C1%2C40%2C0v56a20%2C20%2C0%2C0%2C1%2C40%2C0v16a20%2C20%2C0%2C0%2C1%2C40%2C0v36c0%2C24-8%2C40-8%2C40%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%20stroke-width%3D%2716%27/%3E%3C/svg%3E");
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  /* downloaded from https://phosphoricons.com/?q=hand */
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20256%20256%27%3E%3Cpath%20d%3D%27M64%2C76a52%2C52%2C0%2C0%2C1%2C104%2C0%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%20stroke-width%3D%2716%27/%3E%3Cpath%20d%3D%27M72%2C224%2C42.68%2C174a20%2C20%2C0%2C0%2C1%2C34.64-20L96%2C184V76a20%2C20%2C0%2C0%2C1%2C40%2C0v56a20%2C20%2C0%2C0%2C1%2C40%2C0v16a20%2C20%2C0%2C0%2C1%2C40%2C0v36c0%2C24-8%2C40-8%2C40%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%20stroke-width%3D%2716%27/%3E%3C/svg%3E");
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  animation: touch-hint-hand 2.6s ease-in-out infinite;
+}
+
+.touch-hint::after {
+  content: none;
+}
+
+.touch-hint.is-visible {
+  opacity: 1;
+}
+
+.editor-container:focus-within .touch-hint.is-visible {
+  opacity: 0;
+}
+
+@keyframes touch-hint-hand {
+  0%,
+  30% {
+    transform: translate(-50%, 0);
+    opacity: 0.65;
+  }
+
+  40% {
+    transform: translate(-50%, -8px);
+    opacity: 0.9;
+  }
+
+  52% {
+    transform: translate(-50%, 0);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: translate(-50%, 0);
+    opacity: 0.65;
+  }
+}
