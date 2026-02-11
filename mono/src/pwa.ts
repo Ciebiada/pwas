@@ -9,29 +9,33 @@ let updateIntervalId: number | null = null;
 const init = () => {
   if (!("serviceWorker" in navigator)) return;
 
-  const checkForUpdate = () => {
-    registration?.update();
+  const checkForUpdate = async () => {
+    const currentRegistration = registration || (await navigator.serviceWorker.getRegistration());
+    if (!currentRegistration) return;
+    registration = currentRegistration;
+    await currentRegistration.update();
   };
 
   updateSW = registerSW({
+    immediate: true,
     onNeedRefresh() {
       setUpdateAvailable(true);
     },
     onRegisteredSW(_, r) {
       registration = r;
-      checkForUpdate();
+      void checkForUpdate();
       if (updateIntervalId === null) {
         updateIntervalId = window.setInterval(() => {
-          if (document.visibilityState === "visible") checkForUpdate();
-        }, 5 * 1000);
+          if (document.visibilityState === "visible") void checkForUpdate();
+        }, 60 * 1000);
       }
     },
   });
 
-  window.addEventListener("focus", checkForUpdate);
-  window.addEventListener("pageshow", checkForUpdate);
+  window.addEventListener("focus", () => void checkForUpdate());
+  window.addEventListener("pageshow", () => void checkForUpdate());
   window.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") checkForUpdate();
+    if (document.visibilityState === "visible") void checkForUpdate();
   });
 };
 
