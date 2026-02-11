@@ -17,6 +17,7 @@ type BlockToken = {
   type: BlockType;
   prefix: string;
   content: string;
+  disableInlineMarkdown?: boolean;
 };
 
 type InlinePattern = {
@@ -149,7 +150,9 @@ const renderInlineToken = (token: InlineToken) => {
 
 const renderInlineMarkdown = (text: string) => parseInlineMarkdown(text).map(renderInlineToken);
 
-const parseBlockLine = (line: string): BlockToken => {
+const parseBlockLine = (line: string, index: number): BlockToken => {
+  if (index === 0) return { type: "paragraph", prefix: "", content: line, disableInlineMarkdown: true };
+
   for (const pattern of BLOCK_PATTERNS) {
     const match = line.match(pattern.regex);
     if (match) return { type: pattern.type, prefix: match[1], content: match[2] };
@@ -245,7 +248,9 @@ const renderBlock = (block: BlockToken, index: number, onCheckboxToggle?: (lineI
       return <div class="md-line md-table">{renderBlockContent(block)}</div>;
     default:
       return block.content ? (
-        <div class="md-line md-text">{renderInlineMarkdown(block.content)}</div>
+        <div class="md-line md-text">
+          {block.disableInlineMarkdown ? block.content : renderInlineMarkdown(block.content)}
+        </div>
       ) : (
         <div class="md-line md-text empty">{"\u200B"}</div>
       );
@@ -253,4 +258,4 @@ const renderBlock = (block: BlockToken, index: number, onCheckboxToggle?: (lineI
 };
 
 export const renderMarkdown = (markdown: string, onCheckboxToggle?: (lineIndex: number) => void) =>
-  markdown.split("\n").map((line, index) => renderBlock(parseBlockLine(line), index, onCheckboxToggle));
+  markdown.split("\n").map((line, index) => renderBlock(parseBlockLine(line, index), index, onCheckboxToggle));

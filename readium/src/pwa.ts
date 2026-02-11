@@ -1,5 +1,5 @@
-import { createSignal } from "solid-js";
 import { registerSW } from "virtual:pwa-register";
+import { createSignal } from "solid-js";
 
 export const [updateAvailable, setUpdateAvailable] = createSignal(false);
 let updateSW: (() => Promise<void>) | null = null;

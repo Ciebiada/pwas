@@ -12,6 +12,7 @@ import {
 export const handleBlockTab = (content: string, selection: Selection, shiftKey: boolean): InputResult | null => {
   const lineRange = getLineRange(content, selection.start);
   const { start: lineStart, line } = lineRange;
+  if (lineStart === 0) return null;
 
   // Check if line matches any navigable block (list or table)
   const isTable = line.match(TABLE_PATTERN);
@@ -84,7 +85,7 @@ export const handleEnter = (content: string, selection: Selection): InputResult 
   const isListLine = beforeCursor.match(LIST_PATTERN);
   const isTableLine = lineContent.match(TABLE_PATTERN);
 
-  if (isListLine || isTableLine) {
+  if (lineStart !== 0 && (isListLine || isTableLine)) {
     // Use full line for table, beforeCursor for lists
     const lineToMatch = isTableLine ? lineContent : beforeCursor;
 
@@ -111,6 +112,7 @@ export const handleBackspaceAtListStart = (content: string, selection: Selection
 
   const lineRange = getLineRange(content, start);
   const { start: lineStart, line } = lineRange;
+  if (lineStart === 0) return null;
 
   const listMatch = line.match(LIST_PATTERN);
   const isTableLine = line.match(TABLE_PATTERN);
@@ -146,6 +148,9 @@ export const handleBackspaceAtListStart = (content: string, selection: Selection
 };
 
 export const handleInput = (char: string, content: string, selection: Selection): InputResult | null => {
+  const lineStart = content.lastIndexOf("\n", selection.start - 1) + 1;
+  if (lineStart === 0) return null;
+
   for (const feature of MARKDOWN_FEATURES) {
     if (feature.onInput) {
       const result = feature.onInput(char, content, selection);
