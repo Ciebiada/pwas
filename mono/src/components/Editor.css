@@ -58,7 +58,7 @@
 }
 
 @supports (-moz-appearance: none) {
-  .md-list-marker {
+  .pretty-checkboxes .md-checkbox .md-list-marker {
     top: 1px;
   }
 }
