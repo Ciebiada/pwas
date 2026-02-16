@@ -57,6 +57,12 @@
   top: 0;
 }
 
+@supports (-moz-appearance: none) {
+  .md-list-marker {
+    top: 1px;
+  }
+}
+
 .md-ordered-marker,
 .md-list-bullet {
   color: var(--text-secondary-color);
