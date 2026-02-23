@@ -4,7 +4,6 @@ import { Header, HeaderButton } from "ui/Header";
 import { BackIcon } from "ui/Icons";
 import { Modal, ModalPage, ModalSelect, ModalSlider, ModalToggle } from "ui/Modal";
 import { db } from "../db";
-import { useTap } from "../hooks/useTap";
 import { EpubParser, EpubRenderer } from "../lib/epub";
 import type { Theme } from "../store/settings";
 import { settings, THEMES, updateSettings } from "../store/settings";
@@ -241,27 +240,23 @@ const Reader = (props: { onClose: () => void }) => {
     if (showSettings()) setShowSettings(false);
   };
 
-  const handleViewerClick = () => {
-    if (showControls() && window.getSelection()?.toString().length === 0) {
+  const handleViewerClick = (e: MouseEvent) => {
+    if (window.getSelection()?.toString().length !== 0) return;
+
+    if (showControls()) {
       toggleControls();
+      return;
     }
+
+    const xPercentage = e.clientX / window.innerWidth;
+    if (xPercentage < 0.3) prev(e);
+    else if (xPercentage > 0.7) next(e);
+    else toggleControls();
   };
-
-  // --- Pointer/Tap Handling ---
-
-  const leftTap = useTap((e) => (showControls() ? toggleControls() : prev(e)));
-  const centerTap = useTap(toggleControls);
-  const rightTap = useTap((e) => (showControls() ? toggleControls() : next(e)));
 
   return (
     <div class="reader-container">
       <div class="reader-viewer" ref={viewerRef} onClick={handleViewerClick} />
-
-      <div class={`reader-controls-overlay ${showControls() ? "visible" : ""}`}>
-        <div class="nav-zone left" {...leftTap} />
-        <div class="nav-zone center" {...centerTap} />
-        <div class="nav-zone right" {...rightTap} />
-      </div>
 
       {/* TODO: remove those hardcoded theme values */}
       <div class="reader-footer">

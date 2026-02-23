@@ -124,38 +124,6 @@
   width: 100%;
 }
 
-.reader-controls-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  z-index: 20;
-  pointer-events: auto;
-}
-
-.nav-zone {
-  height: 100%;
-  touch-action: manipulation;
-  pointer-events: auto;
-}
-
-.nav-zone.left {
-  width: 30%;
-  cursor: w-resize;
-}
-
-.nav-zone.center {
-  width: 40%;
-  cursor: pointer;
-}
-
-.nav-zone.right {
-  width: 30%;
-  cursor: e-resize;
-}
-
 .reader-ui-layer {
   position: absolute;
   top: 0;
