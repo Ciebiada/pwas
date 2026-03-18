@@ -7,6 +7,17 @@
 - Source code lives in `*/src`. Static assets are in `*/public`. Build outputs go to `*/dist` (generated).
 - Shared styles live in `ui/src/` (e.g., `theme.css`, `typography.css`, `reset.css`).
 
+## Overview
+- Monorepo for PWA projects targeting Mobile Safari in fullscreen mode and Desktop Chrome.
+
+## Tech Stack
+- SolidJS + TypeScript
+- Plain `*.css` files for styling
+- Biome for formatting and linting
+- Vite for building
+- Dexie for offline-first data persistence
+- Google and Dropbox for cloud sync
+
 ## Build, Test, and Development Commands
 Run workspace commands from the workspace directory (`mono/` or `readium/`).
 
@@ -41,4 +52,5 @@ npm run preview        # readium only: preview production build
 
 ## Agent-Specific Instructions
 - Do not start dev servers; assume they are already running.
+- Dev servers run on `http://localhost:3000` for `mono` and `http://localhost:3001` for `readium`.
 - When testing the Mono editor, remember the first line is always the note title—use a second line for content checks.
