@@ -17,6 +17,16 @@
   display: none;
 }
 
+.md-inline-format.is-active-inline-format > .markdown-delimiter {
+  display: inline;
+}
+
+.md-h1.is-active-line > .markdown-prefix,
+.md-h2.is-active-line > .markdown-prefix,
+.md-h3.is-active-line > .markdown-prefix {
+  display: inline;
+}
+
 .md-line {
   white-space: pre-wrap;
 }

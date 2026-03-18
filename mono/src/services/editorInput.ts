@@ -5,6 +5,46 @@ import { INDENT, INDENT_SIZE, insert } from "./markdown/utils";
 type Selection = { start: number; end: number };
 type EditResult = { content: string; cursor: number };
 
+const EMPHASIS_DELIMITER = "*";
+const INLINE_CODE_DELIMITER = "`";
+const AUTO_PAIRED_DELIMITERS = [EMPHASIS_DELIMITER, INLINE_CODE_DELIMITER] as const;
+
+const shouldExpandEmphasisToStrong = (content: string, selection: Selection, char: string) =>
+  char === EMPHASIS_DELIMITER &&
+  selection.start === selection.end &&
+  selection.start > 0 &&
+  content[selection.start - 1] === EMPHASIS_DELIMITER &&
+  content[selection.start] === EMPHASIS_DELIMITER;
+
+const getAutoPairDelimiter = (content: string, selection: Selection, char: string): string | null => {
+  if (!AUTO_PAIRED_DELIMITERS.includes(char as (typeof AUTO_PAIRED_DELIMITERS)[number])) return null;
+  if (selection.start !== selection.end) return null;
+
+  const lineStart = content.lastIndexOf("\n", selection.start - 1) + 1;
+  if (lineStart === 0) return null;
+
+  const nextChar = content[selection.start];
+  if (nextChar && !/\s/.test(nextChar)) return null;
+
+  return char;
+};
+
+const createPairInsert = (content: string, start: number, end: number, delimiter: string): EditResult => ({
+  content: insert(content, start, end, `${delimiter}${delimiter}`),
+  cursor: start + delimiter.length,
+});
+
+const handleBackspaceAtEmptyPair = (content: string, selection: Selection, delimiter: string): EditResult | null => {
+  const { start, end } = selection;
+  if (start !== end || start === 0 || start >= content.length) return null;
+  if (content[start - 1] !== delimiter || content[start] !== delimiter) return null;
+
+  return {
+    content: insert(content, start - 1, start + 1, ""),
+    cursor: start - 1,
+  };
+};
+
 const handleBackspaceAtIndent = (content: string, selection: Selection): EditResult | null => {
   const { start, end } = selection;
   if (start !== end || start < INDENT_SIZE) return null;
@@ -45,6 +85,15 @@ export const processBeforeInput = (
         if (result) return result;
       }
 
+      if (shouldExpandEmphasisToStrong(content, selection, data.eventData)) {
+        return createPairInsert(content, start, end, EMPHASIS_DELIMITER);
+      }
+
+      const autoPairDelimiter = getAutoPairDelimiter(content, selection, data.eventData);
+      if (autoPairDelimiter) {
+        return createPairInsert(content, start, end, autoPairDelimiter);
+      }
+
       return {
         content: insert(content, start, end, data.eventData),
         cursor: start + data.eventData.length,
@@ -82,6 +131,11 @@ export const processBeforeInput = (
     case "deleteContentBackward": {
       const listResult = handleBackspaceAtListStart(content, selection);
       if (listResult) return listResult;
+
+      for (const delimiter of AUTO_PAIRED_DELIMITERS) {
+        const emptyPairResult = handleBackspaceAtEmptyPair(content, selection, delimiter);
+        if (emptyPairResult) return emptyPairResult;
+      }
 
       const indentResult = handleBackspaceAtIndent(content, selection);
       if (indentResult) return indentResult;

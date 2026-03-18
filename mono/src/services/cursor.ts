@@ -1,11 +1,10 @@
 import DiffMatchPatch from "diff-match-patch";
+import { countWithoutZeroWidthSpaces, getNodeTextLength, getOffsetInNode, ZERO_WIDTH_SPACE } from "./editorDom";
 
 type CursorPosition = {
   start: number;
   end: number;
 };
-
-const ZERO_WIDTH_SPACE = "\u200B";
 
 /**
  * iOS autocapitalization fix: moves cursor from after zero-width space to before it.
@@ -27,8 +26,6 @@ export const fixCursorPositionForZeroWidthSpace = () => {
   selection.addRange(range);
 };
 
-const countWithoutZeroWidthSpaces = (text: string): number => text.replaceAll(ZERO_WIDTH_SPACE, "").length;
-
 const findActualOffset = (text: string, targetOffset: number): number => {
   let actualOffset = 0;
   let filteredOffset = 0;
@@ -39,39 +36,22 @@ const findActualOffset = (text: string, targetOffset: number): number => {
   return actualOffset;
 };
 
-const getTextOffsetInContainer = (container: Node, offset: number): number =>
-  countWithoutZeroWidthSpaces((container.textContent || "").substring(0, offset));
-
-const getOffsetWithinChild = (child: Node, container: Node, offset: number): number | null => {
-  if (child === container) {
-    return getTextOffsetInContainer(container, offset);
-  }
-
-  const walker = document.createTreeWalker(child, NodeFilter.SHOW_TEXT, null);
-  let node: Node | null;
-  let localAccumulated = 0;
-
-  while ((node = walker.nextNode())) {
-    if (node === container) {
-      return localAccumulated + getTextOffsetInContainer(node, offset);
-    }
-    localAccumulated += countWithoutZeroWidthSpaces(node.textContent || "");
-  }
-  return null;
-};
-
 const getOffsetInElement = (element: HTMLElement, container: Node, offset: number): number => {
+  if (container === element) {
+    return getOffsetInNode(element, container, offset) ?? 0;
+  }
+
   let accumulated = 0;
   const childNodes = element.childNodes;
 
   for (let i = 0; i < childNodes.length; i++) {
     const child = childNodes[i];
     if (child.contains(container) || child === container) {
-      const offsetInChild = getOffsetWithinChild(child, container, offset);
+      const offsetInChild = getOffsetInNode(child, container, offset);
       return accumulated + (offsetInChild ?? 0);
     }
 
-    accumulated += countWithoutZeroWidthSpaces(child.textContent || "");
+    accumulated += getNodeTextLength(child);
     // Add 1 for newline separator between blocks (except for last block)
     if (i < childNodes.length - 1) accumulated += 1;
   }
@@ -119,7 +99,7 @@ const getRangeAtOffset = (element: HTMLElement, offset: number): Range | null =>
 
   for (let i = 0; i < childNodes.length; i++) {
     const child = childNodes[i];
-    const blockLength = countWithoutZeroWidthSpaces(child.textContent || "");
+    const blockLength = getNodeTextLength(child);
 
     if (accumulated + blockLength >= offset) {
       return findRangeInChild(child, offset - accumulated);

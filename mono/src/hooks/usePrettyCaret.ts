@@ -1,22 +1,26 @@
 import { onCleanup, onMount } from "solid-js";
+import { getVisibleBoundaryRect, isElementHidden } from "../services/editorDom";
 import "./usePrettyCaret.css";
 
 const BLINK_DELAY_MS = 300;
 
-const isHiddenElement = (element: Element) =>
-  element.className === "markdown-prefix" || element.className === "markdown-delimiter";
+const getBoundaryRect = (range: Range): DOMRect | null => {
+  const container = range.startContainer;
+  if (!(container instanceof Element)) return null;
 
-const getVisibleRect = (node: Node, atEnd: boolean): DOMRect | null => {
-  const tempRange = document.createRange();
-  if (node.nodeType === Node.TEXT_NODE) {
-    const offset = atEnd ? (node.textContent?.length ?? 0) : 0;
-    tempRange.setStart(node, offset);
-  } else {
-    tempRange.selectNodeContents(node);
-    tempRange.collapse(!atEnd);
+  const nextNode = container.childNodes[range.startOffset];
+  if (nextNode) {
+    const nextRect = getVisibleBoundaryRect(nextNode, false);
+    if (nextRect) return nextRect;
   }
-  const rect = tempRange.getBoundingClientRect();
-  return rect.height > 0 ? rect : null;
+
+  const previousNode = container.childNodes[range.startOffset - 1];
+  if (previousNode) {
+    const previousRect = getVisibleBoundaryRect(previousNode, true);
+    if (previousRect) return previousRect;
+  }
+
+  return null;
 };
 
 export const usePrettyCaret = (
@@ -34,10 +38,16 @@ export const usePrettyCaret = (
     container.appendChild(caret);
 
     let blinkTimeout: number | undefined;
+    let selectionFrame: number | undefined;
 
     const clearBlinkTimer = () => {
       clearTimeout(blinkTimeout);
       blinkTimeout = undefined;
+    };
+
+    const clearSelectionFrame = () => {
+      cancelAnimationFrame(selectionFrame);
+      selectionFrame = undefined;
     };
 
     const startBlinkTimer = () => {
@@ -61,19 +71,22 @@ export const usePrettyCaret = (
 
     const getRectForVisibleContent = (range: Range): DOMRect => {
       const rect = range.getBoundingClientRect();
-      if (rect.height > 0 && rect.width > 0) return rect;
+      if (rect.height > 0) return rect;
 
-      let node = range.startContainer.parentElement;
+      const boundaryRect = getBoundaryRect(range);
+      if (boundaryRect) return boundaryRect;
+
+      let node = range.startContainer.nodeType === Node.TEXT_NODE ? range.startContainer.parentElement : null;
       while (node && node !== editor) {
-        if (isHiddenElement(node)) {
+        if (isElementHidden(node)) {
           const next = node.nextSibling;
           if (next) {
-            const nextRect = getVisibleRect(next, false);
+            const nextRect = getVisibleBoundaryRect(next, false);
             if (nextRect) return nextRect;
           }
           const prev = node.previousSibling;
           if (prev) {
-            const prevRect = getVisibleRect(prev, true);
+            const prevRect = getVisibleBoundaryRect(prev, true);
             if (prevRect) return prevRect;
           }
           break;
@@ -127,23 +140,32 @@ export const usePrettyCaret = (
       }
     };
 
+    const scheduleSelectionChange = () => {
+      clearSelectionFrame();
+      selectionFrame = requestAnimationFrame(() => {
+        selectionFrame = undefined;
+        handleSelectionChange();
+      });
+    };
+
     // RAF is needed because of delayed showCaret in handleSelectionChange
     const handleBlur = () => requestAnimationFrame(hideCaret);
-    const handleVisibilityChange = () => (document.hidden ? hideCaret() : handleSelectionChange());
+    const handleVisibilityChange = () => (document.hidden ? hideCaret() : scheduleSelectionChange());
 
-    document.addEventListener("selectionchange", handleSelectionChange);
+    document.addEventListener("selectionchange", scheduleSelectionChange);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("resize", updateCaretPosition);
     editor.addEventListener("blur", handleBlur);
-    editor.addEventListener("focus", handleSelectionChange);
+    editor.addEventListener("focus", scheduleSelectionChange);
 
     onCleanup(() => {
       clearBlinkTimer();
-      document.removeEventListener("selectionchange", handleSelectionChange);
+      clearSelectionFrame();
+      document.removeEventListener("selectionchange", scheduleSelectionChange);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("resize", updateCaretPosition);
       editor.removeEventListener("blur", handleBlur);
-      editor.removeEventListener("focus", handleSelectionChange);
+      editor.removeEventListener("focus", scheduleSelectionChange);
       caret.remove();
     });
   });

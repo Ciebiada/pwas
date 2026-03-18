@@ -28,7 +28,7 @@ type InlinePattern = {
 };
 
 const INLINE_PATTERNS: InlinePattern[] = [
-  { type: "code", regex: /^`([^`]+)`/, delimiter: "`" },
+  { type: "code", regex: /^`([^`]*)`/, delimiter: "`" },
   {
     type: "link",
     regex: /^\[([^\]]*)\]\(([^)]*)\)/,
@@ -116,11 +116,15 @@ const wrapWithDelimiters = (content: string, delimiter: string) => (
 const renderInlineToken = (token: InlineToken) => {
   switch (token.type) {
     case "strong":
-      return <strong>{wrapWithDelimiters(token.content, token.delimiter!)}</strong>;
+      return (
+        <strong class="md-inline-format md-inline-strong">{wrapWithDelimiters(token.content, token.delimiter!)}</strong>
+      );
     case "emphasis":
-      return <em>{wrapWithDelimiters(token.content, token.delimiter!)}</em>;
+      return <em class="md-inline-format md-inline-emphasis">{wrapWithDelimiters(token.content, token.delimiter!)}</em>;
     case "strikethrough":
-      return <s>{wrapWithDelimiters(token.content, token.delimiter!)}</s>;
+      return (
+        <s class="md-inline-format md-inline-strikethrough">{wrapWithDelimiters(token.content, token.delimiter!)}</s>
+      );
     case "link":
       return (
         <a
@@ -142,7 +146,7 @@ const renderInlineToken = (token: InlineToken) => {
         </a>
       );
     case "code":
-      return <code class="md-inline-code">{wrapWithDelimiters(token.content, token.delimiter!)}</code>;
+      return <code class="md-inline-code md-inline-format">{wrapWithDelimiters(token.content, token.delimiter!)}</code>;
     default:
       return token.content;
   }

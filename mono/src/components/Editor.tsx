@@ -1,10 +1,10 @@
-import { createMemo, createSignal, mergeProps, onCleanup, onMount } from "solid-js";
+import { createMemo, createSignal, mergeProps, onMount } from "solid-js";
 import { isIOS } from "ui/platform";
+import { useEditorSelectionPresentation } from "../hooks/useEditorSelectionPresentation";
 import { usePrettyCaret } from "../hooks/usePrettyCaret";
 import { usePrettyCheckboxes } from "../hooks/usePrettyCheckboxes";
 import {
   calculateCursorPosition,
-  fixCursorPositionForZeroWidthSpace,
   getSelection,
   scrollCursorIntoView,
   scrollWhenViewportStable,
@@ -56,6 +56,12 @@ export const Editor = (_props: EditorProps) => {
     usePrettyCheckboxes(() => editor);
   }
 
+  const selectionPresentation = useEditorSelectionPresentation({
+    getEditor: () => editor,
+    isIOS,
+    onCursorChange: props.onCursorChange,
+  });
+
   const emitChange = () => {
     const { name, content: noteContent } = splitNote(content());
     props.onChange?.(name, noteContent);
@@ -64,6 +70,7 @@ export const Editor = (_props: EditorProps) => {
   const applyEdit = (newContent: string, cursor: number) => {
     setContent(newContent);
     setSelection(editor, cursor);
+    selectionPresentation.sync();
     emitChange();
     requestAnimationFrame(() => {
       scrollCursorIntoView(window.getSelection()!, "smooth");
@@ -83,6 +90,7 @@ export const Editor = (_props: EditorProps) => {
         setContent(newContent);
         requestAnimationFrame(() => {
           setSelection(editor, newCursor);
+          selectionPresentation.sync();
         });
       },
     });
@@ -92,22 +100,11 @@ export const Editor = (_props: EditorProps) => {
 
     if (props.autoFocus && !isIOS) {
       editor.focus();
+      selectionPresentation.sync();
     } else {
       // This is to blur the forced focus after the initialCursor position has been set
       editor.blur();
     }
-
-    const onSelectionChange = () => {
-      if (document.activeElement !== editor) return;
-      if (isIOS) fixCursorPositionForZeroWidthSpace();
-      props.onCursorChange?.(getSelection(editor).start);
-    };
-
-    document.addEventListener("selectionchange", onSelectionChange);
-
-    onCleanup(() => {
-      document.removeEventListener("selectionchange", onSelectionChange);
-    });
   });
 
   const onTextInput = (event: InputEvent) => (iosReplacementText = event.data || "");
@@ -117,6 +114,11 @@ export const Editor = (_props: EditorProps) => {
       event.preventDefault();
       const result = handleTab(content(), getSelection(editor), event.shiftKey);
       applyEdit(result.content, result.cursor);
+      return;
+    }
+
+    if (selectionPresentation.handleKeyDown(event)) {
+      event.preventDefault();
       return;
     }
   };
@@ -181,6 +183,7 @@ export const Editor = (_props: EditorProps) => {
         spellcheck={false}
         onFocus={() => {
           editor.focus({ preventScroll: true });
+          selectionPresentation.sync();
           scrollWhenViewportStable(() => scrollCursorIntoView(window.getSelection()!, "smooth"));
         }}
         onBeforeInput={handleBeforeInput}
