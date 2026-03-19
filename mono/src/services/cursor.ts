@@ -138,7 +138,7 @@ export const scrollCursorIntoView = (selection: Selection, behavior: ScrollBehav
   const rect = range.getBoundingClientRect();
 
   const viewportTop = document.querySelector<HTMLElement>(".header")!.offsetHeight;
-  const viewportBottom = viewport.height - 16;
+  const viewportBottom = viewport.height - 24;
 
   let delta = 0;
   if (rect.top < viewportTop) {
