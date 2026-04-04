@@ -194,7 +194,7 @@ const renderListItem = (
 
   return (
     <div class={className} style={{ "padding-left": `${indentation}ch` }}>
-      <label
+      <div
         class={
           isCheckbox
             ? "md-list-marker"
@@ -217,8 +217,13 @@ const renderListItem = (
                 onCheckboxToggle?.(index);
               }}
               onPointerDown={(e) => e.preventDefault()}
+              onMouseDown={(e) => e.preventDefault()}
             />
-            <label for={`cbx-${index}`}>
+            <label
+              for={`cbx-${index}`}
+              onPointerDown={(e) => e.preventDefault()}
+              onMouseDown={(e) => e.preventDefault()}
+            >
               <span class="checkbox-icon">
                 <svg width="12px" height="9px" viewBox="0 0 12 9">
                   <polyline points="1 5 4 8 11 1" />
@@ -229,7 +234,7 @@ const renderListItem = (
         ) : isOrdered ? (
           <span class="md-ordered-number" data-content={block.prefix.trim()} />
         ) : null}
-      </label>
+      </div>
       <div class="md-list-content">{content}</div>
     </div>
   );
