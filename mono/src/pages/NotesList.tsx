@@ -1,6 +1,8 @@
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { Header, HeaderButton } from "ui/Header";
+import { triggerHaptic } from "ui/haptic";
 import { AddIcon, ChevronRightIcon, MoreIcon } from "ui/Icons";
+import { NoteActionsModal } from "../components/NoteActionsModal";
 import { useNavigate } from "../hooks/useNavigate";
 import { timeFromNow } from "../services/date";
 import { db } from "../services/db";
@@ -13,7 +15,9 @@ import { sync } from "../services/sync";
 
 export const NotesList = () => {
   const navigate = useNavigate();
-  const [modalOpen, setModalOpen] = createSignal(false);
+  const [settingsModalOpen, setSettingsModalOpen] = createSignal(false);
+  const [noteActionsOpen, setNoteActionsOpen] = createSignal(false);
+  const [selectedNoteId, setSelectedNoteId] = createSignal<number | null>(null);
 
   const notes = createDexieArrayQuery(
     async () => await db.notes.where("status").notEqual("pending-delete").reverse().sortBy("lastModified"),
@@ -53,7 +57,7 @@ export const NotesList = () => {
         <HeaderButton right onClick={() => navigate("/new")}>
           <AddIcon />
         </HeaderButton>
-        <HeaderButton onClick={() => setModalOpen(true)}>
+        <HeaderButton onClick={() => setSettingsModalOpen(true)}>
           <MoreIcon />
         </HeaderButton>
       </Header>
@@ -86,9 +90,16 @@ export const NotesList = () => {
             }
           >
             {(note) => {
-              const activatable = useActivatable();
+              const activatable = useActivatable({
+                onHold: () => {
+                  setSelectedNoteId(note.id);
+                  setNoteActionsOpen(true);
+                  triggerHaptic();
+                },
+                onTap: () => navigate(`/note/${note.id}`),
+              });
               return (
-                <button ref={activatable} class="note-item" onClick={() => navigate(`/note/${note.id}`)}>
+                <button ref={activatable} class="note-item" onContextMenu={(e) => e.preventDefault()}>
                   <div class="note-item-content">
                     <div class="note-item-name">{note.name}</div>
                     <div class="note-item-preview">{getPreview(note.content)}</div>
@@ -103,7 +114,20 @@ export const NotesList = () => {
           </For>
         </Show>
       </Page>
-      <SettingsModal open={modalOpen} setOpen={setModalOpen} />
+      <SettingsModal open={settingsModalOpen} setOpen={setSettingsModalOpen} />
+      <Show when={selectedNoteId()}>
+        {(noteId) => {
+          const currentNoteId = noteId();
+          return (
+            <NoteActionsModal
+              noteId={currentNoteId}
+              open={noteActionsOpen}
+              setOpen={setNoteActionsOpen}
+              onClose={() => setSelectedNoteId(null)}
+            />
+          );
+        }}
+      </Show>
     </>
   );
 };

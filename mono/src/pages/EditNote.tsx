@@ -2,15 +2,15 @@ import { useParams } from "@solidjs/router";
 import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { Header, HeaderButton } from "ui/Header";
 import { BackIcon, MoreIcon } from "ui/Icons";
-import { Modal, ModalButton, ModalPage } from "ui/Modal";
 import { Page } from "ui/Page";
 import { Editor, type EditorAPI } from "../components/Editor";
+import { NoteActionsModal } from "../components/NoteActionsModal";
 import { useNavigate } from "../hooks/useNavigate";
 import { db } from "../services/db";
 
 import { debounce } from "../services/debounce";
 import { createDexieSignalQuery } from "../services/solid-dexie";
-import { syncNote, wasSynced } from "../services/sync";
+import { syncNote } from "../services/sync";
 
 export const EditNote = () => {
   const navigate = useNavigate();
@@ -70,20 +70,6 @@ export const EditNote = () => {
     await db.notes.update(noteId, { cursor });
   };
 
-  const handleDelete = async (close: () => Promise<void>) => {
-    await close();
-    const n = await db.notes.get(noteId);
-
-    if (n && wasSynced(n)) {
-      await db.notes.update(noteId, { status: "pending-delete" });
-      syncNote(noteId);
-    } else {
-      await db.notes.delete(noteId);
-    }
-
-    navigate(-1, { back: true });
-  };
-
   return (
     <>
       <Header>
@@ -108,13 +94,12 @@ export const EditNote = () => {
           </Show>
         </div>
       </Page>
-      <Modal open={modalOpen} setOpen={setModalOpen} title="Note Actions" onClose={() => setModalOpen(false)}>
-        <ModalPage id="root">
-          <ModalButton danger onClick={handleDelete}>
-            Delete Note
-          </ModalButton>
-        </ModalPage>
-      </Modal>
+      <NoteActionsModal
+        noteId={noteId}
+        open={modalOpen}
+        setOpen={setModalOpen}
+        onDelete={() => navigate(-1, { back: true })}
+      />
     </>
   );
 };

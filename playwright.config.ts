@@ -17,7 +17,7 @@ export default defineConfig({
     },
     {
       name: "webkit-mobile",
-      testMatch: /checkbox-focus\.spec\.ts/,
+      testMatch: /(checkbox-focus|header-button-active)\.spec\.ts/,
       use: {
         ...devices["iPhone 13"],
       },
