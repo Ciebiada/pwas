@@ -16,7 +16,9 @@ export const About = () => {
       <Page>
         <div class="page-content">
           <h1>About Mono</h1>
-          <p>Reach me at <a href="http://www.ciebiada.com">www.ciebiada.com</a></p>
+          <p>
+            Reach me at <a href="http://www.ciebiada.com">www.ciebiada.com</a>
+          </p>
         </div>
       </Page>
     </>

@@ -98,6 +98,7 @@ export const EditNote = () => {
         noteId={noteId}
         open={modalOpen}
         setOpen={setModalOpen}
+        getEditorApi={() => editorApi}
         onDelete={() => navigate(-1, { back: true })}
       />
     </>

@@ -19,9 +19,26 @@ import { isMonospaceEnabled, isPrettyCaretEnabled, isPrettyCheckboxesEnabled } f
 import { TouchHint } from "./TouchHint";
 import "./Editor.css";
 
+export type EditorSelection = {
+  start: number;
+  end: number;
+};
+
+export type EditorEdit = {
+  content: string;
+  selection?: EditorSelection;
+};
+
+export type EditorState = {
+  content: string;
+  selection: EditorSelection;
+};
+
 export type EditorAPI = {
   focus: () => void;
   replaceContent: (name: string, content: string) => void;
+  getState: () => EditorState;
+  applyEdit: (edit: EditorEdit) => void;
 };
 
 type EditorProps = {
@@ -44,6 +61,10 @@ export const Editor = (_props: EditorProps) => {
   let editor: HTMLDivElement;
   let container: HTMLDivElement | undefined;
   let iosReplacementText = "";
+  let lastSelection: EditorSelection = {
+    start: props.initialCursor,
+    end: props.initialCursor,
+  };
 
   if (isPrettyCaretEnabled()) {
     usePrettyCaret(
@@ -59,7 +80,10 @@ export const Editor = (_props: EditorProps) => {
   const selectionPresentation = useEditorSelectionPresentation({
     getEditor: () => editor,
     isIOS,
-    onCursorChange: props.onCursorChange,
+    onSelectionChange: (selection) => {
+      lastSelection = selection;
+      props.onCursorChange?.(selection.start);
+    },
   });
 
   const emitChange = () => {
@@ -67,9 +91,22 @@ export const Editor = (_props: EditorProps) => {
     props.onChange?.(name, noteContent);
   };
 
-  const applyEdit = (newContent: string, cursor: number) => {
+  const applySelection = (selection: EditorSelection) => {
+    lastSelection = selection;
+    return setSelection(editor, selection.start, { end: selection.end });
+  };
+
+  const applyEdit = (newContent: string, selection: number | EditorSelection) => {
+    const nextSelection =
+      typeof selection === "number"
+        ? {
+            start: selection,
+            end: selection,
+          }
+        : selection;
+
     setContent(newContent);
-    setSelection(editor, cursor);
+    applySelection(nextSelection);
     selectionPresentation.sync();
     emitChange();
     requestAnimationFrame(() => {
@@ -82,6 +119,13 @@ export const Editor = (_props: EditorProps) => {
       focus: () => {
         editor.focus();
       },
+      getState: () => ({
+        content: content(),
+        selection: lastSelection,
+      }),
+      applyEdit: (edit) => {
+        applyEdit(edit.content, edit.selection ?? lastSelection);
+      },
       replaceContent: (name: string, noteContent: string) => {
         const newContent = name + (noteContent ? `\n${noteContent}` : "");
         const { start } = getSelection(editor);
@@ -89,13 +133,19 @@ export const Editor = (_props: EditorProps) => {
 
         setContent(newContent);
         requestAnimationFrame(() => {
-          setSelection(editor, newCursor);
+          applySelection({
+            start: newCursor,
+            end: newCursor,
+          });
           selectionPresentation.sync();
         });
       },
     });
 
-    const selection = setSelection(editor, props.initialCursor);
+    const selection = applySelection({
+      start: props.initialCursor,
+      end: props.initialCursor,
+    });
     if (selection) scrollCursorIntoView(selection, "instant");
 
     if (props.autoFocus && !isIOS) {
@@ -141,7 +191,10 @@ export const Editor = (_props: EditorProps) => {
     const newContent = toggleCheckbox(content(), lineIndex);
     setContent(newContent);
     if (document.activeElement === editor) {
-      setSelection(editor, start);
+      applySelection({
+        start,
+        end: start,
+      });
     }
     emitChange();
   };

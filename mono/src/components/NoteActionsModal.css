@@ -1,0 +1,17 @@
+.note-action-button-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.note-action-button-icon {
+  min-width: 2.5ch;
+  font-size: 0.82em;
+  line-height: 1;
+  color: var(--text-color);
+  background-color: color-mix(in srgb, var(--modal-background-color), transparent 40%);
+  padding: 0.18rem 0.4rem;
+  border-radius: 6px;
+  margin-top: 1px;
+  text-align: center;
+}

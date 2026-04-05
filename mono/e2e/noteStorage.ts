@@ -11,13 +11,26 @@ export const createStoredNote = async (
   await page.goto("/");
 
   return await page.evaluate(async (noteData) => {
-    const request = window.indexedDB.open("Mono");
+    const openDb = async () =>
+      await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = window.indexedDB.open("Mono");
 
-    const db = await new Promise<IDBDatabase>((resolve, reject) => {
-      request.addEventListener("success", () => resolve(request.result));
-      request.addEventListener("error", () => reject(request.error));
-      request.addEventListener("upgradeneeded", () => resolve(request.result));
-    });
+        request.addEventListener("success", () => resolve(request.result));
+        request.addEventListener("error", () => reject(request.error));
+      });
+
+    let db: IDBDatabase | null = null;
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      db = await openDb();
+      if (db.objectStoreNames.contains("notes")) break;
+      db.close();
+      db = null;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+
+    if (!db) {
+      throw new Error("notes object store not available");
+    }
 
     const transaction = db.transaction("notes", "readwrite");
     const store = transaction.objectStore("notes");

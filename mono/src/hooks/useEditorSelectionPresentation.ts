@@ -89,7 +89,7 @@ const moveSelectionIntoHiddenInlineFormat = (editor: HTMLElement) => {
 type UseEditorSelectionPresentationOptions = {
   getEditor: () => HTMLElement | undefined;
   isIOS: boolean;
-  onCursorChange?: (cursor: number) => void;
+  onSelectionChange?: (selection: { start: number; end: number }) => void;
 };
 
 export const useEditorSelectionPresentation = (options: UseEditorSelectionPresentationOptions) => {
@@ -120,7 +120,7 @@ export const useEditorSelectionPresentation = (options: UseEditorSelectionPresen
 
     if (options.isIOS) fixCursorPositionForZeroWidthSpace();
     sync();
-    options.onCursorChange?.(getSelection(editor).start);
+    options.onSelectionChange?.(getSelection(editor));
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {
