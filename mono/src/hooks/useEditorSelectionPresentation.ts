@@ -13,6 +13,22 @@ const syncActiveElement = (
   return next;
 };
 
+const syncActiveCodeBlock = (editor: HTMLElement, currentId: string | null, nextId: string | null): string | null => {
+  if (currentId && currentId !== nextId) {
+    for (const line of editor.querySelectorAll<HTMLElement>(`[data-code-block-id="${currentId}"]`)) {
+      line.classList.remove("is-active-code-block");
+    }
+  }
+
+  if (nextId) {
+    for (const line of editor.querySelectorAll<HTMLElement>(`[data-code-block-id="${nextId}"]`)) {
+      line.classList.add("is-active-code-block");
+    }
+  }
+
+  return nextId;
+};
+
 const getSelectionAnchorElement = (editor: HTMLElement): Element | null => {
   if (document.activeElement !== editor) return null;
 
@@ -95,6 +111,7 @@ type UseEditorSelectionPresentationOptions = {
 export const useEditorSelectionPresentation = (options: UseEditorSelectionPresentationOptions) => {
   let activeInlineFormat: HTMLElement | null = null;
   let activeLine: HTMLElement | null = null;
+  let activeCodeBlockId: string | null = null;
 
   const sync = () => {
     const editor = options.getEditor();
@@ -107,6 +124,11 @@ export const useEditorSelectionPresentation = (options: UseEditorSelectionPresen
       "is-active-inline-format",
     );
     activeLine = syncActiveElement(activeLine, anchor?.closest<HTMLElement>(".md-line") ?? null, "is-active-line");
+    activeCodeBlockId = syncActiveCodeBlock(
+      editor,
+      activeCodeBlockId,
+      anchor?.closest<HTMLElement>("[data-code-block-id]")?.dataset.codeBlockId ?? null,
+    );
   };
 
   const handleSelectionChange = () => {
@@ -148,8 +170,10 @@ export const useEditorSelectionPresentation = (options: UseEditorSelectionPresen
     document.addEventListener("selectionchange", handleSelectionChange);
 
     onCleanup(() => {
+      const editor = options.getEditor();
       activeInlineFormat = syncActiveElement(activeInlineFormat, null, "is-active-inline-format");
       activeLine = syncActiveElement(activeLine, null, "is-active-line");
+      if (editor) activeCodeBlockId = syncActiveCodeBlock(editor, activeCodeBlockId, null);
       document.removeEventListener("selectionchange", handleSelectionChange);
     });
   });

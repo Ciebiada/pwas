@@ -3,7 +3,17 @@ import { Dynamic } from "solid-js/web";
 import { triggerHaptic } from "../../hooks/useHaptic";
 
 type InlineTokenType = "text" | "strong" | "emphasis" | "strikethrough" | "link" | "code";
-type BlockType = "h1" | "h2" | "h3" | "paragraph" | "checkbox" | "list" | "orderedList" | "table";
+type BlockType =
+  | "h1"
+  | "h2"
+  | "h3"
+  | "paragraph"
+  | "checkbox"
+  | "list"
+  | "orderedList"
+  | "table"
+  | "codeFence"
+  | "codeContent";
 
 type InlineToken = {
   type: InlineTokenType;
@@ -18,6 +28,8 @@ type BlockToken = {
   prefix: string;
   content: string;
   disableInlineMarkdown?: boolean;
+  codeBlockId?: string;
+  codeFenceKind?: "open" | "close";
 };
 
 type InlinePattern = {
@@ -28,7 +40,7 @@ type InlinePattern = {
 };
 
 const INLINE_PATTERNS: InlinePattern[] = [
-  { type: "code", regex: /^`([^`]*)`/, delimiter: "`" },
+  { type: "code", regex: /^`([^`]+)`/, delimiter: "`" },
   {
     type: "link",
     regex: /^\[([^\]]*)\]\(([^)]*)\)/,
@@ -154,6 +166,19 @@ const renderInlineToken = (token: InlineToken) => {
 
 const renderInlineMarkdown = (text: string) => parseInlineMarkdown(text).map(renderInlineToken);
 
+const CODE_FENCE = "```";
+
+const isOpeningCodeFence = (line: string) => line.startsWith(CODE_FENCE);
+
+const isClosingCodeFence = (line: string) => line.trim() === CODE_FENCE;
+
+const findClosingCodeFence = (lines: string[], startIndex: number) => {
+  for (let index = startIndex + 1; index < lines.length; index++) {
+    if (isClosingCodeFence(lines[index])) return index;
+  }
+  return -1;
+};
+
 const parseBlockLine = (line: string, index: number): BlockToken => {
   if (index === 0) return { type: "paragraph", prefix: "", content: line, disableInlineMarkdown: true };
 
@@ -162,6 +187,68 @@ const parseBlockLine = (line: string, index: number): BlockToken => {
     if (match) return { type: pattern.type, prefix: match[1], content: match[2] };
   }
   return { type: "paragraph", prefix: "", content: line };
+};
+
+const parseBlocks = (markdown: string): BlockToken[] => {
+  const blocks: BlockToken[] = [];
+  const lines = markdown.split("\n");
+  let activeCodeBlockId: string | null = null;
+  let codeBlockCount = 0;
+  let activeCodeBlockClosingIndex = -1;
+
+  for (const [index, line] of lines.entries()) {
+    if (index === 0) {
+      blocks.push(parseBlockLine(line, index));
+      continue;
+    }
+
+    if (activeCodeBlockId) {
+      if (index === activeCodeBlockClosingIndex) {
+        blocks.push({
+          type: "codeFence",
+          prefix: "",
+          content: line,
+          codeBlockId: activeCodeBlockId,
+          codeFenceKind: "close",
+        });
+        activeCodeBlockId = null;
+        activeCodeBlockClosingIndex = -1;
+        continue;
+      }
+
+      blocks.push({
+        type: "codeContent",
+        prefix: "",
+        content: line,
+        disableInlineMarkdown: true,
+        codeBlockId: activeCodeBlockId,
+      });
+      continue;
+    }
+
+    if (isOpeningCodeFence(line)) {
+      const closingFenceIndex = findClosingCodeFence(lines, index);
+      if (closingFenceIndex === -1) {
+        blocks.push(parseBlockLine(line, index));
+        continue;
+      }
+
+      activeCodeBlockId = `code-block-${codeBlockCount++}`;
+      activeCodeBlockClosingIndex = closingFenceIndex;
+      blocks.push({
+        type: "codeFence",
+        prefix: "",
+        content: line,
+        codeBlockId: activeCodeBlockId,
+        codeFenceKind: "open",
+      });
+      continue;
+    }
+
+    blocks.push(parseBlockLine(line, index));
+  }
+
+  return blocks;
 };
 
 const renderBlockContent = (block: BlockToken) => (
@@ -243,6 +330,7 @@ const renderListItem = (
 const renderBlock = (block: BlockToken, index: number, onCheckboxToggle?: (lineIndex: number) => void) => {
   const className = `md-line md-${block.type}`;
   const content = renderBlockContent(block);
+  const codeBlockProps = block.codeBlockId ? { "data-code-block-id": block.codeBlockId } : {};
 
   switch (block.type) {
     case "h1":
@@ -255,6 +343,22 @@ const renderBlock = (block: BlockToken, index: number, onCheckboxToggle?: (lineI
       return renderListItem(block, index, className, content, onCheckboxToggle);
     case "table":
       return <div class="md-line md-table">{renderBlockContent(block)}</div>;
+    case "codeFence":
+      return (
+        <div
+          class="md-line md-code-block-line md-code-block-fence"
+          {...codeBlockProps}
+          data-code-fence-kind={block.codeFenceKind}
+        >
+          <span class="markdown-fence-marker">{block.content || CODE_FENCE}</span>
+        </div>
+      );
+    case "codeContent":
+      return (
+        <div class="md-line md-code-block-line md-code-block-content" {...codeBlockProps}>
+          {block.content || "\u200B"}
+        </div>
+      );
     default:
       return block.content ? (
         <div class="md-line md-text">
@@ -267,4 +371,4 @@ const renderBlock = (block: BlockToken, index: number, onCheckboxToggle?: (lineI
 };
 
 export const renderMarkdown = (markdown: string, onCheckboxToggle?: (lineIndex: number) => void) =>
-  markdown.split("\n").map((line, index) => renderBlock(parseBlockLine(line, index), index, onCheckboxToggle));
+  parseBlocks(markdown).map((block, index) => renderBlock(block, index, onCheckboxToggle));

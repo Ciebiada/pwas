@@ -1,6 +1,6 @@
 import { renumberOrderedList } from "./markdown/features/orderedList";
 import { handleBackspaceAtListStart, handleEnter, handleInput } from "./markdown/input";
-import { INDENT, INDENT_SIZE, insert } from "./markdown/utils";
+import { getLineRange, INDENT, INDENT_SIZE, insert } from "./markdown/utils";
 
 type Selection = { start: number; end: number };
 type EditResult = { content: string; cursor: number };
@@ -8,6 +8,7 @@ type EditResult = { content: string; cursor: number };
 const EMPHASIS_DELIMITER = "*";
 const INLINE_CODE_DELIMITER = "`";
 const AUTO_PAIRED_DELIMITERS = [EMPHASIS_DELIMITER, INLINE_CODE_DELIMITER] as const;
+const FENCED_CODE_BLOCK_DELIMITER = "```";
 
 const shouldExpandEmphasisToStrong = (content: string, selection: Selection, char: string) =>
   char === EMPHASIS_DELIMITER &&
@@ -33,6 +34,23 @@ const createPairInsert = (content: string, start: number, end: number, delimiter
   content: insert(content, start, end, `${delimiter}${delimiter}`),
   cursor: start + delimiter.length,
 });
+
+const createFencedCodeBlockInsert = (content: string, selection: Selection): EditResult | null => {
+  const { start, end } = selection;
+  if (start !== end) return null;
+
+  const { start: lineStart, end: lineEnd, line } = getLineRange(content, start);
+  const cursorInLine = start - lineStart;
+
+  if (lineStart === 0 || line !== `${INLINE_CODE_DELIMITER}${INLINE_CODE_DELIMITER}` || cursorInLine !== 1) {
+    return null;
+  }
+
+  return {
+    content: `${content.slice(0, lineStart)}${FENCED_CODE_BLOCK_DELIMITER}\n\n${FENCED_CODE_BLOCK_DELIMITER}${content.slice(lineEnd)}`,
+    cursor: lineStart + FENCED_CODE_BLOCK_DELIMITER.length + 1,
+  };
+};
 
 const handleBackspaceAtEmptyPair = (content: string, selection: Selection, delimiter: string): EditResult | null => {
   const { start, end } = selection;
@@ -87,6 +105,11 @@ export const processBeforeInput = (
 
       if (shouldExpandEmphasisToStrong(content, selection, data.eventData)) {
         return createPairInsert(content, start, end, EMPHASIS_DELIMITER);
+      }
+
+      if (data.eventData === INLINE_CODE_DELIMITER) {
+        const fencedCodeBlockResult = createFencedCodeBlockInsert(content, selection);
+        if (fencedCodeBlockResult) return fencedCodeBlockResult;
       }
 
       const autoPairDelimiter = getAutoPairDelimiter(content, selection, data.eventData);
