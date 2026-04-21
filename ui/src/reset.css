@@ -16,6 +16,8 @@
 html {
   /* Take up the full screen in PWA mode */
   min-height: calc(100% + env(safe-area-inset-top));
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {

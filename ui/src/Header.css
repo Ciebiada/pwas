@@ -8,8 +8,8 @@
   /* margin-top: var(--offset-top, 0); */
   padding-top: calc(16px + env(safe-area-inset-top));
   padding-bottom: 16px;
-  padding-left: 16px;
-  padding-right: 16px;
+  padding-left: calc(16px + var(--safe-area-inline-left));
+  padding-right: calc(16px + var(--safe-area-inline-right));
   background: linear-gradient(to bottom, var(--bg-color), transparent);
   background-size: 100% env(safe-area-inset-top);
   background-repeat: no-repeat;

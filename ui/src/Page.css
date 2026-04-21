@@ -4,6 +4,8 @@
   height: 100%;
   /* height: calc(100% + env(safe-area-inset-top)); */
   padding-top: calc(44px + 16px + env(safe-area-inset-top));
+  padding-left: var(--safe-area-inline-left);
+  padding-right: var(--safe-area-inline-right);
   overscroll-behavior-y: contain;
   overflow-y: auto;
 }
