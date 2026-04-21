@@ -326,7 +326,7 @@ const renderListItem = (
           <span class="md-ordered-number" data-content={block.prefix.trim()} />
         ) : null}
       </div>
-      <div class="md-list-content">{content}</div>
+      <div class="md-list-content">{isCheckbox ? <span class="md-checkbox-text">{content}</span> : content}</div>
     </div>
   );
 };

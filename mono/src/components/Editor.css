@@ -75,7 +75,7 @@
 }
 
 @supports (-moz-appearance: none) {
-  .pretty-checkboxes .md-checkbox .md-list-marker {
+  .md-checkbox .md-list-marker {
     top: 1px;
   }
 }
@@ -103,9 +103,9 @@
   padding-left: 30px;
 }
 
-.md-checkbox[data-checked] .md-list-content {
-  text-decoration: line-through;
+.md-checkbox[data-checked] .md-checkbox-text {
   color: var(--text-secondary-color);
+  text-decoration: line-through;
 }
 
 .md-table,
@@ -169,7 +169,6 @@
   width: 18px;
   height: 18px;
   cursor: pointer;
-  top: 1px;
 }
 
 input[type="checkbox"] {

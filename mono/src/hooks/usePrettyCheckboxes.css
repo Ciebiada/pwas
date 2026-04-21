@@ -96,8 +96,53 @@
   transition: all 0.6s ease;
 }
 
+.pretty-checkboxes .md-checkbox .md-checkbox-text {
+  position: relative;
+  text-decoration: none;
+}
+
+.pretty-checkboxes .md-checkbox[data-checked] .md-checkbox-text {
+  text-decoration: none;
+}
+
+.pretty-checkboxes .md-checkbox-text::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--text-secondary-color);
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+}
+
+.pretty-checkboxes .md-checkbox[data-checked] .md-checkbox-text::after {
+  transform: scaleX(1);
+}
+
+.pretty-checkboxes.checkbox-animations-ready .md-checkbox.animating[data-checked] .md-checkbox-text::after {
+  animation: todo-strike-draw 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @keyframes checkbox-bounce {
   50% {
     transform: scale(1.2);
+  }
+}
+
+@keyframes todo-strike-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pretty-checkboxes.checkbox-animations-ready .md-checkbox.animating[data-checked] .md-checkbox-text::after {
+    animation: none;
   }
 }
