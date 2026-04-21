@@ -103,6 +103,11 @@
   padding-left: 30px;
 }
 
+.md-checkbox[data-checked] .md-list-content {
+  text-decoration: line-through;
+  color: var(--text-secondary-color);
+}
+
 .md-table,
 .md-inline-code,
 .md-code-block-line {

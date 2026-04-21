@@ -280,7 +280,11 @@ const renderListItem = (
   const isChecked = block.prefix.includes("[x]");
 
   return (
-    <div class={className} style={{ "padding-left": `${indentation}ch` }}>
+    <div
+      class={className}
+      style={{ "padding-left": `${indentation}ch` }}
+      data-checked={isCheckbox && isChecked ? "" : undefined}
+    >
       <div
         class={
           isCheckbox
