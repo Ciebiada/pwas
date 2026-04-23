@@ -5,7 +5,7 @@ export default defineConfig({
     ...minimal2023Preset,
     appleSplashScreens: createAppleSplashScreens(
       {
-        padding: 0.3,
+        padding: 0.65,
         resizeOptions: { background: "#000000", fit: "contain" },
         linkMediaOptions: {
           log: true,
