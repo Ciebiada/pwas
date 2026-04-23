@@ -1,4 +1,5 @@
 import { MARKDOWN_FEATURES } from "./features";
+import { syncTaskCookiesWithCursor } from "./features/cookie";
 import {
   getLineRange,
   INDENT,
@@ -23,7 +24,7 @@ export const handleBlockTab = (content: string, selection: Selection, shiftKey: 
     const match = line.match(feature.pattern);
     if (match && feature.onTab) {
       const result = feature.onTab(content, selection, shiftKey, match, lineRange);
-      if (result) return result;
+      if (result) return syncTaskCookiesWithCursor(result.content, result.cursor);
     }
   }
 
@@ -32,15 +33,17 @@ export const handleBlockTab = (content: string, selection: Selection, shiftKey: 
     if (shiftKey) {
       if (!line.startsWith(INDENT)) return null;
       return {
-        content: content.slice(0, lineStart) + line.slice(INDENT_SIZE) + content.slice(lineRange.end),
-        cursor: selection.start - INDENT_SIZE,
+        ...syncTaskCookiesWithCursor(
+          content.slice(0, lineStart) + line.slice(INDENT_SIZE) + content.slice(lineRange.end),
+          selection.start - INDENT_SIZE,
+        ),
       };
     }
 
-    return {
-      content: content.slice(0, lineStart) + INDENT + line + content.slice(lineRange.end),
-      cursor: selection.start + INDENT_SIZE,
-    };
+    return syncTaskCookiesWithCursor(
+      content.slice(0, lineStart) + INDENT + line + content.slice(lineRange.end),
+      selection.start + INDENT_SIZE,
+    );
   }
 
   return null;
@@ -93,7 +96,7 @@ export const handleEnter = (content: string, selection: Selection): InputResult 
       const match = lineToMatch.match(feature.pattern);
       if (match && feature.onEnter) {
         const result = feature.onEnter(content, selection, match, lineRange);
-        if (result) return trimLineBeforeNewline(result);
+        if (result) return trimLineBeforeNewline(syncTaskCookiesWithCursor(result.content, result.cursor));
       }
     }
   }
@@ -127,7 +130,7 @@ export const handleBackspaceAtListStart = (content: string, selection: Selection
         const fMatch = line.match(feature.pattern);
         if (fMatch && feature.onBackspace) {
           const result = feature.onBackspace(content, selection, fMatch, lineRange);
-          if (result) return result;
+          if (result) return syncTaskCookiesWithCursor(result.content, result.cursor);
         }
       }
     }
@@ -139,7 +142,7 @@ export const handleBackspaceAtListStart = (content: string, selection: Selection
       const fMatch = line.match(feature.pattern);
       if (fMatch && feature.onBackspace) {
         const result = feature.onBackspace(content, selection, fMatch, lineRange);
-        if (result) return result;
+        if (result) return syncTaskCookiesWithCursor(result.content, result.cursor);
       }
     }
   }
@@ -154,7 +157,7 @@ export const handleInput = (char: string, content: string, selection: Selection)
   for (const feature of MARKDOWN_FEATURES) {
     if (feature.onInput) {
       const result = feature.onInput(char, content, selection);
-      if (result) return result;
+      if (result) return syncTaskCookiesWithCursor(result.content, result.cursor);
     }
   }
   return null;

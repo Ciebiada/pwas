@@ -1,4 +1,5 @@
 import { INDENT, insert, lineEnd } from "../utils";
+import { syncTaskCookies, syncTaskCookiesWithCursor } from "./cookie";
 import { handleEmptyLineEnter, handleIndentBackspace } from "./helpers";
 import type { MarkdownFeature } from "./types";
 
@@ -11,10 +12,10 @@ export const TodoListFeature: MarkdownFeature = {
     if (emptyLineResult) return emptyLineResult;
 
     const newPrefix = `${match[1]}[ ] `;
-    return {
-      content: `${content.slice(0, selection.start)}\n${newPrefix}${content.slice(selection.end)}`,
-      cursor: selection.start + 1 + newPrefix.length,
-    };
+    return syncTaskCookiesWithCursor(
+      `${content.slice(0, selection.start)}\n${newPrefix}${content.slice(selection.end)}`,
+      selection.start + 1 + newPrefix.length,
+    );
   },
 
   onBackspace(content, selection, match, lineRange) {
@@ -23,10 +24,10 @@ export const TodoListFeature: MarkdownFeature = {
 
     const { start: lineStart, line } = lineRange;
     const prefixLength = match[0].length;
-    return {
-      content: content.slice(0, lineStart) + line.slice(prefixLength) + content.slice(lineEnd(content, lineStart)),
-      cursor: lineStart,
-    };
+    return syncTaskCookiesWithCursor(
+      content.slice(0, lineStart) + line.slice(prefixLength) + content.slice(lineEnd(content, lineStart)),
+      lineStart,
+    );
   },
 
   onInput(char, content, selection) {
@@ -38,10 +39,7 @@ export const TodoListFeature: MarkdownFeature = {
     // 1. Simple expansion
     if (linePrefix === "[]" || linePrefix === "x" || linePrefix === "X") {
       const replacement = "- [ ] ";
-      return {
-        content: insert(content, lineStart, start, replacement),
-        cursor: lineStart + replacement.length,
-      };
+      return syncTaskCookiesWithCursor(insert(content, lineStart, start, replacement), lineStart + replacement.length);
     }
 
     // 2. Patterns/Conversions
@@ -76,10 +74,10 @@ export const TodoListFeature: MarkdownFeature = {
       const match = linePrefix.match(pattern);
       if (match) {
         const replacement = replace(match);
-        return {
-          content: insert(content, lineStart, start, replacement),
-          cursor: lineStart + replacement.length,
-        };
+        return syncTaskCookiesWithCursor(
+          insert(content, lineStart, start, replacement),
+          lineStart + replacement.length,
+        );
       }
     }
 
@@ -102,5 +100,5 @@ export const toggleCheckbox = (content: string, lineIndex: number): string => {
 
   lines[lineIndex] = `${prefix}[${newStatus}]${line.slice(match[0].length)}`;
 
-  return lines.join("\n");
+  return syncTaskCookies(lines.join("\n"));
 };
