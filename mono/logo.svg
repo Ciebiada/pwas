@@ -2,11 +2,16 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="86.602539mm"
-   height="94.328407mm"
-   viewBox="-8 -8 343.31669 372.51682"
+   width="88.602539mm"
+   height="96.327202mm"
+   viewBox="0 0 334.87575 364.07132"
    version="1.1"
    id="svg1"
+   inkscape:export-filename="logo.svg"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   sodipodi:docname="drawing.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -21,13 +26,22 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
-     showgrid="true">
+     showgrid="true"
+     inkscape:zoom="2.05"
+     inkscape:cx="444.14634"
+     inkscape:cy="506.34146"
+     inkscape:window-width="1425"
+     inkscape:window-height="1375"
+     inkscape:window-x="3436"
+     inkscape:window-y="1412"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer1">
     <inkscape:grid
        type="axonomgrid"
        id="grid1"
        units="mm"
-       originx="-245.4875"
-       originy="-341.42664"
+       originx="-241.70798"
+       originy="-337.64944"
        spacingx="3.7795276"
        spacingy="3.7795277"
        empcolor="#0099e5"
@@ -43,8 +57,8 @@
     <inkscape:page
        x="0"
        y="0"
-       width="327.31668"
-       height="356.51682"
+       width="334.87576"
+       height="364.07132"
        id="page2"
        margin="0"
        bleed="0" />
@@ -56,8 +70,8 @@
        id="path-effect2"
        is_visible="true"
        lpeversion="1"
-       nodesatellites_param="F,0,0,1,0,23.34539,0,1 @ F,0,0,1,0,12.785962,0,1 @ F,0,0,1,0,23.34539,0,1 @ F,0,0,1,0,23.34539,0,1 @ F,0,0,1,0,23.34539,0,1"
-       radius="20"
+       nodesatellites_param="F,0,0,1,0,29.181737,0,1 @ F,0,0,1,0,11.389634,0,1 @ F,0,0,1,0,29.181737,0,1 @ F,0,0,1,0,29.181737,0,1 @ F,0,0,1,0,29.181737,0,1"
+       radius="25"
        unit="px"
        method="auto"
        mode="F"
@@ -90,9 +104,9 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-245.48751,-341.42664)">
+     transform="translate(-241.70799,-337.64942)">
     <path
-       style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:12;stroke-linejoin:round;paint-order:stroke fill markers"
+       style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:7.55906;stroke-linecap:butt;stroke-linejoin:bevel;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        d="m 374.50484,350.70867 -94.3763,54.48818 a 69.28203,69.28203 120 0 0 -34.64102,60 v 108.97638 a 69.282034,69.282034 60 0 0 34.64102,60 l 94.3763,54.48819 a 69.282032,69.282032 7.5797538e-7 0 0 69.28204,0 l 94.37631,-54.48819 a 69.282031,69.282031 120 0 0 34.64102,-60 V 465.19685 a 69.282028,69.282028 59.999998 0 0 -34.64102,-60 l -94.37631,-54.48818 a 69.282039,69.282039 180 0 0 -69.28204,0 z"
        id="path1"
        sodipodi:nodetypes="ccccccc"
@@ -100,7 +114,7 @@
        inkscape:original-d="m 409.14586,330.70867 -163.65834,94.48818 v 188.97638 l 163.65834,94.48819 163.65835,-94.48819 V 425.19685 Z" />
     <path
        style="fill:#000000;fill-opacity:1;stroke:none;stroke-opacity:1"
-       d="m 559.07632,444.07944 -60.5827,83.331 a 19.526721,19.526721 159.23413 0 1 -20.00384,7.58512 l -46.54756,-10.27728 a 18.753197,18.753197 141.22532 0 0 -22.79636,18.31216 v 142.79982 a 13.441865,13.441865 29.932581 0 0 20.19017,11.62515 l 123.27801,-71.56194 a 40.545506,40.545506 119.93258 0 0 20.19017,-35.06563 v -142.2856 a 7.5893482,7.5893482 18.008815 0 0 -13.72789,-4.4628 z"
+       d="m 555.64435,448.80009 -57.97182,79.73975 a 17.394249,17.394249 159.23413 0 1 -17.81926,6.75676 l -42.21197,-9.32001 a 23.441496,23.441496 141.22532 0 0 -28.49544,22.8902 l 0,131.12712 a 16.802331,16.802331 29.932581 0 0 25.23772,14.53144 l 113.18291,-65.70182 a 50.681882,50.681882 119.93258 0 0 25.23772,-43.83204 v -130.6129 a 9.4866851,9.4866851 18.008815 0 0 -17.15986,-5.5785 z"
        id="path2"
        sodipodi:nodetypes="cccccc"
        inkscape:path-effect="#path-effect2"
