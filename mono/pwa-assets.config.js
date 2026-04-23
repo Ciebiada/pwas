@@ -24,5 +24,5 @@ export default defineConfig({
       ],
     ),
   },
-  images: ["public/favicon.png"],
+  images: ["logo.svg"],
 });
