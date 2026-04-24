@@ -112,8 +112,6 @@
   flex: 1;
   overflow: hidden;
   position: relative;
-
-  padding-top: env(safe-area-inset-top);
 }
 
 .reader-footer {

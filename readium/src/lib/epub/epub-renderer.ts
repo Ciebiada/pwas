@@ -214,7 +214,7 @@ export class EpubRenderer {
     const shadowHost = document.createElement("div");
     shadowHost.className = INACTIVE_HOST_CLASS;
     shadowHost.style.cssText =
-      "position: absolute; inset: 0; width: 100%; height: 100%; visibility: hidden; pointer-events: none;";
+      "position: absolute; top: env(safe-area-inset-top, 0px); right: 0; bottom: 0; left: 0; visibility: hidden; pointer-events: none;";
     this.options.container.appendChild(shadowHost);
     const shadowRoot = shadowHost.attachShadow({ mode: "open" });
 
