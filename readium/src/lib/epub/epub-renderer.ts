@@ -73,6 +73,29 @@ export class EpubRenderer {
     return computeLayoutInfo(this.options);
   }
 
+  private getPaginationMetrics() {
+    const layout = this.getLayoutInfo();
+    if (!this.contentElement) {
+      return { margin: layout.margin, pageStride: layout.pageStride };
+    }
+
+    const style = getComputedStyle(this.contentElement);
+    const columnWidth = Number.parseFloat(style.columnWidth);
+    const columnGap = Number.parseFloat(style.columnGap);
+    const paddingLeft = Number.parseFloat(style.paddingLeft);
+
+    const measuredPageStride =
+      Number.isFinite(columnWidth) && columnWidth > 0 && Number.isFinite(columnGap) && columnGap >= 0
+        ? columnWidth + columnGap
+        : layout.pageStride;
+    const measuredMargin = Number.isFinite(paddingLeft) && paddingLeft >= 0 ? paddingLeft : layout.margin;
+
+    return {
+      margin: measuredMargin,
+      pageStride: measuredPageStride,
+    };
+  }
+
   private getManifestItemBySpineIndex(index: number) {
     const spineItem = this.package.spine[index];
     if (!spineItem) return null;
@@ -207,7 +230,7 @@ export class EpubRenderer {
 
         const element = CFIHelper.getElementByPath(this.contentElement, parsed.path);
         if (element instanceof HTMLElement) {
-          const { pageStride, margin } = this.getLayoutInfo();
+          const { pageStride, margin } = this.getPaginationMetrics();
 
           const dpr = (globalThis as unknown as { devicePixelRatio?: number }).devicePixelRatio ?? 1;
           const fuzzPx = Math.max(2, Math.min(10, dpr * 2));
@@ -425,7 +448,7 @@ export class EpubRenderer {
   private calculatePages() {
     if (!this.contentElement) return;
 
-    const { pageStride, margin } = this.getLayoutInfo();
+    const { pageStride, margin } = this.getPaginationMetrics();
     const contentRect = this.contentElement.getBoundingClientRect();
     let maxRight = margin;
 
@@ -470,7 +493,7 @@ export class EpubRenderer {
     if (!this.contentElement) return;
 
     this.currentPage = Math.max(0, Math.min(pageIndex, this.totalPages - 1));
-    const { pageStride } = this.getLayoutInfo();
+    const { pageStride } = this.getPaginationMetrics();
     const translateX = -(this.currentPage * pageStride);
     this.contentElement.style.transform = `translateX(${translateX}px)`;
     if (!internal) {

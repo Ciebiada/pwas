@@ -254,6 +254,55 @@ export type VisibleTextGridMetrics = {
   gridUnit: number;
 };
 
+export type HorizontalBleedMetrics = {
+  maxLeftBleed: number;
+  maxRightBleed: number;
+};
+
+export const getVisibleHorizontalBleed = async (page: Page): Promise<HorizontalBleedMetrics> =>
+  await page.evaluate(() => {
+    const viewer = document.querySelector(".reader-viewer");
+    const shadowRoot = document.querySelector(".epub-shadow-host")?.shadowRoot;
+
+    if (!viewer || !shadowRoot) {
+      throw new Error("Reader content is not ready");
+    }
+
+    const viewerRect = viewer.getBoundingClientRect();
+    let maxLeftBleed = 0;
+    let maxRightBleed = 0;
+
+    for (const element of Array.from(shadowRoot.querySelectorAll<HTMLElement>("p"))) {
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+
+      while (walker.nextNode()) {
+        const textNode = walker.currentNode;
+        if (!textNode.textContent?.trim()) continue;
+
+        const range = document.createRange();
+        range.selectNodeContents(textNode);
+
+        for (const rect of Array.from(range.getClientRects())) {
+          if (rect.height === 0 || rect.width === 0) continue;
+          if (rect.bottom <= viewerRect.top || rect.top >= viewerRect.bottom) continue;
+          if (rect.right <= viewerRect.left || rect.left >= viewerRect.right) continue;
+
+          if (rect.left < viewerRect.left) {
+            maxLeftBleed = Math.max(maxLeftBleed, viewerRect.left - rect.left);
+          }
+          if (rect.right > viewerRect.right) {
+            maxRightBleed = Math.max(maxRightBleed, rect.right - viewerRect.right);
+          }
+        }
+      }
+    }
+
+    return {
+      maxLeftBleed: Math.round(maxLeftBleed * 100) / 100,
+      maxRightBleed: Math.round(maxRightBleed * 100) / 100,
+    };
+  });
+
 export const getVisibleTextGridMetrics = async (page: Page): Promise<VisibleTextGridMetrics> =>
   await page.evaluate(() => {
     const viewer = document.querySelector(".reader-viewer");

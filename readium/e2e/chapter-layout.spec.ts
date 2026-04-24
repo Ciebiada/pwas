@@ -3,6 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 import {
   getChapterPageMetrics,
   getSpreadColumnMetrics,
+  getVisibleHorizontalBleed,
   getVisibleTextGridMetrics,
   goToChapterStart,
   openOnlyBook,
@@ -232,6 +233,21 @@ test("keeps the text grid aligned on later pages that contain a divider", async 
   }
 
   expect(foundDivider).toBe(true);
+});
+
+test("keeps page turns horizontally locked on smaller two-column screens", async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 700 });
+  await openFirstChapter(page);
+
+  for (let step = 0; step < 16; step += 1) {
+    await page.keyboard.press("ArrowRight");
+    await page.waitForTimeout(120);
+  }
+
+  const horizontalBleed = await getVisibleHorizontalBleed(page);
+
+  expect(horizontalBleed.maxLeftBleed).toBeLessThanOrEqual(1);
+  expect(horizontalBleed.maxRightBleed).toBeLessThanOrEqual(1);
 });
 
 test("keeps Klara i Słońce paginated across both pages after the first part heading", async ({ page }) => {
