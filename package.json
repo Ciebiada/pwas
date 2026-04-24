@@ -5,7 +5,8 @@
     "build:mono": "npm run build --workspace=mono",
     "build:readium": "npm run build --workspace=readium",
     "check": "biome check --write .",
-    "test:e2e:mono": "playwright test --config=playwright.config.ts"
+    "test:e2e:mono": "playwright test --config=playwright.config.ts",
+    "test:e2e:readium": "playwright test --config=playwright.readium.config.ts"
   },
   "workspaces": [
     "mono",

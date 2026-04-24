@@ -16,9 +16,12 @@ export class EpubRenderer {
   private locationTracker: LocationTracker;
 
   private currentSpineIndex: number = 0;
+  private renderedSpineCount: number = 1;
+  private leadingMergedColumnCount: number = 0;
   private currentPage: number = 0;
   private totalPages: number = 0;
   private lastKnownCfi: string | undefined;
+  private sparseOpeningSpineCache = new Map<number, boolean>();
 
   private shadowHost: HTMLElement | null = null;
   private shadowRoot: ShadowRoot | null = null;
@@ -68,6 +71,115 @@ export class EpubRenderer {
 
   private getLayoutInfo() {
     return computeLayoutInfo(this.options);
+  }
+
+  private getManifestItemBySpineIndex(index: number) {
+    const spineItem = this.package.spine[index];
+    if (!spineItem) return null;
+
+    return this.package.manifest.get(spineItem.idref) ?? null;
+  }
+
+  private isSparseOpeningDocument(doc: Document) {
+    const body = doc.querySelector("body");
+    if (!body) return false;
+
+    const disallowedContent = body.querySelector(
+      "img, svg, figure, table, ul, ol, blockquote, pre, audio, video, iframe, canvas, form",
+    );
+    if (disallowedContent) return false;
+
+    const meaningfulChildren = Array.from(body.children).filter((child) => {
+      const text = child.textContent?.replace(/\s+/g, " ").trim() ?? "";
+      return text.length > 0;
+    });
+
+    if (meaningfulChildren.length === 0 || meaningfulChildren.length > 2) {
+      return false;
+    }
+
+    const headingCount = Array.from(body.children).filter((child) =>
+      /^h[1-6]$/.test(child.tagName.toLowerCase()),
+    ).length;
+    const totalTextLength = meaningfulChildren.reduce((sum, child) => {
+      const text = child.textContent?.replace(/\s+/g, " ").trim() ?? "";
+      return sum + text.length;
+    }, 0);
+
+    return headingCount >= 1 && totalTextLength <= 120;
+  }
+
+  private async isSparseOpeningSpine(index: number) {
+    const cached = this.sparseOpeningSpineCache.get(index);
+    if (cached !== undefined) return cached;
+    const manifestItem = this.getManifestItemBySpineIndex(index);
+    if (!manifestItem) return false;
+
+    const htmlContent = await this.parser.getFileAsText(this.parser.resolvePath(manifestItem.href));
+    const doc = this.parser.parseMarkup(htmlContent, manifestItem.mediaType);
+    const isSparse = this.isSparseOpeningDocument(doc);
+    this.sparseOpeningSpineCache.set(index, isSparse);
+    return isSparse;
+  }
+
+  private async shouldMergeWithFollowingSpine(index: number) {
+    const { isTwoColumn } = this.getLayoutInfo();
+    if (!isTwoColumn) return false;
+
+    const nextManifestItem = this.getManifestItemBySpineIndex(index + 1);
+    if (!nextManifestItem) return false;
+
+    return this.isSparseOpeningSpine(index);
+  }
+
+  private async buildRenderableSpine(index: number) {
+    const manifestItem = this.getManifestItemBySpineIndex(index);
+
+    if (!manifestItem) {
+      throw new Error(`Manifest item not found for spine index ${index}`);
+    }
+
+    const htmlContent = await this.parser.getFileAsText(this.parser.resolvePath(manifestItem.href));
+    const doc = this.parser.parseMarkup(htmlContent, manifestItem.mediaType);
+
+    await this.resourceResolver.resolveImages(doc, manifestItem.href);
+    this.resourceResolver.resolveLinks(doc);
+
+    let combinedStyles = await this.epubStyler.resolveCombinedStyles(doc, manifestItem.href);
+    let bodyHtml = this.parser.serializeBodyInnerHtml(doc);
+    let renderedSpineCount = 1;
+    let leadingMergedColumnCount = 0;
+
+    const nextManifestItem = this.getManifestItemBySpineIndex(index + 1);
+    const shouldMerge = nextManifestItem !== null && (await this.shouldMergeWithFollowingSpine(index));
+
+    if (shouldMerge && nextManifestItem) {
+      const nextHtmlContent = await this.parser.getFileAsText(this.parser.resolvePath(nextManifestItem.href));
+      const nextDoc = this.parser.parseMarkup(nextHtmlContent, nextManifestItem.mediaType);
+
+      await this.resourceResolver.resolveImages(nextDoc, nextManifestItem.href);
+      this.resourceResolver.resolveLinks(nextDoc);
+
+      combinedStyles += await this.epubStyler.resolveCombinedStyles(nextDoc, nextManifestItem.href);
+      bodyHtml += `<div class="epub-following-spine">${this.parser.serializeBodyInnerHtml(nextDoc)}</div>`;
+      renderedSpineCount = 2;
+      leadingMergedColumnCount = 1;
+    }
+
+    const attributes: Record<string, string> = {};
+    const body = doc.querySelector("body");
+    if (body) {
+      Array.from(body.attributes).forEach((attr) => {
+        attributes[attr.name] = attr.value;
+      });
+    }
+
+    return {
+      attributes,
+      leadingMergedColumnCount,
+      processedHtml: combinedStyles + bodyHtml,
+      renderedSpineCount,
+    };
   }
 
   async displayCFI(cfi: CFI, internal: boolean = false, suppressPaint: boolean = false): Promise<void> {
@@ -179,33 +291,10 @@ export class EpubRenderer {
       const preserveTransform = Boolean(this.contentElement) && index === this.currentSpineIndex;
 
       this.currentSpineIndex = index;
-      const spineItem = this.package.spine[index];
-      const manifestItem = this.package.manifest.get(spineItem.idref);
-
-      if (!manifestItem) {
-        console.error("[Renderer] Manifest item not found:", spineItem.idref);
-        return;
-      }
-
-      const htmlContent = await this.parser.getFileAsText(this.parser.resolvePath(manifestItem.href));
-
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(htmlContent, "text/html");
-
-      await this.resourceResolver.resolveImages(doc, manifestItem.href);
-      this.resourceResolver.resolveLinks(doc);
-      const styles = await this.epubStyler.resolveCombinedStyles(doc, manifestItem.href);
-
-      // Extract body attributes
-      const attributes: Record<string, string> = {};
-      const body = doc.body;
-      if (body) {
-        Array.from(body.attributes).forEach((attr) => {
-          attributes[attr.name] = attr.value;
-        });
-      }
-
-      const processedHtml = styles + doc.body.innerHTML;
+      const { attributes, leadingMergedColumnCount, processedHtml, renderedSpineCount } =
+        await this.buildRenderableSpine(index);
+      this.leadingMergedColumnCount = leadingMergedColumnCount;
+      this.renderedSpineCount = renderedSpineCount;
 
       this.renderHtml(processedHtml, attributes, preserveTransform);
 
@@ -296,7 +385,7 @@ export class EpubRenderer {
 
     this.contentElement.innerHTML = html;
     this.epubStyler.applyStyles(this.contentElement, this.shadowRoot, this.options, preserveTransform);
-    this.epubStyler.snapMarginsToGrid(this.contentElement, this.options.fontSize);
+    this.epubStyler.snapMarginsToGrid(this.contentElement, this.options.fontSize, this.options);
   }
 
   async handleResize() {
@@ -318,7 +407,7 @@ export class EpubRenderer {
 
       // Preserve the current transform while restyling to avoid flashing page 1.
       this.epubStyler.applyStyles(this.contentElement, this.shadowRoot, this.options, true);
-      this.epubStyler.snapMarginsToGrid(this.contentElement, this.options.fontSize);
+      this.epubStyler.snapMarginsToGrid(this.contentElement, this.options.fontSize, this.options);
       await this.waitForLayout();
       this.calculatePages();
 
@@ -337,10 +426,44 @@ export class EpubRenderer {
     if (!this.contentElement) return;
 
     const { pageStride, margin } = this.getLayoutInfo();
-    const scrollWidth = this.contentElement.scrollWidth;
-    // We want the number of screens.
-    // scrollWidth approx total pages * stride
-    this.totalPages = Math.max(1, Math.round((scrollWidth - margin) / pageStride));
+    const contentRect = this.contentElement.getBoundingClientRect();
+    let maxRight = margin;
+
+    const updateMaxRight = (rect: DOMRect | ClientRect) => {
+      if (rect.width === 0 || rect.height === 0) return;
+      maxRight = Math.max(maxRight, rect.right - contentRect.left);
+    };
+
+    for (const element of Array.from(
+      this.contentElement.querySelectorAll<HTMLElement>(
+        "p, h1, h2, h3, h4, h5, h6, li, blockquote, dd, dt, img, svg, hr",
+      ),
+    )) {
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      let foundText = false;
+
+      while (walker.nextNode()) {
+        const textNode = walker.currentNode;
+        if (!textNode.textContent?.trim()) continue;
+
+        foundText = true;
+        const range = document.createRange();
+        range.selectNodeContents(textNode);
+
+        for (const rect of Array.from(range.getClientRects())) {
+          updateMaxRight(rect);
+        }
+      }
+
+      if (foundText) continue;
+
+      for (const rect of Array.from(element.getClientRects())) {
+        updateMaxRight(rect);
+      }
+    }
+
+    const computedPages = Math.max(1, Math.ceil((maxRight - margin) / pageStride));
+    this.totalPages = Math.max(1, computedPages - this.leadingMergedColumnCount);
   }
 
   private goToPage(pageIndex: number, internal: boolean = false) {
@@ -348,7 +471,8 @@ export class EpubRenderer {
 
     this.currentPage = Math.max(0, Math.min(pageIndex, this.totalPages - 1));
     const { pageStride } = this.getLayoutInfo();
-    this.contentElement.style.transform = `translateX(-${this.currentPage * pageStride}px)`;
+    const translateX = -(this.currentPage * pageStride);
+    this.contentElement.style.transform = `translateX(${translateX}px)`;
     if (!internal) {
       this.notifyRelocated(true);
     }
@@ -359,8 +483,8 @@ export class EpubRenderer {
     if (this.currentPage < this.totalPages - 1) {
       this.goToPage(this.currentPage + 1);
       return true;
-    } else if (this.currentSpineIndex < this.package.spine.length - 1) {
-      await this.displaySpineIndex(this.currentSpineIndex + 1, false, false, "async", true);
+    } else if (this.currentSpineIndex + this.renderedSpineCount <= this.package.spine.length - 1) {
+      await this.displaySpineIndex(this.currentSpineIndex + this.renderedSpineCount, false, false, "async", true);
       return true;
     }
     return false;
@@ -376,8 +500,13 @@ export class EpubRenderer {
       const prevVisibility = this.options.container.style.visibility;
       this.options.container.style.visibility = "hidden";
       try {
+        let previousDisplayIndex = this.currentSpineIndex - 1;
+        if (this.currentSpineIndex >= 2 && (await this.shouldMergeWithFollowingSpine(this.currentSpineIndex - 2))) {
+          previousDisplayIndex = this.currentSpineIndex - 2;
+        }
+
         // Use skipInitialPage to avoid flashing page 0
-        await this.displaySpineIndex(this.currentSpineIndex - 1, true, true, "async");
+        await this.displaySpineIndex(previousDisplayIndex, true, true, "async");
         this.goToPage(this.totalPages - 1, true);
         return true;
       } finally {

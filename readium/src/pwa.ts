@@ -7,6 +7,14 @@ let registration: ServiceWorkerRegistration | undefined;
 
 const init = () => {
   if (!("serviceWorker" in navigator)) return;
+  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const currentRegistration of registrations) {
+        currentRegistration.unregister();
+      }
+    });
+    return;
+  }
 
   updateSW = registerSW({
     onNeedRefresh() {

@@ -51,6 +51,61 @@ export class EpubParser {
     return await file.async("string");
   }
 
+  parseMarkup(markup: string, mediaType: string): Document {
+    const parser = new DOMParser();
+    const mimeType = mediaType === "application/xhtml+xml" ? "application/xhtml+xml" : "text/html";
+    const doc = parser.parseFromString(markup, mimeType);
+
+    const hasParserError =
+      doc.querySelector("parsererror") !== null || doc.documentElement.nodeName.toLowerCase() === "parsererror";
+
+    if (!hasParserError) {
+      return doc;
+    }
+
+    return parser.parseFromString(markup, "text/html");
+  }
+
+  serializeBodyInnerHtml(doc: Document): string {
+    const body = doc.querySelector("body");
+    if (!body) return "";
+
+    if ("innerHTML" in body && typeof body.innerHTML === "string") {
+      return body.innerHTML;
+    }
+
+    const serializer = new XMLSerializer();
+    const markup = Array.from(body.childNodes)
+      .map((node) => serializer.serializeToString(node))
+      .join("");
+
+    return markup.replace(/<([a-zA-Z][\w:-]*)([^>]*)\/>/g, (match, tagName: string, attributes: string) => {
+      const lowerTagName = tagName.toLowerCase();
+      const voidTags = new Set([
+        "area",
+        "base",
+        "br",
+        "col",
+        "embed",
+        "hr",
+        "img",
+        "input",
+        "link",
+        "meta",
+        "param",
+        "source",
+        "track",
+        "wbr",
+      ]);
+
+      if (voidTags.has(lowerTagName)) {
+        return match;
+      }
+
+      return `<${tagName}${attributes}></${tagName}>`;
+    });
+  }
+
   private async findOpfPath(): Promise<string> {
     const containerXml = await this.getFileAsText("META-INF/container.xml");
     const doc = this.parseXml(containerXml);

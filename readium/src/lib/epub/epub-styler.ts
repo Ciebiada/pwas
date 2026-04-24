@@ -69,6 +69,8 @@ export class EpubStyler {
 
     const { fontSize, fontFamily, margin, container } = options;
     const userScale = fontSize / 100;
+    const backgroundColor = options.theme === "dark" ? "#000000" : "#ffffff";
+    const textColor = options.theme === "dark" ? "#dedede" : "#000000";
 
     const { columnWidth, gap } = computeLayoutInfo(options);
 
@@ -79,10 +81,14 @@ export class EpubStyler {
     }
 
     contentElement.style.cssText = `
+            --reader-background-color: ${backgroundColor};
+            --reader-text-color: ${textColor};
             --user-font-scale: ${userScale};
             box-sizing: border-box;
             font-size: ${fontSize}%;
             font-family: ${fontFamily};
+            background: var(--reader-background-color);
+            color: var(--reader-text-color);
             padding: 0 ${margin}px;
             width: 100%;
             column-width: ${columnWidth}px;
@@ -126,8 +132,12 @@ export class EpubStyler {
             }
             .epub-content * {
                 font-family: ${fontFamily} !important;
-                color: var(--text-strong-color) !important;
+                color: var(--reader-text-color) !important;
                 line-height: 1 !important;
+            }
+            .epub-content {
+                background: var(--reader-background-color) !important;
+                color: var(--reader-text-color) !important;
             }
             .epub-content p,
             .epub-content h1,
@@ -149,6 +159,35 @@ export class EpubStyler {
             .epub-content br {
                 line-height: ${lineHeight}px !important;
                 vertical-align: top !important;
+            }
+            .epub-content h1,
+            .epub-content h2,
+            .epub-content h3,
+            .epub-content h4,
+            .epub-content h5,
+            .epub-content h6 {
+                background: var(--reader-background-color) !important;
+                color: var(--reader-text-color) !important;
+            }
+            .epub-content hr {
+                background: transparent !important;
+                border: 0 !important;
+                border-color: var(--reader-text-color) !important;
+                color: var(--reader-text-color) !important;
+                box-sizing: border-box !important;
+                display: block !important;
+                height: ${lineHeight}px !important;
+                border-bottom: 2px solid var(--reader-text-color) !important;
+            }
+            .epub-content > .epub-opening-block {
+                position: absolute;
+                top: 0;
+                box-sizing: border-box;
+                z-index: 1;
+            }
+            .epub-content > .epub-following-spine {
+                display: block;
+                break-before: column;
             }
             .epub-content td {
                 line-height: ${lineHeight}px !important;
@@ -177,12 +216,12 @@ export class EpubStyler {
         `;
   }
 
-  snapMarginsToGrid(contentElement: HTMLElement | null, fontSize: number) {
+  snapMarginsToGrid(contentElement: HTMLElement | null, fontSize: number, options?: RendererOptions) {
     if (!contentElement) return;
 
     const gridUnit = Math.round(fontSize * 0.16 * 1.6);
     const elements = contentElement.querySelectorAll(
-      "h1, h2, h3, h4, h5, h6, p, blockquote, div, section, article, ul, ol, li, pre, figure, dt, dd",
+      "h1, h2, h3, h4, h5, h6, p, blockquote, div, section, article, ul, ol, li, pre, figure, dt, dd, hr",
     );
 
     elements.forEach((el) => {
@@ -235,5 +274,154 @@ export class EpubStyler {
         element.style.setProperty("line-height", `${newLineHeight}px`, "important");
       }
     });
+
+    this.layoutOpeningBlock(contentElement, options, gridUnit);
+  }
+
+  private layoutOpeningBlock(contentElement: HTMLElement, options?: RendererOptions, gridUnit?: number) {
+    contentElement.style.height = "100%";
+    contentElement.style.removeProperty("padding-top");
+
+    const previousFlowOffset = contentElement.querySelector<HTMLElement>(':scope > [data-opening-flow-offset="1"]');
+    if (previousFlowOffset) {
+      previousFlowOffset.style.marginTop = previousFlowOffset.dataset.openingBaseMargin ?? "";
+      delete previousFlowOffset.dataset.openingFlowOffset;
+      delete previousFlowOffset.dataset.openingBaseMargin;
+    }
+
+    if (!options) return;
+
+    const { isTwoColumn, columnWidth, margin } = computeLayoutInfo(options);
+    const existingWrapper = contentElement.querySelector<HTMLElement>(":scope > .epub-opening-block");
+
+    if (!isTwoColumn) {
+      if (existingWrapper) {
+        this.unwrapOpeningBlock(existingWrapper);
+      }
+      return;
+    }
+
+    const wrapper = existingWrapper ?? this.createOpeningBlock(contentElement);
+    if (!wrapper) return;
+
+    wrapper.style.left = `${margin}px`;
+    wrapper.style.width = `${columnWidth}px`;
+
+    const contentRect = contentElement.getBoundingClientRect();
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const reservedHeight = Math.max(0, Math.ceil(wrapperRect.bottom - contentRect.top));
+
+    if (reservedHeight > 0) {
+      const firstFlowElement = wrapper.nextElementSibling;
+      if (firstFlowElement instanceof HTMLElement) {
+        const baseMarginTop = parseFloat(getComputedStyle(firstFlowElement).marginTop) || 0;
+        const grid = gridUnit ?? reservedHeight;
+        firstFlowElement.dataset.openingFlowOffset = "1";
+        firstFlowElement.dataset.openingBaseMargin = firstFlowElement.style.marginTop;
+        firstFlowElement.style.setProperty("margin-top", `${baseMarginTop + reservedHeight}px`, "important");
+
+        const adjustment = this.measureOpeningOffsetDelta(contentElement, options, grid, reservedHeight);
+        firstFlowElement.style.setProperty(
+          "margin-top",
+          `${baseMarginTop + reservedHeight + adjustment}px`,
+          "important",
+        );
+      }
+    }
+  }
+
+  private measureOpeningOffsetDelta(
+    contentElement: HTMLElement,
+    options: RendererOptions,
+    gridUnit: number,
+    reservedHeight: number,
+  ) {
+    const layout = computeLayoutInfo(options);
+    const contentRect = contentElement.getBoundingClientRect();
+    const columnBoundary = contentRect.left + layout.margin + layout.columnWidth + layout.gap / 2;
+
+    const collectLineTops = (column: "left" | "right") => {
+      const tops: number[] = [];
+
+      for (const element of Array.from(contentElement.querySelectorAll<HTMLElement>("p"))) {
+        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+
+        while (walker.nextNode()) {
+          const textNode = walker.currentNode;
+          if (!textNode.textContent?.trim()) continue;
+
+          const range = document.createRange();
+          range.selectNodeContents(textNode);
+
+          for (const rect of Array.from(range.getClientRects())) {
+            if (rect.height === 0 || rect.width === 0) continue;
+
+            const isLeftColumn = rect.left < columnBoundary;
+            if ((column === "left" && !isLeftColumn) || (column === "right" && isLeftColumn)) continue;
+
+            const top = Math.round((rect.top - contentRect.top) * 100) / 100;
+            if (!tops.some((existing) => Math.abs(existing - top) < 1)) {
+              tops.push(top);
+            }
+          }
+        }
+      }
+
+      return tops.sort((a, b) => a - b);
+    };
+
+    const minimumVisibleTop = gridUnit / 2;
+    const leftTops = collectLineTops("left").filter(
+      (top) => top >= Math.max(minimumVisibleTop, reservedHeight - gridUnit),
+    );
+    const rightTops = collectLineTops("right").filter((top) => top >= minimumVisibleTop);
+
+    if (leftTops.length === 0 || rightTops.length === 0) {
+      return 0;
+    }
+
+    const leftOffset = ((leftTops[0]! % gridUnit) + gridUnit) % gridUnit;
+    const rightOffset = ((rightTops[0]! % gridUnit) + gridUnit) % gridUnit;
+    let adjustment = rightOffset - leftOffset;
+
+    if (adjustment > gridUnit / 2) {
+      adjustment -= gridUnit;
+    } else if (adjustment < -gridUnit / 2) {
+      adjustment += gridUnit;
+    }
+
+    return adjustment;
+  }
+
+  private createOpeningBlock(contentElement: HTMLElement) {
+    const openingHeading = Array.from(contentElement.children).find(
+      (child) => child instanceof HTMLElement && (child.tagName === "H1" || child.tagName === "H2"),
+    );
+
+    if (!(openingHeading instanceof HTMLElement)) {
+      return null;
+    }
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "epub-opening-block";
+    contentElement.insertBefore(wrapper, openingHeading);
+    wrapper.appendChild(openingHeading);
+
+    const nextSibling = wrapper.nextElementSibling;
+    if (nextSibling instanceof HTMLElement && nextSibling.tagName === "HR") {
+      wrapper.appendChild(nextSibling);
+    }
+
+    return wrapper;
+  }
+
+  private unwrapOpeningBlock(wrapper: HTMLElement) {
+    const parent = wrapper.parentElement;
+    if (!parent) return;
+
+    while (wrapper.firstChild) {
+      parent.insertBefore(wrapper.firstChild, wrapper);
+    }
+    wrapper.remove();
   }
 }
