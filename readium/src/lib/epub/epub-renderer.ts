@@ -146,9 +146,9 @@ export class EpubRenderer {
   async next(): Promise<boolean> {
     if (this.isBusy || !this.activeSlot) return false;
 
-    const step = this.getPageTurnStep();
-    if (this.currentPage + step <= this.activeSlot.totalPages - 1) {
-      this.goToPage(this.currentPage + step);
+    const targetPage = this.getNextPageTarget(this.currentPage);
+    if (targetPage <= this.activeSlot.totalPages - 1) {
+      this.goToPage(targetPage);
       return true;
     }
 
@@ -169,9 +169,9 @@ export class EpubRenderer {
   async prev(): Promise<boolean> {
     if (this.isBusy || !this.activeSlot) return false;
 
-    const step = this.getPageTurnStep();
-    if (this.currentPage - step >= 0) {
-      this.goToPage(this.currentPage - step);
+    const targetPage = this.getPrevPageTarget(this.currentPage);
+    if (targetPage >= 0) {
+      this.goToPage(targetPage);
       return true;
     }
 
@@ -197,8 +197,7 @@ export class EpubRenderer {
     const slot = await this.ensureSlot(leadingIndex);
     this.setActiveSlot(slot);
     this.currentSpineIndex = slot.leadingSpineIndex;
-    const targetPage =
-      pageTarget === "last" ? this.getLastPageForNavigation(slot.totalPages) : this.normalizePageIndex(pageTarget);
+    const targetPage = pageTarget === "last" ? this.getLastPageForNavigation(slot.totalPages) : pageTarget;
     this.goToPage(targetPage, true);
     return slot;
   }
@@ -217,7 +216,7 @@ export class EpubRenderer {
     const shadowHost = document.createElement("div");
     shadowHost.className = INACTIVE_HOST_CLASS;
     shadowHost.style.cssText =
-      "position: absolute; top: env(safe-area-inset-top, 0px); right: 0; bottom: 0; left: 0; visibility: hidden; pointer-events: none;";
+      "position: absolute; inset: 0; width: 100%; height: 100%; visibility: hidden; pointer-events: none;";
     this.options.container.appendChild(shadowHost);
     const shadowRoot = shadowHost.attachShadow({ mode: "open" });
 
@@ -301,8 +300,7 @@ export class EpubRenderer {
   private goToPage(pageIndex: number, internal: boolean = false) {
     if (!this.activeSlot) return;
     const slot = this.activeSlot;
-    const normalizedPage = this.normalizePageIndex(pageIndex);
-    this.currentPage = Math.max(0, Math.min(normalizedPage, slot.totalPages - 1));
+    this.currentPage = Math.max(0, Math.min(pageIndex, slot.totalPages - 1));
     const { pageStride } = this.getPaginationMetrics(slot.contentElement);
     const translateX = -(this.currentPage * pageStride);
     slot.contentElement.style.transform = `translateX(${translateX}px)`;
@@ -369,11 +367,7 @@ export class EpubRenderer {
     const paddingLeft = Number.parseFloat(style.paddingLeft);
 
     const measuredPageStride =
-      layout.isTwoColumn &&
-      Number.isFinite(columnWidth) &&
-      columnWidth > 0 &&
-      Number.isFinite(columnGap) &&
-      columnGap >= 0
+      Number.isFinite(columnWidth) && columnWidth > 0 && Number.isFinite(columnGap) && columnGap >= 0
         ? columnWidth + columnGap
         : layout.pageStride;
     const measuredMargin = Number.isFinite(paddingLeft) && paddingLeft >= 0 ? paddingLeft : layout.margin;
@@ -384,18 +378,34 @@ export class EpubRenderer {
     };
   }
 
-  private getPageTurnStep() {
-    return this.getLayoutInfo().isTwoColumn ? 2 : 1;
+  private isTwoColumnLayout() {
+    return this.getLayoutInfo().isTwoColumn;
   }
 
-  private normalizePageIndex(pageIndex: number) {
-    if (!this.getLayoutInfo().isTwoColumn) return pageIndex;
+  private getPageTurnStep() {
+    return this.isTwoColumnLayout() ? 2 : 1;
+  }
+
+  private normalizePageForLayout(pageIndex: number) {
+    if (!this.isTwoColumnLayout()) return pageIndex;
     return pageIndex - (pageIndex % 2);
   }
 
+  private getNextPageTarget(currentPage: number) {
+    if (!this.isTwoColumnLayout()) return currentPage + 1;
+    return this.normalizePageForLayout(currentPage) + this.getPageTurnStep();
+  }
+
+  private getPrevPageTarget(currentPage: number) {
+    if (!this.isTwoColumnLayout()) return currentPage - 1;
+
+    const spreadStart = this.normalizePageForLayout(currentPage);
+    if (currentPage !== spreadStart) return spreadStart;
+    return spreadStart - this.getPageTurnStep();
+  }
+
   private getLastPageForNavigation(totalPages: number) {
-    const lastPage = totalPages - 1;
-    return this.normalizePageIndex(lastPage);
+    return this.normalizePageForLayout(totalPages - 1);
   }
 
   private getManifestItemBySpineIndex(index: number) {

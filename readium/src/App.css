@@ -98,7 +98,7 @@
 /* Reader */
 .reader-container {
   position: fixed;
-  top: 0;
+  top: env(safe-area-inset-top, 0px);
   left: env(safe-area-inset-left);
   right: env(safe-area-inset-right);
   bottom: 0;
