@@ -146,8 +146,9 @@ export class EpubRenderer {
   async next(): Promise<boolean> {
     if (this.isBusy || !this.activeSlot) return false;
 
-    if (this.currentPage < this.activeSlot.totalPages - 1) {
-      this.goToPage(this.currentPage + 1);
+    const step = this.getPageTurnStep();
+    if (this.currentPage + step <= this.activeSlot.totalPages - 1) {
+      this.goToPage(this.currentPage + step);
       return true;
     }
 
@@ -168,8 +169,9 @@ export class EpubRenderer {
   async prev(): Promise<boolean> {
     if (this.isBusy || !this.activeSlot) return false;
 
-    if (this.currentPage > 0) {
-      this.goToPage(this.currentPage - 1);
+    const step = this.getPageTurnStep();
+    if (this.currentPage - step >= 0) {
+      this.goToPage(this.currentPage - step);
       return true;
     }
 
@@ -195,7 +197,8 @@ export class EpubRenderer {
     const slot = await this.ensureSlot(leadingIndex);
     this.setActiveSlot(slot);
     this.currentSpineIndex = slot.leadingSpineIndex;
-    const targetPage = pageTarget === "last" ? slot.totalPages - 1 : pageTarget;
+    const targetPage =
+      pageTarget === "last" ? this.getLastPageForNavigation(slot.totalPages) : this.normalizePageIndex(pageTarget);
     this.goToPage(targetPage, true);
     return slot;
   }
@@ -298,7 +301,8 @@ export class EpubRenderer {
   private goToPage(pageIndex: number, internal: boolean = false) {
     if (!this.activeSlot) return;
     const slot = this.activeSlot;
-    this.currentPage = Math.max(0, Math.min(pageIndex, slot.totalPages - 1));
+    const normalizedPage = this.normalizePageIndex(pageIndex);
+    this.currentPage = Math.max(0, Math.min(normalizedPage, slot.totalPages - 1));
     const { pageStride } = this.getPaginationMetrics(slot.contentElement);
     const translateX = -(this.currentPage * pageStride);
     slot.contentElement.style.transform = `translateX(${translateX}px)`;
@@ -365,7 +369,11 @@ export class EpubRenderer {
     const paddingLeft = Number.parseFloat(style.paddingLeft);
 
     const measuredPageStride =
-      Number.isFinite(columnWidth) && columnWidth > 0 && Number.isFinite(columnGap) && columnGap >= 0
+      layout.isTwoColumn &&
+      Number.isFinite(columnWidth) &&
+      columnWidth > 0 &&
+      Number.isFinite(columnGap) &&
+      columnGap >= 0
         ? columnWidth + columnGap
         : layout.pageStride;
     const measuredMargin = Number.isFinite(paddingLeft) && paddingLeft >= 0 ? paddingLeft : layout.margin;
@@ -374,6 +382,20 @@ export class EpubRenderer {
       margin: measuredMargin,
       pageStride: measuredPageStride,
     };
+  }
+
+  private getPageTurnStep() {
+    return this.getLayoutInfo().isTwoColumn ? 2 : 1;
+  }
+
+  private normalizePageIndex(pageIndex: number) {
+    if (!this.getLayoutInfo().isTwoColumn) return pageIndex;
+    return pageIndex - (pageIndex % 2);
+  }
+
+  private getLastPageForNavigation(totalPages: number) {
+    const lastPage = totalPages - 1;
+    return this.normalizePageIndex(lastPage);
   }
 
   private getManifestItemBySpineIndex(index: number) {

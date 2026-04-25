@@ -9,7 +9,7 @@ export function computeLayoutInfo(
   const margin = options.margin;
 
   const isTwoColumn = containerWidth > containerHeight;
-  const gap = isTwoColumn && margin === 0 ? 16 : margin;
+  const gap = isTwoColumn ? (margin === 0 ? 16 : margin) : margin * 2;
 
   const columnWidth = isTwoColumn ? (containerWidth - margin * 2 - gap) / 2 : containerWidth - margin * 2;
 
