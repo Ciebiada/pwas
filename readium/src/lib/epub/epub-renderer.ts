@@ -20,6 +20,7 @@ type SpineSlot = {
 const ACTIVE_HOST_CLASS = "epub-shadow-host";
 const INACTIVE_HOST_CLASS = "epub-shadow-host-prerender";
 const MAX_SLOT_CACHE = 5;
+const PAGE_TURN_TRANSITION = "transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1)";
 
 export class EpubRenderer {
   private parser: EpubParser;
@@ -42,6 +43,7 @@ export class EpubRenderer {
   private isBusy: boolean = false;
   private prefetchToken: number = 0;
   private resizeObserver: ResizeObserver;
+  private reducedMotionQuery: MediaQueryList;
   private onRelocated?: (location: EpubLocation) => void;
 
   constructor(parser: EpubParser, packageData: EpubPackage, options: RendererOptions) {
@@ -52,6 +54,7 @@ export class EpubRenderer {
     this.resourceResolver = new ResourceResolver(parser);
     this.epubStyler = new EpubStyler(parser, this.resourceResolver);
     this.locationTracker = new LocationTracker(packageData);
+    this.reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     this.resizeObserver = new ResizeObserver(() => {
       this.handleResize();
@@ -222,6 +225,8 @@ export class EpubRenderer {
 
     const contentElement = document.createElement("div");
     contentElement.className = "epub-content";
+    contentElement.style.transition = "none";
+    contentElement.style.willChange = "transform";
     shadowRoot.appendChild(contentElement);
 
     const slot: SpineSlot = {
@@ -303,10 +308,15 @@ export class EpubRenderer {
     this.currentPage = Math.max(0, Math.min(pageIndex, slot.totalPages - 1));
     const { pageStride } = this.getPaginationMetrics(slot.contentElement);
     const translateX = -(this.currentPage * pageStride);
+    slot.contentElement.style.transition = this.shouldAnimatePageTurn(internal) ? PAGE_TURN_TRANSITION : "none";
     slot.contentElement.style.transform = `translateX(${translateX}px)`;
     if (!internal) {
       this.notifyRelocated(true);
     }
+  }
+
+  private shouldAnimatePageTurn(internal: boolean) {
+    return !internal && !this.reducedMotionQuery.matches;
   }
 
   private measurePages(slot: SpineSlot): number {
