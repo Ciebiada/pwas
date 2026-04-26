@@ -14,10 +14,58 @@ export class LocationTracker {
     let currentTotal = 0;
     this.cumulativeSizes = this.packageData.spine.map((item) => {
       const start = currentTotal;
-      currentTotal += item.size || 0;
+      currentTotal += this.getNormalizedSpineSize(item.size);
       return start;
     });
     this.totalBookSize = currentTotal;
+  }
+
+  private getNormalizedSpineSize(size: number | undefined) {
+    return Math.max(size || 0, 1);
+  }
+
+  getPercentageForPosition(currentSpineIndex: number, currentPage: number, totalPages: number) {
+    const currentSpineItem = this.packageData.spine[currentSpineIndex];
+    if (!currentSpineItem || this.totalBookSize <= 0) return 0;
+
+    const chapterBaseSize = this.cumulativeSizes[currentSpineIndex] || 0;
+    const chapterPercentage = totalPages > 1 ? currentPage / (totalPages - 1) : 0;
+
+    return (
+      ((chapterBaseSize + chapterPercentage * this.getNormalizedSpineSize(currentSpineItem.size)) /
+        this.totalBookSize) *
+      100
+    );
+  }
+
+  getSpinePositionForPercentage(percentage: number) {
+    if (this.packageData.spine.length === 0 || this.totalBookSize <= 0) {
+      return { spineIndex: 0, pageRatio: 0 };
+    }
+
+    const clamped = Math.max(0, Math.min(100, percentage));
+    const targetSize = (clamped / 100) * this.totalBookSize;
+
+    let spineIndex = this.packageData.spine.length - 1;
+    for (let i = 0; i < this.packageData.spine.length; i += 1) {
+      const start = this.cumulativeSizes[i] || 0;
+      const size = this.getNormalizedSpineSize(this.packageData.spine[i]?.size);
+      const end = start + size;
+
+      if (targetSize <= end || i === this.packageData.spine.length - 1) {
+        spineIndex = i;
+        break;
+      }
+    }
+
+    const spineStart = this.cumulativeSizes[spineIndex] || 0;
+    const spineSize = this.getNormalizedSpineSize(this.packageData.spine[spineIndex]?.size);
+    const rawRatio = (targetSize - spineStart) / spineSize;
+
+    return {
+      spineIndex,
+      pageRatio: Math.max(0, Math.min(rawRatio, 1)),
+    };
   }
 
   getCurrentLocation(
@@ -32,12 +80,7 @@ export class LocationTracker {
     const currentSpineItem = this.packageData.spine[currentSpineIndex];
     if (!currentSpineItem) return null;
 
-    const chapterBaseSize = this.cumulativeSizes[currentSpineIndex];
-    const chapterPercentage = totalPages > 0 ? currentPage / totalPages : 0;
-    const globalProgress =
-      this.totalBookSize > 0
-        ? ((chapterBaseSize + chapterPercentage * (currentSpineItem.size || 0)) / this.totalBookSize) * 100
-        : 0;
+    const globalProgress = this.getPercentageForPosition(currentSpineIndex, currentPage, totalPages);
 
     const displayed = {
       page: currentPage + 1,

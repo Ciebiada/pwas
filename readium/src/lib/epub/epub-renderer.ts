@@ -39,6 +39,7 @@ export class EpubRenderer {
   private currentPage: number = 0;
   private lastKnownCfi: string | undefined;
   private sparseOpeningSpineCache = new Map<number, boolean>();
+  private pendingPercentageSeek: number | null = null;
 
   private isBusy: boolean = false;
   private prefetchToken: number = 0;
@@ -190,6 +191,39 @@ export class EpubRenderer {
       this.schedulePrefetchNeighbors();
     }
     return true;
+  }
+
+  async seekToPercentage(percentage: number): Promise<void> {
+    const clamped = Math.max(0, Math.min(100, percentage));
+
+    if (this.isBusy) {
+      this.pendingPercentageSeek = clamped;
+      return;
+    }
+
+    let targetPercentage: number | null = clamped;
+
+    while (targetPercentage !== null) {
+      this.pendingPercentageSeek = null;
+      this.isBusy = true;
+
+      try {
+        await this.seekToPercentageInternal(targetPercentage);
+      } finally {
+        this.isBusy = false;
+        this.notifyRelocated(false);
+        this.schedulePrefetchNeighbors();
+      }
+
+      targetPercentage = this.pendingPercentageSeek;
+    }
+  }
+
+  private async seekToPercentageInternal(percentage: number) {
+    const target = this.locationTracker.getSpinePositionForPercentage(percentage);
+    const slot = await this.activateLeadingIndex(target.spineIndex, 0);
+    const targetPage = Math.round(target.pageRatio * Math.max(slot.totalPages - 1, 0));
+    this.goToPage(targetPage, true);
   }
 
   private async activateLeadingIndex(leadingIndex: number, pageTarget: number | "last"): Promise<SpineSlot> {
@@ -700,8 +734,23 @@ export class EpubRenderer {
 
   updateSettings(options: Partial<RendererOptions>) {
     if (this.isBusy) return;
-    this.options = { ...this.options, ...options };
-    this.handleResize();
+    const nextOptions = { ...this.options, ...options };
+    const paginationChanged =
+      nextOptions.fontSize !== this.options.fontSize ||
+      nextOptions.fontFamily !== this.options.fontFamily ||
+      nextOptions.margin !== this.options.margin;
+
+    this.options = nextOptions;
+
+    if (paginationChanged) {
+      this.handleResize();
+      return;
+    }
+
+    for (const slot of this.slots.values()) {
+      this.epubStyler.applyStyles(slot.contentElement, slot.shadowRoot, this.options, true);
+    }
+    this.notifyRelocated(false);
   }
 
   destroy() {

@@ -354,6 +354,7 @@ type ModalSliderProps = {
   max: number;
   step?: number;
   onChange: (value: number) => void;
+  onChangeEnd?: (value: number) => void;
   displayValue?: string;
 };
 
@@ -386,6 +387,7 @@ export const ModalSlider = (props: ModalSliderProps) => {
   const handlePointerUp = (e: PointerEvent) => {
     setIsSliding(false);
     sliderRef?.releasePointerCapture(e.pointerId);
+    props.onChangeEnd?.(props.value);
   };
 
   const percentage = () => ((props.value - props.min) / (props.max - props.min)) * 100;

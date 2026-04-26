@@ -1,12 +1,18 @@
 import { useParams } from "@solidjs/router";
 import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { Header, HeaderButton } from "ui/Header";
-import { BackIcon } from "ui/Icons";
+import { BackIcon, ChevronsLeftRightIcon } from "ui/Icons";
 import { Modal, ModalPage, ModalSelect, ModalSlider, ModalToggle } from "ui/Modal";
 import { db } from "../db";
+import type { EpubManifestItem, EpubPackage } from "../lib/epub";
 import { EpubParser, EpubRenderer } from "../lib/epub";
 import type { Theme } from "../store/settings";
 import { settings, THEMES, updateSettings } from "../store/settings";
+
+type ContentEntry = {
+  label: string;
+  startPercentage: number;
+};
 
 const Reader = (props: { onClose: () => void }) => {
   const params = useParams<{ id: string }>();
@@ -14,10 +20,14 @@ const Reader = (props: { onClose: () => void }) => {
 
   let viewerRef: HTMLDivElement | undefined;
   let rendererRef: EpubRenderer | undefined;
+  let isDisposed = false;
 
   const [renderer, setRenderer] = createSignal<EpubRenderer | undefined>(undefined);
   const [showControls, setShowControls] = createSignal(false);
   const [showSettings, setShowSettings] = createSignal(false);
+  const [showContents, setShowContents] = createSignal(false);
+  const [contentEntries, setContentEntries] = createSignal<ContentEntry[]>([]);
+  const [contentsSliderValue, setContentsSliderValue] = createSignal(0);
   const [progress, setProgress] = createSignal<{
     current: number;
     total: number;
@@ -28,6 +38,233 @@ const Reader = (props: { onClose: () => void }) => {
   let allowSave = false;
   let wakeLock: WakeLockSentinel | null = null;
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const getNormalizedSpineSize = (size: number | undefined) => Math.max(size || 0, 1);
+
+  const decodeFragment = (fragment: string | undefined) => {
+    if (!fragment) return null;
+    try {
+      return decodeURIComponent(fragment);
+    } catch {
+      return fragment;
+    }
+  };
+
+  const resolveBookTarget = (path: string, opfPath: string) => {
+    const [pathPart, fragmentPart] = path.split("#");
+    const withoutFragment = pathPart?.split("?")[0] || "";
+    if (!withoutFragment) {
+      return {
+        fragment: decodeFragment(fragmentPart),
+        normalizedPath: "",
+      };
+    }
+
+    const opfDir = opfPath.slice(0, opfPath.lastIndexOf("/") + 1);
+    const normalized = new URL(withoutFragment, `https://book.local/${opfDir}`).pathname;
+    return {
+      fragment: decodeFragment(fragmentPart),
+      normalizedPath: normalized.replace(/^\//, ""),
+    };
+  };
+
+  const getSpineStartPercentages = (packageData: EpubPackage) => {
+    const spineSizes = packageData.spine.map((item) => getNormalizedSpineSize(item.size));
+    const totalBookSize = spineSizes.reduce((sum, size) => sum + size, 0);
+
+    if (totalBookSize <= 0) {
+      return {
+        spineSizes,
+        spineStarts: packageData.spine.map((_, index) => (index / Math.max(packageData.spine.length, 1)) * 100),
+        totalBookSize: 1,
+      };
+    }
+
+    let cumulativeSize = 0;
+    const spineStarts = spineSizes.map((size) => {
+      const start = (cumulativeSize / totalBookSize) * 100;
+      cumulativeSize += size;
+      return start;
+    });
+
+    return {
+      spineSizes,
+      spineStarts,
+      totalBookSize,
+    };
+  };
+
+  const flattenToc = (toc: EpubPackage["toc"]): Array<{ label: string; content: string }> => {
+    const out: Array<{ label: string; content: string }> = [];
+    const walk = (nodes: EpubPackage["toc"]) => {
+      for (const node of nodes) {
+        if (node.label && node.content) {
+          out.push({ label: node.label, content: node.content });
+        }
+        if (node.children?.length) {
+          walk(node.children);
+        }
+      }
+    };
+
+    walk(toc);
+    return out;
+  };
+
+  const getFragmentProgressInDocument = (doc: Document, fragment: string | null) => {
+    if (!fragment) return 0;
+
+    const body = doc.querySelector("body");
+    if (!body) return 0;
+
+    const target =
+      doc.getElementById(fragment) ??
+      doc.querySelector(`[name="${fragment.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"]`);
+    if (!target || target === body) return 0;
+
+    const totalTextLength = body.textContent?.length ?? 0;
+    if (totalTextLength <= 0) {
+      const elements = Array.from(body.querySelectorAll("*"));
+      const targetIndex = elements.indexOf(target);
+      if (targetIndex <= 0) return 0;
+      return targetIndex / Math.max(elements.length - 1, 1);
+    }
+
+    try {
+      const range = doc.createRange();
+      range.setStart(body, 0);
+      range.setEndBefore(target);
+      return Math.max(0, Math.min(range.toString().length / totalTextLength, 1));
+    } catch {
+      return 0;
+    }
+  };
+
+  const buildFallbackContentEntries = (packageData: EpubPackage): ContentEntry[] => {
+    const { spineStarts } = getSpineStartPercentages(packageData);
+
+    return packageData.spine.map((_, spineIndex) => ({
+      label: `Chapter ${spineIndex + 1}`,
+      startPercentage: spineStarts[spineIndex] || 0,
+    }));
+  };
+
+  const buildContentEntries = async (parser: EpubParser, packageData: EpubPackage): Promise<ContentEntry[]> => {
+    if (packageData.spine.length === 0) return [];
+
+    const spinePathToIndex = new Map<string, number>();
+    const manifestItemsBySpineIndex = new Map<number, EpubManifestItem>();
+    packageData.spine.forEach((spineItem, index) => {
+      const manifestItem = packageData.manifest.get(spineItem.idref);
+      if (!manifestItem) return;
+      manifestItemsBySpineIndex.set(index, manifestItem);
+
+      const { normalizedPath } = resolveBookTarget(manifestItem.href, packageData.opfPath);
+      if (normalizedPath) {
+        spinePathToIndex.set(normalizedPath, index);
+      }
+    });
+
+    const { spineSizes, spineStarts, totalBookSize } = getSpineStartPercentages(packageData);
+    const documentCache = new Map<number, Promise<Document | null>>();
+    const getSpineDocument = (spineIndex: number) => {
+      const cached = documentCache.get(spineIndex);
+      if (cached) return cached;
+
+      const manifestItem = manifestItemsBySpineIndex.get(spineIndex);
+      const promise = (async () => {
+        if (!manifestItem) return null;
+        const htmlContent = await parser.getFileAsText(parser.resolvePath(manifestItem.href));
+        return parser.parseMarkup(htmlContent, manifestItem.mediaType);
+      })();
+
+      documentCache.set(spineIndex, promise);
+      return promise;
+    };
+
+    const chapterAnchors = (
+      await Promise.all(
+        flattenToc(packageData.toc).map(async (entry, order) => {
+          const { fragment, normalizedPath } = resolveBookTarget(entry.content, packageData.opfPath);
+          const spineIndex = spinePathToIndex.get(normalizedPath);
+          const manifestItem = spineIndex !== undefined ? manifestItemsBySpineIndex.get(spineIndex) : undefined;
+
+          if (spineIndex === undefined || !manifestItem) return null;
+
+          const doc = fragment ? await getSpineDocument(spineIndex) : null;
+          const fragmentProgress = doc ? getFragmentProgressInDocument(doc, fragment) : 0;
+          const startPercentage =
+            (spineStarts[spineIndex] || 0) + ((fragmentProgress * (spineSizes[spineIndex] || 0)) / totalBookSize) * 100;
+
+          return {
+            label: entry.label.trim() || `Chapter ${spineIndex + 1}`,
+            order,
+            startPercentage: Math.max(0, Math.min(100, startPercentage)),
+          };
+        }),
+      )
+    )
+      .filter((entry): entry is { label: string; order: number; startPercentage: number } => entry !== null)
+      .sort((a, b) =>
+        a.startPercentage === b.startPercentage ? a.order - b.order : a.startPercentage - b.startPercentage,
+      );
+
+    if (chapterAnchors.length === 0) {
+      return buildFallbackContentEntries(packageData);
+    }
+
+    const entries: ContentEntry[] = chapterAnchors.map((entry) => ({
+      label: entry.label,
+      startPercentage: entry.startPercentage,
+    }));
+
+    if (entries[0] && entries[0].startPercentage > 0) {
+      entries.unshift({
+        label: entries[0].label,
+        startPercentage: 0,
+      });
+    } else if (entries[0]) {
+      entries[0] = {
+        ...entries[0],
+        startPercentage: 0,
+      };
+    }
+
+    return entries.filter((entry, index) => {
+      const previous = entries[index - 1];
+      return !previous || previous.label !== entry.label || previous.startPercentage !== entry.startPercentage;
+    });
+  };
+
+  const getContentEntryForPercentage = (percentage: number) => {
+    const entries = contentEntries();
+    if (entries.length === 0) return null;
+
+    const clamped = Math.max(0, Math.min(100, percentage));
+    let low = 0;
+    let high = entries.length - 1;
+    let bestMatch = entries[0]!;
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const entry = entries[mid]!;
+
+      if (entry.startPercentage <= clamped) {
+        bestMatch = entry;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    return bestMatch;
+  };
+
+  const currentContentsDisplayValue = () => {
+    const entry = getContentEntryForPercentage(contentsSliderValue());
+    if (!entry) return "";
+    return entry.label;
+  };
 
   // --- Helpers ---
 
@@ -66,7 +303,18 @@ const Reader = (props: { onClose: () => void }) => {
     return theme as "light" | "dark";
   };
 
-  const updateProgressUI = (location: EpubLocation) => {
+  const updateProgressUI = (location: {
+    start?: {
+      cfi?: string;
+      displayed?: {
+        page: number;
+        total: number;
+        percentage: number;
+        spineIndex: number;
+      };
+    };
+    basic?: boolean;
+  }) => {
     if (location?.start?.displayed) {
       const d = location.start.displayed;
       setProgress({
@@ -74,12 +322,21 @@ const Reader = (props: { onClose: () => void }) => {
         total: d.total,
         percentage: parseFloat(d.percentage.toFixed(2)),
       });
+      setContentsSliderValue(d.percentage);
     }
+  };
+
+  const commitContentsSeek = (percentage: number) => {
+    const clamped = Math.max(0, Math.min(100, percentage));
+    allowSave = true;
+    renderer()?.seekToPercentage(clamped);
   };
 
   // --- Lifecycle ---
 
   onCleanup(() => {
+    isDisposed = true;
+
     // Persist last known location before unmount.
     saveProgress();
 
@@ -95,7 +352,6 @@ const Reader = (props: { onClose: () => void }) => {
     document.onkeyup = null;
 
     if (debounceTimer) clearTimeout(debounceTimer);
-
     rendererRef?.destroy();
     rendererRef = undefined;
   });
@@ -177,6 +433,11 @@ const Reader = (props: { onClose: () => void }) => {
       }
 
       await renderer.display(initialLocation);
+      void buildContentEntries(parser, packageData).then((entries) => {
+        if (!isDisposed) {
+          setContentEntries(entries);
+        }
+      });
 
       // Keyboard
       document.onkeyup = (e) => {
@@ -238,6 +499,7 @@ const Reader = (props: { onClose: () => void }) => {
   const toggleControls = () => {
     setShowControls((c) => !c);
     if (showSettings()) setShowSettings(false);
+    if (showContents()) setShowContents(false);
   };
 
   const handleViewerClick = (e: MouseEvent) => {
@@ -252,6 +514,17 @@ const Reader = (props: { onClose: () => void }) => {
     if (xPercentage < 0.3) prev(e);
     else if (xPercentage > 0.7) next(e);
     else toggleControls();
+  };
+
+  const openContents = (e: MouseEvent) => {
+    e.stopPropagation();
+    setShowSettings(false);
+    setShowContents(true);
+  };
+
+  const seekByContentsSlider = (percentage: number) => {
+    const clamped = Math.max(0, Math.min(100, percentage));
+    setContentsSliderValue(clamped);
   };
 
   return (
@@ -283,6 +556,7 @@ const Reader = (props: { onClose: () => void }) => {
             <HeaderButton
               right
               onClick={() => {
+                setShowContents(false);
                 setShowSettings(true);
               }}
             >
@@ -290,6 +564,10 @@ const Reader = (props: { onClose: () => void }) => {
             </HeaderButton>
           </Header>
         </div>
+
+        <button class="reader-seek-button" onClick={openContents} aria-label="Open contents">
+          <ChevronsLeftRightIcon />
+        </button>
 
         <Modal open={showSettings} setOpen={setShowSettings} title="Appearance" height="auto">
           <ModalPage id="root">
@@ -339,6 +617,23 @@ const Reader = (props: { onClose: () => void }) => {
               checked={() => settings().invertImages}
               onChange={(val: boolean) => updateSettings({ invertImages: val })}
             />
+          </ModalPage>
+        </Modal>
+
+        <Modal open={showContents} setOpen={setShowContents} title="Contents" height="auto">
+          <ModalPage id="root">
+            <Show when={contentEntries().length > 0}>
+              <ModalSlider
+                label="Contents"
+                value={contentsSliderValue()}
+                min={0}
+                max={100}
+                step={0.1}
+                displayValue={currentContentsDisplayValue()}
+                onChange={seekByContentsSlider}
+                onChangeEnd={commitContentsSeek}
+              />
+            </Show>
           </ModalPage>
         </Modal>
       </div>
