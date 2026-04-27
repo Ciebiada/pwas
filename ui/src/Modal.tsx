@@ -361,23 +361,54 @@ type ModalSliderProps = {
 export const ModalSlider = (props: ModalSliderProps) => {
   let sliderRef: HTMLDivElement | undefined;
   const [isSliding, setIsSliding] = createSignal(false);
-  const [startX, setStartX] = createSignal(0);
-  const [startValue, setStartValue] = createSignal(0);
+  let activePointerId: number | null = null;
+  let startX = 0;
+  let startValue = 0;
+  let sliderWidth = 1;
+  const step = () => props.step ?? 1;
+
+  const removeDragListeners = () => {
+    window.removeEventListener("pointermove", handlePointerMove);
+    window.removeEventListener("pointerup", handlePointerUp);
+    window.removeEventListener("pointercancel", handlePointerUp);
+  };
+
+  const finishSliding = () => {
+    activePointerId = null;
+    setIsSliding(false);
+    removeDragListeners();
+    props.onChangeEnd?.(props.value);
+  };
 
   const handlePointerDown = (e: PointerEvent) => {
+    if (!sliderRef) return;
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+
+    removeDragListeners();
+    activePointerId = e.pointerId;
     setIsSliding(true);
-    setStartX(e.clientX);
-    setStartValue(props.value);
-    sliderRef?.setPointerCapture(e.pointerId);
+    startX = e.clientX;
+    startValue = props.value;
+    sliderWidth = Math.max(sliderRef.getBoundingClientRect().width, 1);
+    sliderRef.setPointerCapture(e.pointerId);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
   };
 
   const handlePointerMove = (e: PointerEvent) => {
-    if (!isSliding() || !sliderRef) return;
-    const deltaX = e.clientX - startX();
-    const rect = sliderRef.getBoundingClientRect();
-    const deltaValue = (deltaX / rect.width) * (props.max - props.min);
-    const rawValue = startValue() + deltaValue;
-    const steppedValue = Math.round(rawValue / (props.step ?? 1)) * (props.step ?? 1);
+    if (!isSliding() || activePointerId !== e.pointerId) return;
+
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+
+    const deltaX = e.clientX - startX;
+    const deltaValue = (deltaX / sliderWidth) * (props.max - props.min);
+    const rawValue = startValue + deltaValue;
+    const steppedValue = Math.round((rawValue - props.min) / step()) * step() + props.min;
     const finalValue = Math.max(props.min, Math.min(props.max, steppedValue));
     if (finalValue !== props.value) {
       props.onChange(finalValue);
@@ -385,12 +416,18 @@ export const ModalSlider = (props: ModalSliderProps) => {
   };
 
   const handlePointerUp = (e: PointerEvent) => {
-    setIsSliding(false);
-    sliderRef?.releasePointerCapture(e.pointerId);
-    props.onChangeEnd?.(props.value);
+    if (activePointerId !== e.pointerId) return;
+
+    if (sliderRef?.hasPointerCapture(e.pointerId)) {
+      sliderRef.releasePointerCapture(e.pointerId);
+    }
+
+    finishSliding();
   };
 
   const percentage = () => ((props.value - props.min) / (props.max - props.min)) * 100;
+
+  onCleanup(removeDragListeners);
 
   return (
     <div
@@ -400,9 +437,6 @@ export const ModalSlider = (props: ModalSliderProps) => {
         activated: isSliding(),
       }}
       onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
       style={{
         "--slider-progress": `${percentage()}%`,
       }}

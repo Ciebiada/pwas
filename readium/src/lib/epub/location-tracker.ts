@@ -5,6 +5,7 @@ import type { EpubLocation, EpubPackage, RendererOptions } from "./epub-types";
 export class LocationTracker {
   private totalBookSize: number = 0;
   private cumulativeSizes: number[] = [];
+  private normalizedSpineSizes: number[] = [];
 
   constructor(private packageData: EpubPackage) {
     this.calculateBookSize();
@@ -12,9 +13,10 @@ export class LocationTracker {
 
   private calculateBookSize() {
     let currentTotal = 0;
-    this.cumulativeSizes = this.packageData.spine.map((item) => {
+    this.normalizedSpineSizes = this.packageData.spine.map((item) => this.getNormalizedSpineSize(item.size));
+    this.cumulativeSizes = this.normalizedSpineSizes.map((size) => {
       const start = currentTotal;
-      currentTotal += this.getNormalizedSpineSize(item.size);
+      currentTotal += size;
       return start;
     });
     this.totalBookSize = currentTotal;
@@ -25,17 +27,13 @@ export class LocationTracker {
   }
 
   getPercentageForPosition(currentSpineIndex: number, currentPage: number, totalPages: number) {
-    const currentSpineItem = this.packageData.spine[currentSpineIndex];
-    if (!currentSpineItem || this.totalBookSize <= 0) return 0;
+    if (!this.packageData.spine[currentSpineIndex] || this.totalBookSize <= 0) return 0;
 
     const chapterBaseSize = this.cumulativeSizes[currentSpineIndex] || 0;
     const chapterPercentage = totalPages > 1 ? currentPage / (totalPages - 1) : 0;
+    const chapterSize = this.normalizedSpineSizes[currentSpineIndex] || 1;
 
-    return (
-      ((chapterBaseSize + chapterPercentage * this.getNormalizedSpineSize(currentSpineItem.size)) /
-        this.totalBookSize) *
-      100
-    );
+    return ((chapterBaseSize + chapterPercentage * chapterSize) / this.totalBookSize) * 100;
   }
 
   getSpinePositionForPercentage(percentage: number) {
@@ -46,20 +44,26 @@ export class LocationTracker {
     const clamped = Math.max(0, Math.min(100, percentage));
     const targetSize = (clamped / 100) * this.totalBookSize;
 
-    let spineIndex = this.packageData.spine.length - 1;
-    for (let i = 0; i < this.packageData.spine.length; i += 1) {
-      const start = this.cumulativeSizes[i] || 0;
-      const size = this.getNormalizedSpineSize(this.packageData.spine[i]?.size);
+    let low = 0;
+    let high = this.packageData.spine.length - 1;
+    let spineIndex = high;
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const start = this.cumulativeSizes[mid] || 0;
+      const size = this.normalizedSpineSizes[mid] || 1;
       const end = start + size;
 
-      if (targetSize <= end || i === this.packageData.spine.length - 1) {
-        spineIndex = i;
-        break;
+      if (targetSize <= end || mid === this.packageData.spine.length - 1) {
+        spineIndex = mid;
+        high = mid - 1;
+      } else {
+        low = mid + 1;
       }
     }
 
     const spineStart = this.cumulativeSizes[spineIndex] || 0;
-    const spineSize = this.getNormalizedSpineSize(this.packageData.spine[spineIndex]?.size);
+    const spineSize = this.normalizedSpineSizes[spineIndex] || 1;
     const rawRatio = (targetSize - spineStart) / spineSize;
 
     return {

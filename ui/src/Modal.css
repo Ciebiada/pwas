@@ -345,6 +345,7 @@ body.modal-open {
 }
 
 .modal-slider-wrapper {
+  touch-action: none;
   background-image: linear-gradient(
     90deg,
     color-mix(in srgb, var(--text-color), transparent 90%) 0%,

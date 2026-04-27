@@ -21,6 +21,9 @@ const Reader = (props: { onClose: () => void }) => {
   let viewerRef: HTMLDivElement | undefined;
   let rendererRef: EpubRenderer | undefined;
   let isDisposed = false;
+  let loadContentEntries: (() => Promise<void>) | null = null;
+  let contentEntriesPromise: Promise<void> | null = null;
+  let contentEntriesIdleHandle: number | null = null;
 
   const [renderer, setRenderer] = createSignal<EpubRenderer | undefined>(undefined);
   const [showControls, setShowControls] = createSignal(false);
@@ -28,6 +31,7 @@ const Reader = (props: { onClose: () => void }) => {
   const [showContents, setShowContents] = createSignal(false);
   const [contentEntries, setContentEntries] = createSignal<ContentEntry[]>([]);
   const [contentsSliderValue, setContentsSliderValue] = createSignal(0);
+  const [contentsPageNumber, setContentsPageNumber] = createSignal<number | null>(null);
   const [progress, setProgress] = createSignal<{
     current: number;
     total: number;
@@ -263,7 +267,8 @@ const Reader = (props: { onClose: () => void }) => {
   const currentContentsDisplayValue = () => {
     const entry = getContentEntryForPercentage(contentsSliderValue());
     if (!entry) return "";
-    return entry.label;
+    const pageNumber = contentsPageNumber();
+    return pageNumber === null ? entry.label : `${entry.label} • ${pageNumber}`;
   };
 
   // --- Helpers ---
@@ -288,6 +293,69 @@ const Reader = (props: { onClose: () => void }) => {
     }
   };
 
+  const cancelScheduledContentEntriesLoad = () => {
+    if (contentEntriesIdleHandle === null) return;
+
+    const cancelIdle = (
+      globalThis as unknown as {
+        cancelIdleCallback?: (id: number) => void;
+      }
+    ).cancelIdleCallback;
+
+    if (typeof cancelIdle === "function") {
+      cancelIdle(contentEntriesIdleHandle);
+    } else {
+      clearTimeout(contentEntriesIdleHandle);
+    }
+
+    contentEntriesIdleHandle = null;
+  };
+
+  const ensureContentEntriesLoaded = (immediate: boolean = false) => {
+    if (contentEntries().length > 0) return Promise.resolve();
+    if (contentEntriesPromise) return contentEntriesPromise;
+    if (!loadContentEntries) return Promise.resolve();
+
+    const startLoading = () => {
+      if (!loadContentEntries) return Promise.resolve();
+      const promise = loadContentEntries().finally(() => {
+        contentEntriesPromise = null;
+      });
+      contentEntriesPromise = promise;
+      return promise;
+    };
+
+    if (immediate) {
+      cancelScheduledContentEntriesLoad();
+      return startLoading();
+    }
+
+    if (contentEntriesIdleHandle !== null) return Promise.resolve();
+
+    const requestIdle = (
+      globalThis as unknown as {
+        requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      }
+    ).requestIdleCallback;
+
+    if (typeof requestIdle === "function") {
+      contentEntriesIdleHandle = requestIdle(
+        () => {
+          contentEntriesIdleHandle = null;
+          void startLoading();
+        },
+        { timeout: 1000 },
+      );
+    } else {
+      contentEntriesIdleHandle = window.setTimeout(() => {
+        contentEntriesIdleHandle = null;
+        void startLoading();
+      }, 150);
+    }
+
+    return Promise.resolve();
+  };
+
   const saveProgress = () => {
     if (!allowSave) return;
     if (pendingLocation) {
@@ -301,6 +369,14 @@ const Reader = (props: { onClose: () => void }) => {
       return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     }
     return theme as "light" | "dark";
+  };
+
+  const syncContentsPageNumber = (percentage: number) => {
+    if (!showContents()) {
+      setContentsPageNumber(null);
+      return;
+    }
+    setContentsPageNumber(renderer()?.getGlobalPageNumberForPercentage(percentage) ?? null);
   };
 
   const updateProgressUI = (location: {
@@ -323,6 +399,9 @@ const Reader = (props: { onClose: () => void }) => {
         percentage: parseFloat(d.percentage.toFixed(2)),
       });
       setContentsSliderValue(d.percentage);
+      if (showContents()) {
+        syncContentsPageNumber(d.percentage);
+      }
     }
   };
 
@@ -352,6 +431,9 @@ const Reader = (props: { onClose: () => void }) => {
     document.onkeyup = null;
 
     if (debounceTimer) clearTimeout(debounceTimer);
+    cancelScheduledContentEntriesLoad();
+    loadContentEntries = null;
+    contentEntriesPromise = null;
     rendererRef?.destroy();
     rendererRef = undefined;
   });
@@ -373,6 +455,12 @@ const Reader = (props: { onClose: () => void }) => {
 
       const parser = new EpubParser();
       const packageData = await parser.load(arrayBuffer);
+      loadContentEntries = async () => {
+        const entries = await buildContentEntries(parser, packageData);
+        if (!isDisposed) {
+          setContentEntries(entries);
+        }
+      };
 
       const renderer = new EpubRenderer(parser, packageData, {
         container: viewerRef,
@@ -433,11 +521,7 @@ const Reader = (props: { onClose: () => void }) => {
       }
 
       await renderer.display(initialLocation);
-      void buildContentEntries(parser, packageData).then((entries) => {
-        if (!isDisposed) {
-          setContentEntries(entries);
-        }
-      });
+      void ensureContentEntriesLoaded();
 
       // Keyboard
       document.onkeyup = (e) => {
@@ -520,12 +604,21 @@ const Reader = (props: { onClose: () => void }) => {
     e.stopPropagation();
     setShowSettings(false);
     setShowContents(true);
+    syncContentsPageNumber(contentsSliderValue());
+    void ensureContentEntriesLoaded(true);
   };
 
   const seekByContentsSlider = (percentage: number) => {
     const clamped = Math.max(0, Math.min(100, percentage));
     setContentsSliderValue(clamped);
+    syncContentsPageNumber(clamped);
   };
+
+  createEffect(() => {
+    if (!showContents()) {
+      setContentsPageNumber(null);
+    }
+  });
 
   return (
     <div class="reader-container">

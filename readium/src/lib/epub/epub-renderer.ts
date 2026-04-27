@@ -40,6 +40,11 @@ export class EpubRenderer {
   private lastKnownCfi: string | undefined;
   private sparseOpeningSpineCache = new Map<number, boolean>();
   private pendingPercentageSeek: number | null = null;
+  private estimatedPagesBySpineIndex = new Map<number, number>();
+  private estimatedPagination: {
+    pageCounts: number[];
+    pageStarts: number[];
+  } | null = null;
 
   private isBusy: boolean = false;
   private prefetchToken: number = 0;
@@ -226,6 +231,108 @@ export class EpubRenderer {
     this.goToPage(targetPage, true);
   }
 
+  getGlobalPageNumberForPercentage(percentage: number): number | null {
+    const target = this.locationTracker.getSpinePositionForPercentage(percentage);
+    const estimatedPagination = this.getEstimatedPagination();
+    const targetPageCount = estimatedPagination.pageCounts[target.spineIndex];
+    const targetPageStart = estimatedPagination.pageStarts[target.spineIndex];
+    if (targetPageCount === undefined || targetPageStart === undefined) return null;
+
+    const zeroBasedPage = targetPageStart + target.pageRatio * Math.max(targetPageCount - 1, 0);
+    return Math.max(1, Math.round(zeroBasedPage) + 1);
+  }
+
+  private getNormalizedSpineSize(index: number) {
+    return Math.max(this.package.spine[index]?.size || 0, 1);
+  }
+
+  private getNormalizedSpineRangeSize(leadingIndex: number, spineCount: number) {
+    let totalSize = 0;
+    for (let index = leadingIndex; index < leadingIndex + spineCount && index < this.package.spine.length; index += 1) {
+      totalSize += this.getNormalizedSpineSize(index);
+    }
+    return totalSize;
+  }
+
+  private getEstimatedPagination() {
+    const cached = this.estimatedPagination;
+    if (cached) return cached;
+
+    const fallbackPagesPerSpineUnit = this.getAveragePagesPerSpineUnit();
+    const pageCounts = this.package.spine.map((_, spineIndex) =>
+      this.getEstimatedPagesForSpine(spineIndex, fallbackPagesPerSpineUnit),
+    );
+    let pageCursor = 0;
+    const pageStarts = pageCounts.map((pageCount) => {
+      const start = pageCursor;
+      pageCursor += pageCount;
+      return start;
+    });
+
+    const nextPagination = {
+      pageCounts,
+      pageStarts,
+    };
+    this.estimatedPagination = nextPagination;
+    return nextPagination;
+  }
+
+  private getAveragePagesPerSpineUnit() {
+    let measuredPages = 0;
+    let measuredSize = 0;
+
+    for (const [spineIndex, pageEstimate] of this.estimatedPagesBySpineIndex) {
+      measuredPages += pageEstimate;
+      measuredSize += this.getNormalizedSpineSize(spineIndex);
+    }
+
+    if (measuredSize > 0) {
+      return measuredPages / measuredSize;
+    }
+
+    if (this.activeSlot) {
+      const activeSize = this.getNormalizedSpineRangeSize(
+        this.activeSlot.leadingSpineIndex,
+        this.activeSlot.renderedSpineCount,
+      );
+      if (activeSize > 0) {
+        return Math.max(1, this.activeSlot.totalPages) / activeSize;
+      }
+    }
+
+    return 1;
+  }
+
+  private getEstimatedPagesForSpine(spineIndex: number, fallbackPagesPerSpineUnit: number) {
+    const knownPageEstimate = this.estimatedPagesBySpineIndex.get(spineIndex);
+    if (knownPageEstimate !== undefined) {
+      return knownPageEstimate;
+    }
+
+    return this.getNormalizedSpineSize(spineIndex) * fallbackPagesPerSpineUnit;
+  }
+
+  private recordPageEstimate(slot: SpineSlot) {
+    const coveredSpineCount = Math.max(1, slot.renderedSpineCount);
+    const totalSize = this.getNormalizedSpineRangeSize(slot.leadingSpineIndex, coveredSpineCount);
+    if (totalSize <= 0) return;
+
+    const pagesPerSpineUnit = slot.totalPages / totalSize;
+    for (
+      let spineIndex = slot.leadingSpineIndex;
+      spineIndex < slot.leadingSpineIndex + coveredSpineCount && spineIndex < this.package.spine.length;
+      spineIndex += 1
+    ) {
+      this.estimatedPagesBySpineIndex.set(spineIndex, this.getNormalizedSpineSize(spineIndex) * pagesPerSpineUnit);
+    }
+    this.estimatedPagination = null;
+  }
+
+  private invalidatePageNumberEstimates() {
+    this.estimatedPagesBySpineIndex.clear();
+    this.estimatedPagination = null;
+  }
+
   private async activateLeadingIndex(leadingIndex: number, pageTarget: number | "last"): Promise<SpineSlot> {
     if (leadingIndex < 0 || leadingIndex >= this.package.spine.length) {
       throw new Error(`Invalid spine index: ${leadingIndex}`);
@@ -303,6 +410,7 @@ export class EpubRenderer {
     if (!slot.shadowHost.isConnected) return;
     void slot.contentElement.offsetWidth;
     slot.totalPages = this.measurePages(slot);
+    this.recordPageEstimate(slot);
   }
 
   private renderIntoSlot(slot: SpineSlot, html: string, attributes: Record<string, string>) {
@@ -599,6 +707,7 @@ export class EpubRenderer {
   async handleResize() {
     if (this.isBusy || !this.activeSlot) return;
     this.isBusy = true;
+    this.invalidatePageNumberEstimates();
 
     try {
       const activeIndex = this.activeSlot.leadingSpineIndex;
@@ -616,6 +725,7 @@ export class EpubRenderer {
       await this.waitResourcesReady(this.activeSlot.contentElement);
       void this.activeSlot.contentElement.offsetWidth;
       this.activeSlot.totalPages = this.measurePages(this.activeSlot);
+      this.recordPageEstimate(this.activeSlot);
 
       if (cfi) {
         await this.displayCFI(cfi, true);
