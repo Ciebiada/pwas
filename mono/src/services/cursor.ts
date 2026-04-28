@@ -36,26 +36,81 @@ const findActualOffset = (text: string, targetOffset: number): number => {
   return actualOffset;
 };
 
+const getEditorLines = (element: ParentNode): HTMLElement[] => Array.from(element.querySelectorAll(".md-line"));
+
+const findFirstLine = (node: Node | null): HTMLElement | null => {
+  if (!node) return null;
+  if (node instanceof HTMLElement && node.classList.contains("md-line")) return node;
+
+  for (const child of node.childNodes) {
+    const line = findFirstLine(child);
+    if (line) return line;
+  }
+
+  return null;
+};
+
+const findLastLine = (node: Node | null): HTMLElement | null => {
+  if (!node) return null;
+  if (node instanceof HTMLElement && node.classList.contains("md-line")) return node;
+
+  const children = Array.from(node.childNodes).toReversed();
+  for (const child of children) {
+    const line = findLastLine(child);
+    if (line) return line;
+  }
+
+  return null;
+};
+
+const getLineSelection = (
+  element: HTMLElement,
+  container: Node,
+  offset: number,
+): { line: HTMLElement; offsetInLine: number } | null => {
+  const anchor =
+    container.nodeType === Node.TEXT_NODE ? container.parentElement : container instanceof Element ? container : null;
+  const line = anchor?.closest<HTMLElement>(".md-line");
+
+  if (line && element.contains(line)) {
+    return {
+      line,
+      offsetInLine: getOffsetInNode(line, container, offset) ?? 0,
+    };
+  }
+
+  if (!(container instanceof Element)) return null;
+
+  const previousLine = findLastLine(container.childNodes[offset - 1] ?? null);
+  const nextLine = findFirstLine(container.childNodes[offset] ?? null);
+
+  if (nextLine && element.contains(nextLine)) {
+    return { line: nextLine, offsetInLine: 0 };
+  }
+
+  if (previousLine && element.contains(previousLine)) {
+    return { line: previousLine, offsetInLine: getNodeTextLength(previousLine) };
+  }
+
+  return null;
+};
+
 const getOffsetInElement = (element: HTMLElement, container: Node, offset: number): number => {
-  if (container === element) {
-    return getOffsetInNode(element, container, offset) ?? 0;
-  }
+  const lineSelection = getLineSelection(element, container, offset);
+  if (!lineSelection) return getOffsetInNode(element, container, offset) ?? 0;
 
+  const lines = getEditorLines(element);
   let accumulated = 0;
-  const childNodes = element.childNodes;
 
-  for (let i = 0; i < childNodes.length; i++) {
-    const child = childNodes[i];
-    if (child.contains(container) || child === container) {
-      const offsetInChild = getOffsetInNode(child, container, offset);
-      return accumulated + (offsetInChild ?? 0);
-    }
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index];
+    if (line === lineSelection.line) return accumulated + lineSelection.offsetInLine;
 
-    accumulated += getNodeTextLength(child);
-    // Add 1 for newline separator between blocks (except for last block)
-    if (i < childNodes.length - 1) accumulated += 1;
+    accumulated += getNodeTextLength(line);
+    if (index < lines.length - 1) accumulated += 1;
   }
-  return accumulated;
+
+  return lineSelection.offsetInLine;
 };
 
 const findRangeInChild = (child: Node, offsetInBlock: number): Range | null => {
@@ -95,14 +150,14 @@ const findRangeInChild = (child: Node, offsetInBlock: number): Range | null => {
 
 const getRangeAtOffset = (element: HTMLElement, offset: number): Range | null => {
   let accumulated = 0;
-  const childNodes = element.childNodes;
+  const lines = getEditorLines(element);
 
-  for (let i = 0; i < childNodes.length; i++) {
-    const child = childNodes[i];
-    const blockLength = getNodeTextLength(child);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const blockLength = getNodeTextLength(line);
 
     if (accumulated + blockLength >= offset) {
-      return findRangeInChild(child, offset - accumulated);
+      return findRangeInChild(line, offset - accumulated);
     }
     accumulated += blockLength + 1;
   }

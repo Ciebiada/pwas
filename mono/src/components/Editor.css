@@ -38,7 +38,7 @@
   white-space: pre-wrap;
 }
 
-.editor[contenteditable="true"] .md-line:first-child {
+.editor[contenteditable="true"] > .md-line:first-child {
   font-size: 2.058rem;
   font-weight: 500;
   color: var(--text-strong-color);
@@ -116,9 +116,17 @@
   line-height: inherit;
 }
 
+.md-table-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.md-table-group {
+  min-width: max-content;
+}
+
 .md-table {
   white-space: pre;
-  overflow-x: auto;
 }
 
 .md-inline-code,

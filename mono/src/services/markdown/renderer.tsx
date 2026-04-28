@@ -374,5 +374,34 @@ const renderBlock = (block: BlockToken, index: number, onCheckboxToggle?: (lineI
   }
 };
 
-export const renderMarkdown = (markdown: string, onCheckboxToggle?: (lineIndex: number) => void) =>
-  parseBlocks(markdown).map((block, index) => renderBlock(block, index, onCheckboxToggle));
+const renderTableGroup = (blocks: BlockToken[]) => (
+  <div class="md-table-scroll">
+    <div class="md-table-group">
+      {blocks.map((block) => (
+        <div class="md-line md-table">{renderBlockContent(block)}</div>
+      ))}
+    </div>
+  </div>
+);
+
+export const renderMarkdown = (markdown: string, onCheckboxToggle?: (lineIndex: number) => void) => {
+  const blocks = parseBlocks(markdown);
+  const rendered: JSX.Element[] = [];
+
+  for (let index = 0; index < blocks.length; index++) {
+    const block = blocks[index];
+
+    if (block.type !== "table") {
+      rendered.push(renderBlock(block, index, onCheckboxToggle));
+      continue;
+    }
+
+    const tableBlocks = [block];
+    while (index + 1 < blocks.length && blocks[index + 1].type === "table") {
+      tableBlocks.push(blocks[++index]);
+    }
+    rendered.push(renderTableGroup(tableBlocks));
+  }
+
+  return rendered;
+};
