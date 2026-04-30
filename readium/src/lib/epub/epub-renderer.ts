@@ -17,10 +17,29 @@ type SpineSlot = {
   buildPromise: Promise<void>;
 };
 
+type RendererBusyState = {
+  active: boolean;
+  label?: string;
+};
+
+export type PaginationIndexUnit = {
+  leadingSpineIndex: number;
+  renderedSpineCount: number;
+  pageCount: number;
+  pageStart: number;
+};
+
+export type PaginationIndexSnapshot = {
+  units: PaginationIndexUnit[];
+  totalPages: number;
+};
+
 const ACTIVE_HOST_CLASS = "epub-shadow-host";
 const INACTIVE_HOST_CLASS = "epub-shadow-host-prerender";
 const MAX_SLOT_CACHE = 5;
 const PAGE_TURN_TRANSITION = "transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1)";
+const PAGINATION_FRAME_BUDGET_MS = 6;
+const RESOURCE_READY_TIMEOUT_MS = 2500;
 
 export class EpubRenderer {
   private parser: EpubParser;
@@ -37,20 +56,32 @@ export class EpubRenderer {
 
   private currentSpineIndex: number = 0;
   private currentPage: number = 0;
-  private lastKnownCfi: string | undefined;
+  private stableResizeCfi: string | undefined;
+  private stableResizeAnchorTimer: ReturnType<typeof setTimeout> | undefined;
+  private pendingPercentageSeekTimer: ReturnType<typeof setTimeout> | undefined;
   private sparseOpeningSpineCache = new Map<number, boolean>();
   private pendingPercentageSeek: number | null = null;
   private estimatedPagesBySpineIndex = new Map<number, number>();
   private estimatedPagination: {
     pageCounts: number[];
     pageStarts: number[];
+    totalPages: number;
   } | null = null;
+  private exactPaginationIndex: PaginationIndexSnapshot | null = null;
+  private exactPaginationIndexPromise: Promise<void> | null = null;
+  private paginationIndexVersion: number = 0;
 
   private isBusy: boolean = false;
+  private hasPendingResize: boolean = false;
   private prefetchToken: number = 0;
   private resizeObserver: ResizeObserver;
   private reducedMotionQuery: MediaQueryList;
   private onRelocated?: (location: EpubLocation) => void;
+  private onBusy?: (state: RendererBusyState) => void;
+  private onPaginationIndexReady?: (snapshot: PaginationIndexSnapshot) => void;
+  private onPaginationIndexInvalidated?: () => void;
+  private foregroundWorkDepth: number = 0;
+  private isDestroyed: boolean = false;
 
   constructor(parser: EpubParser, packageData: EpubPackage, options: RendererOptions) {
     this.parser = parser;
@@ -63,7 +94,7 @@ export class EpubRenderer {
     this.reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     this.resizeObserver = new ResizeObserver(() => {
-      this.handleResize();
+      void this.handleResize();
     });
     this.resizeObserver.observe(this.options.container);
   }
@@ -72,11 +103,67 @@ export class EpubRenderer {
     this.onRelocated = callback;
   }
 
+  setOnBusy(callback: (state: RendererBusyState) => void) {
+    this.onBusy = callback;
+    callback({ active: this.foregroundWorkDepth > 0 });
+  }
+
+  setOnPaginationIndexReady(callback: (snapshot: PaginationIndexSnapshot) => void) {
+    this.onPaginationIndexReady = callback;
+    const snapshot = this.getExactPaginationIndexSnapshot();
+    if (snapshot) callback(snapshot);
+  }
+
+  setOnPaginationIndexInvalidated(callback: () => void) {
+    this.onPaginationIndexInvalidated = callback;
+  }
+
+  getPaginationMapSignature() {
+    const layout = this.getLayoutInfo();
+    const spineFingerprint = this.hashString(this.package.spine.map((item) => `${item.idref}:${item.size}`).join(","));
+
+    return [
+      "pagination-map-v1",
+      `w=${Math.max(1, Math.round(layout.containerWidth))}`,
+      `h=${Math.max(1, Math.round(this.options.container.clientHeight))}`,
+      `cols=${layout.isTwoColumn ? 2 : 1}`,
+      `fontSize=${this.options.fontSize}`,
+      `fontFamily=${this.options.fontFamily}`,
+      `margin=${this.options.margin}`,
+      `spine=${spineFingerprint}`,
+    ].join("|");
+  }
+
+  getExactPaginationIndexSnapshot(): PaginationIndexSnapshot | null {
+    if (!this.exactPaginationIndex) return null;
+    return this.clonePaginationIndex(this.exactPaginationIndex);
+  }
+
+  restoreExactPaginationIndex(snapshot: PaginationIndexSnapshot) {
+    if (!this.isValidPaginationIndex(snapshot)) return false;
+
+    this.exactPaginationIndex = this.clonePaginationIndex(snapshot);
+    this.exactPaginationIndexPromise = null;
+    this.notifyRelocated(false);
+    return true;
+  }
+
+  async ensureExactPaginationIndexBackground(): Promise<void> {
+    if (this.isDestroyed || this.exactPaginationIndex) return;
+
+    await this.waitUntilForegroundIdle();
+    if (this.isDestroyed || this.exactPaginationIndex) return;
+
+    await this.ensureExactPaginationIndex();
+  }
+
   async display(target?: string | number): Promise<void> {
     if (this.isBusy) return;
     this.isBusy = true;
+    this.beginForegroundWork("Loading page");
 
     try {
+      await this.yieldToMain();
       if (typeof target === "string" && target.startsWith("epubcfi(")) {
         await this.displayCFI(target, true);
       } else if (typeof target === "number") {
@@ -86,14 +173,20 @@ export class EpubRenderer {
       }
     } finally {
       this.isBusy = false;
+      this.endForegroundWork();
       this.notifyRelocated(false);
       this.schedulePrefetchNeighbors();
+      this.flushPendingResize();
     }
   }
 
   async displayCFI(cfi: CFI, internal: boolean = false): Promise<void> {
     if (!internal && this.isBusy) return;
     if (!internal) this.isBusy = true;
+    if (!internal) {
+      this.beginForegroundWork("Loading page");
+      await this.yieldToMain();
+    }
 
     try {
       const parsed = CFIHelper.parse(cfi);
@@ -102,10 +195,10 @@ export class EpubRenderer {
         return;
       }
 
-      const slot = await this.activateLeadingIndex(parsed.spineIndex, 0);
+      const slot = await this.activateLeadingIndex(await this.getLeadingIndexForSpine(parsed.spineIndex), 0);
 
       if (parsed.path) {
-        const element = CFIHelper.getElementByPath(slot.contentElement, parsed.path);
+        const element = this.getElementForCfi(slot, parsed.spineIndex, parsed.path);
         if (element instanceof HTMLElement) {
           const { pageStride, margin } = this.getPaginationMetrics(slot.contentElement);
 
@@ -138,7 +231,7 @@ export class EpubRenderer {
           }
           pageIndex = Math.max(0, Math.min(pageIndex, slot.totalPages - 1));
 
-          this.goToPage(pageIndex, true);
+          this.goToPage(this.normalizePageForLayout(pageIndex), true);
         } else {
           console.warn("[Renderer] CFI path not found in document:", parsed.path);
         }
@@ -146,14 +239,17 @@ export class EpubRenderer {
     } finally {
       if (!internal) {
         this.isBusy = false;
+        this.endForegroundWork();
         this.notifyRelocated(false);
         this.schedulePrefetchNeighbors();
+        this.flushPendingResize();
       }
     }
   }
 
   async next(): Promise<boolean> {
     if (this.isBusy || !this.activeSlot) return false;
+    this.clearPendingPercentageSeek();
 
     const targetPage = this.getNextPageTarget(this.currentPage);
     if (targetPage <= this.activeSlot.totalPages - 1) {
@@ -165,18 +261,23 @@ export class EpubRenderer {
     if (nextLeading > this.package.spine.length - 1) return false;
 
     this.isBusy = true;
+    this.beginForegroundWork("Loading chapter");
     try {
+      await this.yieldToMain();
       await this.activateLeadingIndex(nextLeading, 0);
     } finally {
       this.isBusy = false;
+      this.endForegroundWork();
       this.notifyRelocated(false);
       this.schedulePrefetchNeighbors();
+      this.flushPendingResize();
     }
     return true;
   }
 
   async prev(): Promise<boolean> {
     if (this.isBusy || !this.activeSlot) return false;
+    this.clearPendingPercentageSeek();
 
     const targetPage = this.getPrevPageTarget(this.currentPage);
     if (targetPage >= 0) {
@@ -188,58 +289,102 @@ export class EpubRenderer {
     if (prevLeading === null) return false;
 
     this.isBusy = true;
+    this.beginForegroundWork("Loading chapter");
     try {
+      await this.yieldToMain();
       await this.activateLeadingIndex(prevLeading, "last");
     } finally {
       this.isBusy = false;
+      this.endForegroundWork();
       this.notifyRelocated(false);
       this.schedulePrefetchNeighbors();
+      this.flushPendingResize();
     }
     return true;
   }
 
   async seekToPercentage(percentage: number): Promise<void> {
     const clamped = Math.max(0, Math.min(100, percentage));
+    this.pendingPercentageSeek = clamped;
 
     if (this.isBusy) {
-      this.pendingPercentageSeek = clamped;
+      this.schedulePendingPercentageSeekFlush();
       return;
     }
 
-    let targetPercentage: number | null = clamped;
+    if (!this.exactPaginationIndex) {
+      void this.ensureExactPaginationIndexBackground();
+      return;
+    }
 
-    while (targetPercentage !== null) {
-      this.pendingPercentageSeek = null;
-      this.isBusy = true;
+    await this.flushPendingPercentageSeek();
+  }
 
-      try {
+  private async flushPendingPercentageSeek() {
+    if (this.isDestroyed || this.pendingPercentageSeek === null) return;
+
+    if (this.isBusy) {
+      this.schedulePendingPercentageSeekFlush();
+      return;
+    }
+
+    if (!this.exactPaginationIndex) {
+      void this.ensureExactPaginationIndexBackground();
+      return;
+    }
+
+    this.isBusy = true;
+    let targetPercentage: number | null = this.pendingPercentageSeek;
+    this.beginForegroundWork("Seeking");
+    await this.yieldToMain();
+
+    try {
+      while (targetPercentage !== null) {
+        this.pendingPercentageSeek = null;
         await this.seekToPercentageInternal(targetPercentage);
-      } finally {
-        this.isBusy = false;
-        this.notifyRelocated(false);
-        this.schedulePrefetchNeighbors();
+        targetPercentage = this.pendingPercentageSeek;
       }
+    } finally {
+      this.isBusy = false;
+      this.endForegroundWork();
+      this.notifyRelocated(false);
+      this.schedulePrefetchNeighbors();
+      this.flushPendingResize();
+      if (this.pendingPercentageSeek !== null) {
+        this.schedulePendingPercentageSeekFlush();
+      }
+    }
+  }
 
-      targetPercentage = this.pendingPercentageSeek;
+  private schedulePendingPercentageSeekFlush() {
+    if (this.pendingPercentageSeekTimer !== undefined) return;
+
+    this.pendingPercentageSeekTimer = setTimeout(() => {
+      this.pendingPercentageSeekTimer = undefined;
+      void this.flushPendingPercentageSeek();
+    }, 50);
+  }
+
+  private clearPendingPercentageSeek() {
+    this.pendingPercentageSeek = null;
+    if (this.pendingPercentageSeekTimer !== undefined) {
+      clearTimeout(this.pendingPercentageSeekTimer);
+      this.pendingPercentageSeekTimer = undefined;
     }
   }
 
   private async seekToPercentageInternal(percentage: number) {
-    const target = this.locationTracker.getSpinePositionForPercentage(percentage);
-    const slot = await this.activateLeadingIndex(target.spineIndex, 0);
-    const targetPage = Math.round(target.pageRatio * Math.max(slot.totalPages - 1, 0));
-    this.goToPage(targetPage, true);
+    const target = this.getExactPageTargetForPercentage(percentage);
+    await this.activateLeadingIndex(target.leadingSpineIndex, 0);
+    this.goToPage(this.normalizePageForLayout(target.pageIndex), true);
   }
 
   getGlobalPageNumberForPercentage(percentage: number): number | null {
-    const target = this.locationTracker.getSpinePositionForPercentage(percentage);
-    const estimatedPagination = this.getEstimatedPagination();
-    const targetPageCount = estimatedPagination.pageCounts[target.spineIndex];
-    const targetPageStart = estimatedPagination.pageStarts[target.spineIndex];
-    if (targetPageCount === undefined || targetPageStart === undefined) return null;
+    const index = this.exactPaginationIndex;
+    if (!index) return null;
 
-    const zeroBasedPage = targetPageStart + target.pageRatio * Math.max(targetPageCount - 1, 0);
-    return Math.max(1, Math.round(zeroBasedPage) + 1);
+    const zeroBasedPage = this.getExactGlobalPageIndexForPercentage(percentage, index);
+    return zeroBasedPage + 1;
   }
 
   private getNormalizedSpineSize(index: number) {
@@ -269,12 +414,12 @@ export class EpubRenderer {
       return start;
     });
 
-    const nextPagination = {
+    this.estimatedPagination = {
       pageCounts,
       pageStarts,
+      totalPages: Math.max(1, pageCursor),
     };
-    this.estimatedPagination = nextPagination;
-    return nextPagination;
+    return this.estimatedPagination;
   }
 
   private getAveragePagesPerSpineUnit() {
@@ -317,7 +462,7 @@ export class EpubRenderer {
     const totalSize = this.getNormalizedSpineRangeSize(slot.leadingSpineIndex, coveredSpineCount);
     if (totalSize <= 0) return;
 
-    const pagesPerSpineUnit = slot.totalPages / totalSize;
+    const pagesPerSpineUnit = Math.max(1, slot.totalPages) / totalSize;
     for (
       let spineIndex = slot.leadingSpineIndex;
       spineIndex < slot.leadingSpineIndex + coveredSpineCount && spineIndex < this.package.spine.length;
@@ -331,6 +476,155 @@ export class EpubRenderer {
   private invalidatePageNumberEstimates() {
     this.estimatedPagesBySpineIndex.clear();
     this.estimatedPagination = null;
+  }
+
+  private invalidatePaginationIndex() {
+    this.exactPaginationIndex = null;
+    this.exactPaginationIndexPromise = null;
+    this.paginationIndexVersion += 1;
+    if (!this.isDestroyed) {
+      this.onPaginationIndexInvalidated?.();
+    }
+  }
+
+  private async ensureExactPaginationIndex() {
+    if (this.isDestroyed) return;
+    if (this.exactPaginationIndex) return;
+    if (this.exactPaginationIndexPromise) {
+      await this.exactPaginationIndexPromise;
+      return;
+    }
+
+    const version = this.paginationIndexVersion;
+    const promise = this.buildExactPaginationIndex(version).finally(() => {
+      if (this.exactPaginationIndexPromise === promise) {
+        this.exactPaginationIndexPromise = null;
+      }
+    });
+    this.exactPaginationIndexPromise = promise;
+    await promise;
+  }
+
+  private async buildExactPaginationIndex(version: number) {
+    const units: PaginationIndexUnit[] = [];
+    let pageStart = 0;
+    let leadingSpineIndex = 0;
+    const spineTotal = this.package.spine.length;
+
+    while (!this.isDestroyed && leadingSpineIndex < spineTotal && version === this.paginationIndexVersion) {
+      await this.yieldToIdle();
+      const slot = await this.ensureSlot(leadingSpineIndex);
+      const pageCount = Math.max(1, slot.totalPages);
+      const renderedSpineCount = Math.max(1, slot.renderedSpineCount);
+
+      units.push({
+        leadingSpineIndex,
+        renderedSpineCount,
+        pageCount,
+        pageStart,
+      });
+
+      pageStart += pageCount;
+      leadingSpineIndex += renderedSpineCount;
+    }
+
+    if (this.isDestroyed || version !== this.paginationIndexVersion) return;
+
+    this.publishExactPaginationIndex({
+      units,
+      totalPages: Math.max(1, pageStart),
+    });
+  }
+
+  private publishExactPaginationIndex(index: PaginationIndexSnapshot) {
+    this.exactPaginationIndex = this.clonePaginationIndex(index);
+
+    const snapshot = this.getExactPaginationIndexSnapshot();
+    if (snapshot) {
+      this.onPaginationIndexReady?.(snapshot);
+    }
+
+    this.notifyRelocated(false);
+    if (this.pendingPercentageSeek !== null) {
+      void this.flushPendingPercentageSeek();
+    }
+  }
+
+  private clonePaginationIndex(index: PaginationIndexSnapshot): PaginationIndexSnapshot {
+    return {
+      totalPages: index.totalPages,
+      units: index.units.map((unit) => ({ ...unit })),
+    };
+  }
+
+  private isValidPaginationIndex(index: PaginationIndexSnapshot) {
+    if (!Number.isFinite(index.totalPages) || index.totalPages < 1 || index.units.length === 0) return false;
+
+    let pageStart = 0;
+    let previousLeadingIndex = -1;
+    for (const unit of index.units) {
+      if (
+        !Number.isInteger(unit.leadingSpineIndex) ||
+        !Number.isInteger(unit.renderedSpineCount) ||
+        !Number.isInteger(unit.pageCount) ||
+        !Number.isInteger(unit.pageStart)
+      ) {
+        return false;
+      }
+
+      if (
+        unit.leadingSpineIndex <= previousLeadingIndex ||
+        unit.leadingSpineIndex < 0 ||
+        unit.leadingSpineIndex >= this.package.spine.length ||
+        unit.renderedSpineCount < 1 ||
+        unit.pageCount < 1 ||
+        unit.pageStart !== pageStart
+      ) {
+        return false;
+      }
+
+      previousLeadingIndex = unit.leadingSpineIndex;
+      pageStart += unit.pageCount;
+    }
+
+    return Math.max(1, pageStart) === index.totalPages;
+  }
+
+  private getExactGlobalPageIndexForPercentage(percentage: number, index: PaginationIndexSnapshot) {
+    const clamped = Math.max(0, Math.min(100, percentage));
+    return Math.round((clamped / 100) * Math.max(index.totalPages - 1, 0));
+  }
+
+  private getExactPageTargetForPercentage(percentage: number) {
+    const index = this.exactPaginationIndex;
+    if (!index) {
+      throw new Error("Exact pagination index is not ready");
+    }
+
+    const globalPageIndex = this.getExactGlobalPageIndexForPercentage(percentage, index);
+    let low = 0;
+    let high = index.units.length - 1;
+    let unit = index.units[0]!;
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const candidate = index.units[mid]!;
+      const unitEnd = candidate.pageStart + candidate.pageCount;
+
+      if (globalPageIndex < candidate.pageStart) {
+        high = mid - 1;
+      } else if (globalPageIndex >= unitEnd) {
+        low = mid + 1;
+      } else {
+        unit = candidate;
+        break;
+      }
+    }
+
+    return {
+      leadingSpineIndex: unit.leadingSpineIndex,
+      pageIndex: Math.max(0, Math.min(unit.pageCount - 1, globalPageIndex - unit.pageStart)),
+    };
   }
 
   private async activateLeadingIndex(leadingIndex: number, pageTarget: number | "last"): Promise<SpineSlot> {
@@ -347,6 +641,10 @@ export class EpubRenderer {
   }
 
   private async ensureSlot(leadingIndex: number): Promise<SpineSlot> {
+    if (this.isDestroyed) {
+      throw new Error("Renderer has been destroyed");
+    }
+
     const existing = this.slots.get(leadingIndex);
     if (existing) {
       await existing.buildPromise;
@@ -357,6 +655,10 @@ export class EpubRenderer {
   }
 
   private async createSlot(leadingIndex: number): Promise<SpineSlot> {
+    if (this.isDestroyed) {
+      throw new Error("Renderer has been destroyed");
+    }
+
     const shadowHost = document.createElement("div");
     shadowHost.className = INACTIVE_HOST_CLASS;
     shadowHost.style.cssText =
@@ -397,19 +699,34 @@ export class EpubRenderer {
   }
 
   private async populateSlot(slot: SpineSlot): Promise<void> {
+    if (this.isDestroyed) return;
+
     const { attributes, leadingMergedColumnCount, processedHtml, renderedSpineCount } = await this.buildRenderableSpine(
       slot.leadingSpineIndex,
     );
-    if (!slot.shadowHost.isConnected) return;
+    if (this.isDestroyed || !slot.shadowHost.isConnected) return;
 
     slot.renderedSpineCount = renderedSpineCount;
     slot.leadingMergedColumnCount = leadingMergedColumnCount;
 
     this.renderIntoSlot(slot, processedHtml, attributes);
+    await this.yieldToMain();
+    let sliceStartedAt = performance.now();
+    await this.epubStyler.snapMarginsToGridCooperative(
+      slot.contentElement,
+      this.options.fontSize,
+      this.options,
+      () => performance.now() - sliceStartedAt >= PAGINATION_FRAME_BUDGET_MS,
+      async () => {
+        await this.yieldToMain();
+        sliceStartedAt = performance.now();
+      },
+    );
     await this.waitResourcesReady(slot.contentElement);
-    if (!slot.shadowHost.isConnected) return;
+    if (this.isDestroyed || !slot.shadowHost.isConnected) return;
+    await this.yieldToMain();
     void slot.contentElement.offsetWidth;
-    slot.totalPages = this.measurePages(slot);
+    slot.totalPages = await this.measurePages(slot);
     this.recordPageEstimate(slot);
   }
 
@@ -424,7 +741,6 @@ export class EpubRenderer {
     });
     slot.contentElement.innerHTML = html;
     this.epubStyler.applyStyles(slot.contentElement, slot.shadowRoot, this.options, false);
-    this.epubStyler.snapMarginsToGrid(slot.contentElement, this.options.fontSize, this.options);
   }
 
   private setActiveSlot(slot: SpineSlot) {
@@ -455,27 +771,37 @@ export class EpubRenderer {
     if (!internal) {
       this.notifyRelocated(true);
     }
+    this.scheduleStableResizeAnchorUpdate(internal);
   }
 
   private shouldAnimatePageTurn(internal: boolean) {
     return !internal && !this.reducedMotionQuery.matches;
   }
 
-  private measurePages(slot: SpineSlot): number {
+  private async measurePages(slot: SpineSlot): Promise<number> {
     const { pageStride, margin } = this.getPaginationMetrics(slot.contentElement);
     const contentRect = slot.contentElement.getBoundingClientRect();
     let maxRight = margin;
+    let sliceStartedAt = performance.now();
 
     const updateMaxRight = (rect: DOMRect) => {
       if (rect.width === 0 || rect.height === 0) return;
       maxRight = Math.max(maxRight, rect.right - contentRect.left);
     };
 
-    for (const element of Array.from(
+    const yieldIfNeeded = async () => {
+      if (performance.now() - sliceStartedAt < PAGINATION_FRAME_BUDGET_MS) return;
+      await this.yieldToMain();
+      sliceStartedAt = performance.now();
+    };
+
+    const elements = Array.from(
       slot.contentElement.querySelectorAll<HTMLElement>(
         "p, h1, h2, h3, h4, h5, h6, li, blockquote, dd, dt, img, svg, hr",
       ),
-    )) {
+    );
+
+    for (const element of elements) {
       const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
       let foundText = false;
 
@@ -490,13 +816,20 @@ export class EpubRenderer {
         for (const rect of Array.from(range.getClientRects())) {
           updateMaxRight(rect);
         }
+
+        await yieldIfNeeded();
       }
 
-      if (foundText) continue;
+      if (foundText) {
+        await yieldIfNeeded();
+        continue;
+      }
 
       for (const rect of Array.from(element.getClientRects())) {
         updateMaxRight(rect);
       }
+
+      await yieldIfNeeded();
     }
 
     const computedPages = Math.max(1, Math.ceil((maxRight - margin) / pageStride));
@@ -627,6 +960,29 @@ export class EpubRenderer {
     return leadingIndex - 1;
   }
 
+  private async getLeadingIndexForSpine(spineIndex: number) {
+    if (spineIndex > 0 && (await this.shouldMergeWithFollowingSpine(spineIndex - 1))) {
+      return spineIndex - 1;
+    }
+    return spineIndex;
+  }
+
+  private getElementForCfi(slot: SpineSlot, spineIndex: number, path: string) {
+    if (spineIndex === slot.leadingSpineIndex && slot.renderedSpineCount > 1) {
+      const leadingSpine = slot.contentElement.querySelector(".epub-leading-spine-sparse");
+      return leadingSpine
+        ? CFIHelper.getElementByPath(leadingSpine, path)
+        : CFIHelper.getElementByPath(slot.contentElement, path);
+    }
+
+    if (spineIndex === slot.leadingSpineIndex + 1 && slot.renderedSpineCount > 1) {
+      const followingSpine = slot.contentElement.querySelector(".epub-following-spine");
+      return followingSpine ? CFIHelper.getElementByPath(followingSpine, path) : null;
+    }
+
+    return CFIHelper.getElementByPath(slot.contentElement, path);
+  }
+
   private async buildRenderableSpine(index: number) {
     const manifestItem = this.getManifestItemBySpineIndex(index);
 
@@ -649,6 +1005,8 @@ export class EpubRenderer {
     const shouldMerge = nextManifestItem !== null && (await this.shouldMergeWithFollowingSpine(index));
 
     if (shouldMerge && nextManifestItem) {
+      bodyHtml = `<div class="epub-leading-spine-sparse">${bodyHtml}</div>`;
+
       const nextHtmlContent = await this.parser.getFileAsText(this.parser.resolvePath(nextManifestItem.href));
       const nextDoc = this.parser.parseMarkup(nextHtmlContent, nextManifestItem.mediaType);
 
@@ -656,7 +1014,9 @@ export class EpubRenderer {
       this.resourceResolver.resolveLinks(nextDoc);
 
       combinedStyles += await this.epubStyler.resolveCombinedStyles(nextDoc, nextManifestItem.href);
-      bodyHtml += `<div class="epub-following-spine">${this.parser.serializeBodyInnerHtml(nextDoc)}</div>`;
+      bodyHtml += `<div class="epub-following-spine epub-following-spine-opening">${this.parser.serializeBodyInnerHtml(
+        nextDoc,
+      )}</div>`;
       renderedSpineCount = 2;
       leadingMergedColumnCount = 1;
     }
@@ -701,42 +1061,55 @@ export class EpubRenderer {
       }
     });
 
-    await Promise.all(promises);
+    await this.withTimeout(Promise.all(promises), RESOURCE_READY_TIMEOUT_MS);
   }
 
   async handleResize() {
-    if (this.isBusy || !this.activeSlot) return;
+    if (this.isBusy) {
+      this.hasPendingResize = true;
+      return;
+    }
+    if (!this.activeSlot) return;
+
+    const previousSlot = this.activeSlot;
+    const previousLeadingIndex = previousSlot.leadingSpineIndex;
+    const previousPage = this.currentPage;
+    const previousPageRatio = previousSlot.totalPages > 1 ? previousPage / Math.max(previousSlot.totalPages - 1, 1) : 0;
+
     this.isBusy = true;
-    this.invalidatePageNumberEstimates();
+    this.hasPendingResize = false;
+    this.beginForegroundWork("Repaginating");
 
     try {
-      const activeIndex = this.activeSlot.leadingSpineIndex;
-      for (const [index, slot] of Array.from(this.slots.entries())) {
-        if (index === activeIndex) continue;
-        this.destroySlot(slot);
-        this.slots.delete(index);
-      }
-      this.slotLru = this.slotLru.filter((i) => i === activeIndex);
+      await this.yieldToMain();
+      const parsedAnchor = this.stableResizeCfi ? CFIHelper.parse(this.stableResizeCfi) : null;
+      const targetLeadingIndex = parsedAnchor
+        ? await this.getLeadingIndexForSpine(parsedAnchor.spineIndex)
+        : await this.getLeadingIndexForSpine(previousLeadingIndex);
 
-      const cfi = this.lastKnownCfi;
+      this.invalidatePaginationIndex();
+      this.invalidatePageNumberEstimates();
+      this.destroyAllSlots();
 
-      this.epubStyler.applyStyles(this.activeSlot.contentElement, this.activeSlot.shadowRoot, this.options, true);
-      this.epubStyler.snapMarginsToGrid(this.activeSlot.contentElement, this.options.fontSize, this.options);
-      await this.waitResourcesReady(this.activeSlot.contentElement);
-      void this.activeSlot.contentElement.offsetWidth;
-      this.activeSlot.totalPages = this.measurePages(this.activeSlot);
-      this.recordPageEstimate(this.activeSlot);
-
-      if (cfi) {
-        await this.displayCFI(cfi, true);
+      if (this.stableResizeCfi) {
+        await this.displayCFI(this.stableResizeCfi, true);
       } else {
-        this.goToPage(this.currentPage, true);
+        const slot = await this.activateLeadingIndex(targetLeadingIndex, 0);
+        const targetPage = Math.round(previousPageRatio * Math.max(slot.totalPages - 1, 0));
+        this.goToPage(this.normalizePageForLayout(targetPage), true);
       }
     } finally {
       this.isBusy = false;
+      this.endForegroundWork();
       this.notifyRelocated(false);
       this.schedulePrefetchNeighbors();
+      this.flushPendingResize();
     }
+  }
+
+  private flushPendingResize() {
+    if (!this.hasPendingResize || this.isBusy || !this.activeSlot || this.isDestroyed) return;
+    void this.handleResize();
   }
 
   private touchLru(index: number) {
@@ -824,8 +1197,27 @@ export class EpubRenderer {
       containerWidth,
     )!;
 
-    if (loc?.start?.cfi) {
-      this.lastKnownCfi = loc.start.cfi;
+    if (loc?.start?.displayed && slot && this.exactPaginationIndex) {
+      const unit = this.exactPaginationIndex.units.find((unit) => unit.leadingSpineIndex === slot.leadingSpineIndex);
+      if (unit) {
+        const globalPageIndex = Math.max(
+          0,
+          Math.min(this.exactPaginationIndex.totalPages - 1, unit.pageStart + this.currentPage),
+        );
+        loc.start.displayed.percentage =
+          this.exactPaginationIndex.totalPages > 1
+            ? (globalPageIndex / (this.exactPaginationIndex.totalPages - 1)) * 100
+            : 0;
+      }
+    } else if (loc?.start?.displayed && slot) {
+      const estimatedPagination = this.getEstimatedPagination();
+      const pageStart = estimatedPagination.pageStarts[slot.leadingSpineIndex];
+      if (pageStart !== undefined) {
+        const globalPageIndex = Math.max(0, Math.min(estimatedPagination.totalPages - 1, pageStart + this.currentPage));
+        const estimatedPercentage =
+          estimatedPagination.totalPages > 1 ? (globalPageIndex / (estimatedPagination.totalPages - 1)) * 100 : 0;
+        loc.start.displayed.percentage = Math.max(loc.start.displayed.percentage, estimatedPercentage);
+      }
     }
 
     return loc;
@@ -835,10 +1227,184 @@ export class EpubRenderer {
     if (this.isBusy) return;
     if (this.onRelocated) {
       const loc = this.getCurrentLocation(basic);
-      if (loc?.start?.cfi) {
-        this.lastKnownCfi = loc.start.cfi;
-      }
       this.onRelocated(loc);
+    }
+  }
+
+  private scheduleStableResizeAnchorUpdate(internal: boolean) {
+    if (this.stableResizeAnchorTimer !== undefined) {
+      clearTimeout(this.stableResizeAnchorTimer);
+    }
+
+    const slot = this.activeSlot;
+    const page = this.currentPage;
+    const delay = this.shouldAnimatePageTurn(internal) ? 260 : 0;
+
+    this.stableResizeAnchorTimer = setTimeout(() => {
+      this.stableResizeAnchorTimer = undefined;
+      if (this.isDestroyed || this.activeSlot !== slot || this.currentPage !== page) return;
+      this.stableResizeCfi = this.getVisualResizeAnchorCfi(slot);
+    }, delay);
+  }
+
+  private getVisualResizeAnchorCfi(slot: SpineSlot | null) {
+    if (!slot) return undefined;
+
+    const viewerRect = this.options.container.getBoundingClientRect();
+    const midpoint = viewerRect.left + viewerRect.width / 2;
+    const preferRightColumn = this.isTwoColumnLayout();
+    const candidates: Array<{
+      element: HTMLElement;
+      rect: DOMRect;
+      root: HTMLElement;
+      spineIndex: number;
+    }> = [];
+
+    for (const element of Array.from(
+      slot.contentElement.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6, p, li, blockquote, img"),
+    )) {
+      for (const rect of Array.from(element.getClientRects())) {
+        if (rect.width === 0 || rect.height === 0) continue;
+        if (rect.right <= viewerRect.left || rect.left >= viewerRect.right) continue;
+        if (rect.bottom <= viewerRect.top || rect.top >= viewerRect.bottom) continue;
+
+        const target = this.getCfiRootForElement(slot, element);
+        if (!target) continue;
+
+        candidates.push({
+          element,
+          rect,
+          root: target.root,
+          spineIndex: target.spineIndex,
+        });
+      }
+    }
+
+    const columnCandidates = preferRightColumn
+      ? candidates.filter((candidate) => candidate.rect.left >= midpoint || candidate.rect.right > midpoint)
+      : candidates;
+    const visibleCandidates = columnCandidates.length > 0 ? columnCandidates : candidates;
+    visibleCandidates.sort((a, b) => a.rect.top - b.rect.top || a.rect.left - b.rect.left);
+
+    const anchor = visibleCandidates[0];
+    if (!anchor) return undefined;
+
+    const offset = this.getFirstVisibleTextOffset(anchor.element, viewerRect, preferRightColumn ? midpoint : undefined);
+    return CFIHelper.generate(anchor.spineIndex, anchor.element, anchor.root, offset);
+  }
+
+  private getCfiRootForElement(slot: SpineSlot, element: HTMLElement) {
+    if (slot.renderedSpineCount > 1) {
+      const leadingSpine = slot.contentElement.querySelector<HTMLElement>(".epub-leading-spine-sparse");
+      if (leadingSpine?.contains(element)) {
+        return { root: leadingSpine, spineIndex: slot.leadingSpineIndex };
+      }
+
+      const followingSpine = slot.contentElement.querySelector<HTMLElement>(".epub-following-spine");
+      if (followingSpine?.contains(element)) {
+        return { root: followingSpine, spineIndex: slot.leadingSpineIndex + 1 };
+      }
+    }
+
+    return { root: slot.contentElement, spineIndex: slot.leadingSpineIndex };
+  }
+
+  private getFirstVisibleTextOffset(element: HTMLElement, viewerRect: DOMRect, minLeft?: number) {
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    let cumulativeOffset = 0;
+    let node: Node | null;
+
+    while ((node = walker.nextNode())) {
+      const textNode = node as Text;
+      const textLength = textNode.length;
+
+      for (let offset = 0; offset < textLength; offset += 1) {
+        const range = document.createRange();
+        range.setStart(textNode, offset);
+        range.setEnd(textNode, Math.min(textLength, offset + 1));
+        const rect = range.getBoundingClientRect();
+
+        if (
+          rect.width > 0 &&
+          rect.height > 0 &&
+          rect.right > viewerRect.left &&
+          rect.left < viewerRect.right &&
+          rect.bottom > viewerRect.top &&
+          rect.top < viewerRect.bottom &&
+          (minLeft === undefined || rect.right > minLeft)
+        ) {
+          return cumulativeOffset + offset;
+        }
+      }
+
+      cumulativeOffset += textLength;
+    }
+
+    return 0;
+  }
+
+  private beginForegroundWork(label: string) {
+    this.foregroundWorkDepth += 1;
+    this.onBusy?.({ active: true, label });
+  }
+
+  private endForegroundWork() {
+    this.foregroundWorkDepth = Math.max(0, this.foregroundWorkDepth - 1);
+    if (this.foregroundWorkDepth === 0) {
+      this.onBusy?.({ active: false });
+    }
+  }
+
+  private async yieldToMain() {
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 0);
+    });
+  }
+
+  private async yieldToIdle() {
+    const requestIdle = (
+      globalThis as unknown as {
+        requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      }
+    ).requestIdleCallback;
+
+    await new Promise<void>((resolve) => {
+      if (typeof requestIdle === "function") {
+        requestIdle(resolve, { timeout: 250 });
+      } else {
+        window.setTimeout(resolve, 16);
+      }
+    });
+  }
+
+  private async waitUntilForegroundIdle() {
+    while (this.isBusy && !this.isDestroyed) {
+      await this.yieldToIdle();
+    }
+  }
+
+  private hashString(value: string) {
+    let hash = 2166136261;
+    for (let index = 0; index < value.length; index += 1) {
+      hash ^= value.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(36);
+  }
+
+  private async withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T | undefined> {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        promise,
+        new Promise<void>((resolve) => {
+          timeout = setTimeout(resolve, timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timeout !== undefined) {
+        clearTimeout(timeout);
+      }
     }
   }
 
@@ -864,9 +1430,23 @@ export class EpubRenderer {
   }
 
   destroy() {
+    this.isDestroyed = true;
     this.resizeObserver.disconnect();
     this.resourceResolver.destroy();
     this.prefetchToken++;
+    if (this.stableResizeAnchorTimer !== undefined) {
+      clearTimeout(this.stableResizeAnchorTimer);
+      this.stableResizeAnchorTimer = undefined;
+    }
+    if (this.pendingPercentageSeekTimer !== undefined) {
+      clearTimeout(this.pendingPercentageSeekTimer);
+      this.pendingPercentageSeekTimer = undefined;
+    }
+    this.invalidatePaginationIndex();
     this.destroyAllSlots();
+    this.onBusy = undefined;
+    this.onRelocated = undefined;
+    this.onPaginationIndexReady = undefined;
+    this.onPaginationIndexInvalidated = undefined;
   }
 }

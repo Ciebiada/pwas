@@ -71,6 +71,7 @@ export class EpubStyler {
     const userScale = fontSize / 100;
     const backgroundColor = options.theme === "dark" ? "#000000" : "#ffffff";
     const textColor = options.theme === "dark" ? "#dedede" : "#000000";
+    const pageFillHeight = this.getPageFillHeight(options);
 
     const { columnWidth, gap } = computeLayoutInfo(options);
 
@@ -84,6 +85,7 @@ export class EpubStyler {
             --reader-background-color: ${backgroundColor};
             --reader-text-color: ${textColor};
             --user-font-scale: ${userScale};
+            --reader-page-fill-height: ${pageFillHeight}px;
             box-sizing: border-box;
             font-size: ${fontSize}%;
             font-family: ${fontFamily};
@@ -185,9 +187,27 @@ export class EpubStyler {
                 box-sizing: border-box;
                 z-index: 1;
             }
+            .epub-content > .epub-leading-spine-sparse {
+                display: block;
+                box-sizing: border-box;
+                height: var(--reader-page-fill-height);
+                min-height: var(--reader-page-fill-height);
+                max-height: var(--reader-page-fill-height);
+                overflow: hidden;
+                break-inside: avoid;
+            }
+            .epub-content > .epub-following-spine-opening {
+                position: relative;
+            }
+            .epub-content > .epub-following-spine-opening > .epub-merged-opening-block {
+                box-sizing: border-box;
+                height: var(--reader-page-fill-height);
+                min-height: var(--reader-page-fill-height);
+                max-height: var(--reader-page-fill-height);
+                overflow: hidden;
+            }
             .epub-content > .epub-following-spine {
                 display: block;
-                break-before: column;
             }
             .epub-content td {
                 line-height: ${lineHeight}px !important;
@@ -216,15 +236,23 @@ export class EpubStyler {
         `;
   }
 
-  snapMarginsToGrid(contentElement: HTMLElement | null, fontSize: number, options?: RendererOptions) {
+  async snapMarginsToGridCooperative(
+    contentElement: HTMLElement | null,
+    fontSize: number,
+    options: RendererOptions | undefined,
+    shouldYield: () => boolean,
+    yieldToMain: () => Promise<void>,
+  ) {
     if (!contentElement) return;
 
     const gridUnit = Math.round(fontSize * 0.16 * 1.6);
-    const elements = contentElement.querySelectorAll(
-      "h1, h2, h3, h4, h5, h6, p, blockquote, div, section, article, ul, ol, li, pre, figure, dt, dd, hr",
+    const elements = Array.from(
+      contentElement.querySelectorAll(
+        "h1, h2, h3, h4, h5, h6, p, blockquote, div, section, article, ul, ol, li, pre, figure, dt, dd, hr",
+      ),
     );
 
-    elements.forEach((el) => {
+    for (const el of elements) {
       const element = el as HTMLElement;
       const computed = getComputedStyle(element);
 
@@ -249,21 +277,28 @@ export class EpubStyler {
         const snapped = Math.round(paddingBottom / gridUnit) * gridUnit;
         element.style.setProperty("padding-bottom", `${snapped}px`, "important");
       }
-    });
 
-    const images = contentElement.querySelectorAll("img, svg");
-    images.forEach((el) => {
+      if (shouldYield()) {
+        await yieldToMain();
+      }
+    }
+
+    const images = Array.from(contentElement.querySelectorAll("img, svg"));
+    for (const el of images) {
       const element = el as HTMLElement;
       const rect = element.getBoundingClientRect();
       if (rect.height > 0) {
         const snappedHeight = Math.round(rect.height / gridUnit) * gridUnit;
         element.style.height = `${snappedHeight}px`;
       }
-    });
 
-    // Handle elements with font-size larger than the grid unit
-    const textElements = contentElement.querySelectorAll("h1, h2, h3, h4, h5, h6, p, div, span, a");
-    textElements.forEach((el) => {
+      if (shouldYield()) {
+        await yieldToMain();
+      }
+    }
+
+    const textElements = Array.from(contentElement.querySelectorAll("h1, h2, h3, h4, h5, h6, p, div, span, a"));
+    for (const el of textElements) {
       const element = el as HTMLElement;
       const computed = getComputedStyle(element);
       const fontSize = parseFloat(computed.fontSize);
@@ -273,7 +308,11 @@ export class EpubStyler {
         const newLineHeight = multiple * gridUnit;
         element.style.setProperty("line-height", `${newLineHeight}px`, "important");
       }
-    });
+
+      if (shouldYield()) {
+        await yieldToMain();
+      }
+    }
 
     this.layoutOpeningBlock(contentElement, options, gridUnit);
   }
@@ -293,6 +332,7 @@ export class EpubStyler {
 
     const { isTwoColumn, columnWidth, margin } = computeLayoutInfo(options);
     const existingWrapper = contentElement.querySelector<HTMLElement>(":scope > .epub-opening-block");
+    this.layoutMergedOpening(contentElement, options, gridUnit);
 
     if (!isTwoColumn) {
       if (existingWrapper) {
@@ -328,6 +368,55 @@ export class EpubStyler {
         );
       }
     }
+  }
+
+  private layoutMergedOpening(contentElement: HTMLElement, options: RendererOptions, gridUnit?: number) {
+    const { isTwoColumn, columnWidth } = computeLayoutInfo(options);
+    const followingSpine = contentElement.querySelector<HTMLElement>(":scope > .epub-following-spine-opening");
+    const existingWrapper = followingSpine?.querySelector<HTMLElement>(":scope > .epub-merged-opening-block");
+
+    if (!followingSpine) return;
+
+    if (!isTwoColumn) {
+      if (existingWrapper) {
+        this.unwrapOpeningBlock(existingWrapper);
+      }
+      followingSpine.style.removeProperty("min-height");
+      followingSpine.style.removeProperty("padding-top");
+      return;
+    }
+
+    const openingHeading = Array.from(followingSpine.children).find(
+      (child) => child instanceof HTMLElement && (child.tagName === "H1" || child.tagName === "H2"),
+    );
+
+    if (!(openingHeading instanceof HTMLElement)) return;
+
+    const wrapper = existingWrapper ?? document.createElement("div");
+    if (!existingWrapper) {
+      wrapper.className = "epub-merged-opening-block";
+      followingSpine.insertBefore(wrapper, openingHeading);
+      wrapper.appendChild(openingHeading);
+    }
+
+    const pageFillHeight = this.getPageFillHeight(options, gridUnit);
+    this.setFixedPageBox(wrapper, columnWidth, pageFillHeight);
+    wrapper.style.marginLeft = "0";
+    wrapper.style.marginRight = "0";
+    followingSpine.style.paddingTop = "0";
+  }
+
+  private getPageFillHeight(options: RendererOptions, minimumHeight: number = 1) {
+    return Math.max(minimumHeight, options.container.clientHeight - (isIOS ? 1 : 0));
+  }
+
+  private setFixedPageBox(element: HTMLElement, width: number, height: number) {
+    element.style.boxSizing = "border-box";
+    element.style.width = `${width}px`;
+    element.style.height = `${height}px`;
+    element.style.minHeight = `${height}px`;
+    element.style.maxHeight = `${height}px`;
+    element.style.overflow = "hidden";
   }
 
   private measureOpeningOffsetDelta(

@@ -85,7 +85,6 @@ export class LocationTracker {
     if (!currentSpineItem) return null;
 
     const globalProgress = this.getPercentageForPosition(currentSpineIndex, currentPage, totalPages);
-
     const displayed = {
       page: currentPage + 1,
       total: totalPages,

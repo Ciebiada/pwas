@@ -6,6 +6,7 @@ import { Modal, ModalPage, ModalSelect, ModalSlider, ModalToggle } from "ui/Moda
 import { db } from "../db";
 import type { EpubManifestItem, EpubPackage } from "../lib/epub";
 import { EpubParser, EpubRenderer } from "../lib/epub";
+import { PaginationMapCache } from "../lib/epub/pagination-map-cache";
 import type { Theme } from "../store/settings";
 import { settings, THEMES, updateSettings } from "../store/settings";
 
@@ -20,6 +21,7 @@ const Reader = (props: { onClose: () => void }) => {
 
   let viewerRef: HTMLDivElement | undefined;
   let rendererRef: EpubRenderer | undefined;
+  let paginationMapCache: PaginationMapCache | undefined;
   let isDisposed = false;
   let loadContentEntries: (() => Promise<void>) | null = null;
   let contentEntriesPromise: Promise<void> | null = null;
@@ -32,6 +34,7 @@ const Reader = (props: { onClose: () => void }) => {
   const [contentEntries, setContentEntries] = createSignal<ContentEntry[]>([]);
   const [contentsSliderValue, setContentsSliderValue] = createSignal(0);
   const [contentsPageNumber, setContentsPageNumber] = createSignal<number | null>(null);
+  const [rendererBusy, setRendererBusy] = createSignal<{ active: boolean; label?: string }>({ active: false });
   const [progress, setProgress] = createSignal<{
     current: number;
     total: number;
@@ -432,6 +435,8 @@ const Reader = (props: { onClose: () => void }) => {
 
     if (debounceTimer) clearTimeout(debounceTimer);
     cancelScheduledContentEntriesLoad();
+    paginationMapCache?.dispose();
+    paginationMapCache = undefined;
     loadContentEntries = null;
     contentEntriesPromise = null;
     rendererRef?.destroy();
@@ -504,8 +509,25 @@ const Reader = (props: { onClose: () => void }) => {
           }
         }
       });
-
+      renderer.setOnBusy(setRendererBusy);
       rendererRef = renderer;
+      paginationMapCache = new PaginationMapCache({
+        getBookId: bookId,
+        getRenderer: () => rendererRef,
+        onReady: () => {
+          if (!isDisposed && showContents()) {
+            syncContentsPageNumber(contentsSliderValue());
+          }
+        },
+      });
+      renderer.setOnPaginationIndexReady((snapshot) => {
+        void paginationMapCache?.save(snapshot);
+      });
+      renderer.setOnPaginationIndexInvalidated(() => {
+        setContentsPageNumber(null);
+        paginationMapCache?.schedule();
+      });
+
       setRenderer(renderer);
 
       // Determine initial location
@@ -521,6 +543,7 @@ const Reader = (props: { onClose: () => void }) => {
       }
 
       await renderer.display(initialLocation);
+      paginationMapCache.schedule(true);
       void ensureContentEntriesLoaded();
 
       // Keyboard
@@ -623,6 +646,15 @@ const Reader = (props: { onClose: () => void }) => {
   return (
     <div class="reader-container">
       <div class="reader-viewer" ref={viewerRef} onClick={handleViewerClick} />
+
+      <Show when={rendererBusy().active}>
+        <div class="reader-loading-overlay" aria-live="polite" aria-busy="true">
+          <div class="reader-loading-card">
+            <span class="reader-loading-spinner" />
+            <span>{rendererBusy().label ?? "Loading"}</span>
+          </div>
+        </div>
+      </Show>
 
       {/* TODO: remove those hardcoded theme values */}
       <div class="reader-footer">
