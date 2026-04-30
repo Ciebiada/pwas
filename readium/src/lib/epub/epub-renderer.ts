@@ -1125,8 +1125,12 @@ export class EpubRenderer {
       this.invalidatePageNumberEstimates();
       this.destroyAllSlots();
 
-      if (this.stableResizeCfi) {
-        await this.displayCFI(this.stableResizeCfi, true);
+      const resizeAnchorCfi = this.stableResizeCfi;
+
+      if (resizeAnchorCfi) {
+        await this.displayCFI(resizeAnchorCfi, true);
+        this.cancelStableResizeAnchorUpdate();
+        this.stableResizeCfi = resizeAnchorCfi;
       } else {
         const slot = await this.activateLeadingIndex(targetLeadingIndex, 0);
         const targetPage = Math.round(previousPageRatio * Math.max(slot.totalPages - 1, 0));
@@ -1265,10 +1269,14 @@ export class EpubRenderer {
     }
   }
 
+  private cancelStableResizeAnchorUpdate() {
+    if (this.stableResizeAnchorTimer === undefined) return;
+    clearTimeout(this.stableResizeAnchorTimer);
+    this.stableResizeAnchorTimer = undefined;
+  }
+
   private scheduleStableResizeAnchorUpdate(internal: boolean) {
-    if (this.stableResizeAnchorTimer !== undefined) {
-      clearTimeout(this.stableResizeAnchorTimer);
-    }
+    this.cancelStableResizeAnchorUpdate();
 
     const slot = this.activeSlot;
     const page = this.currentPage;

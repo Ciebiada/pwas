@@ -55,6 +55,11 @@ const readPageIndicator = async (page: Page) => {
   };
 };
 
+const readLocationHash = async (page: Page) => {
+  await expect.poll(async () => await page.evaluate(() => window.location.hash)).toMatch(/^#epubcfi\(/);
+  return await page.evaluate(() => window.location.hash);
+};
+
 const getVisibleReaderTexts = async (page: Page) => {
   await waitForReaderContent(page);
   return await page.evaluate(() => {
@@ -384,20 +389,20 @@ test("keeps reading progress stable when rotating between portrait and landscape
     await turnNextPage(page);
   }
 
+  await page.waitForTimeout(650);
   const beforeRotate = await readPageIndicator(page);
+  const beforeRotateLocation = await readLocationHash(page);
 
   await page.setViewportSize({ width: 900, height: 700 });
   await page.waitForTimeout(700);
 
   const afterRotate = await readPageIndicator(page);
-  await turnNextPage(page);
-  const landscapeTexts = await getVisibleReaderTexts(page);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(700);
 
   const afterRotateBack = await readPageIndicator(page);
-  const portraitTexts = await getVisibleReaderTexts(page);
+  const afterRotateBackLocation = await readLocationHash(page);
 
   expect(beforeRotate.page).toBeGreaterThan(1);
   expect(afterRotate.page).toBeGreaterThan(1);
@@ -407,7 +412,7 @@ test("keeps reading progress stable when rotating between portrait and landscape
   expect(beforeRotate.percentage).not.toBeNull();
   expect(Math.abs(afterRotate.percentage! - beforeRotate.percentage!)).toBeLessThanOrEqual(0.75);
   expect(Math.abs(afterRotateBack.percentage! - afterRotate.percentage!)).toBeLessThanOrEqual(0.75);
-  expect(portraitTexts.some((text) => landscapeTexts.some((landscapeText) => text === landscapeText))).toBe(true);
+  expect(afterRotateBackLocation).toBe(beforeRotateLocation);
 });
 
 test("keeps Klara i Słońce paginated across both pages after the first part heading", async ({ page }) => {
