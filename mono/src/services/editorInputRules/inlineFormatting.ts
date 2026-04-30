@@ -1,9 +1,16 @@
 import { insert } from "../markdown/utils";
-import { createPairInsert, handleBackspaceAtEmptyPair, isAutoPairPosition } from "./helpers";
+import {
+  createPairInsert,
+  handleBackspaceAtEmptyPair,
+  handleOvertypeClosingDelimiter,
+  isAutoPairPosition,
+} from "./helpers";
 import type { EditorInputRule } from "./types";
 
 const EMPHASIS_DELIMITER = "*";
+const STRONG_DELIMITER = "**";
 const STRIKETHROUGH_DELIMITER = "~";
+const STRIKETHROUGH_PAIR_DELIMITER = "~~";
 
 const shouldExpandEmphasisToStrong = (content: string, selection: { start: number; end: number }, text: string) =>
   text === EMPHASIS_DELIMITER &&
@@ -24,6 +31,11 @@ export const inlineFormattingInputRule: EditorInputRule = {
   name: "inlineFormatting",
 
   onInsertText(text, { content, selection }) {
+    for (const delimiter of [STRONG_DELIMITER, EMPHASIS_DELIMITER, STRIKETHROUGH_PAIR_DELIMITER]) {
+      const overtypeResult = handleOvertypeClosingDelimiter(content, selection, text, delimiter);
+      if (overtypeResult) return overtypeResult;
+    }
+
     if (shouldExpandEmphasisToStrong(content, selection, text)) {
       return createPairInsert(content, selection, EMPHASIS_DELIMITER);
     }

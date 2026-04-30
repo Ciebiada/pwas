@@ -74,6 +74,37 @@ test("pressing star twice creates bold markers and ArrowRight exits the closing 
   ]);
 });
 
+test("typing closing strong markers over an existing auto-pair moves past them", async ({ page }) => {
+  await page.goto("/new");
+  await page.waitForURL(/\/note\/\d+$/);
+
+  const editor = page.locator(".editor");
+  await expect(editor).toBeVisible();
+  await editor.click();
+
+  await page.keyboard.type("Formatting");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("**bold");
+
+  await expectStoredNotes(page, [
+    {
+      name: "Formatting",
+      content: "**bold**",
+    },
+  ]);
+
+  await page.keyboard.type("**");
+  await page.keyboard.press("Space");
+  await page.keyboard.type("regular");
+
+  await expectStoredNotes(page, [
+    {
+      name: "Formatting",
+      content: "**bold** regular",
+    },
+  ]);
+});
+
 test("pressing tilde twice creates strikethrough markers and ArrowRight exits the closing pair", async ({ page }) => {
   await page.goto("/new");
   await page.waitForURL(/\/note\/\d+$/);

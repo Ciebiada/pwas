@@ -1,5 +1,10 @@
 import { getLineRange } from "../markdown/utils";
-import { createPairInsert, handleBackspaceAtEmptyPair, isAutoPairPosition } from "./helpers";
+import {
+  createPairInsert,
+  handleBackspaceAtEmptyPair,
+  handleOvertypeClosingDelimiter,
+  isAutoPairPosition,
+} from "./helpers";
 import type { EditorInputRule, EditorInputRuleContext } from "./types";
 
 const INLINE_CODE_DELIMITER = "`";
@@ -30,6 +35,14 @@ export const inlineCodeInputRule: EditorInputRule = {
 
     const fencedCodeBlockResult = createFencedCodeBlockInsert(context);
     if (fencedCodeBlockResult) return fencedCodeBlockResult;
+
+    const overtypeResult = handleOvertypeClosingDelimiter(
+      context.content,
+      context.selection,
+      text,
+      INLINE_CODE_DELIMITER,
+    );
+    if (overtypeResult) return overtypeResult;
 
     return isAutoPairPosition(context.content, context.selection)
       ? createPairInsert(context.content, context.selection, INLINE_CODE_DELIMITER)
