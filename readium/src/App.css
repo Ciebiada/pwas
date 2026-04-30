@@ -112,6 +112,10 @@
   flex: 1;
   overflow: hidden;
   position: relative;
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+  touch-action: manipulation;
 }
 
 .reader-loading-overlay {

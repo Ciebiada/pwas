@@ -125,6 +125,9 @@ export class EpubStyler {
                 display: block;
                 width: 100%;
                 height: 100%;
+                user-select: text;
+                -webkit-user-select: text;
+                -webkit-touch-callout: default;
             }
             .epub-content[data-ios-first-column-fix="1"]::before {
                 content: "";
@@ -140,6 +143,14 @@ export class EpubStyler {
             .epub-content {
                 background: var(--reader-background-color) !important;
                 color: var(--reader-text-color) !important;
+                user-select: text;
+                -webkit-user-select: text;
+                -webkit-touch-callout: default;
+            }
+            .epub-content * {
+                user-select: text;
+                -webkit-user-select: text;
+                -webkit-touch-callout: default;
             }
             .epub-content p,
             .epub-content h1,

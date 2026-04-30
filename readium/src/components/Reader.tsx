@@ -15,6 +15,11 @@ type ContentEntry = {
   startPercentage: number;
 };
 
+const TAP_MOVE_THRESHOLD = 10;
+const TAP_DURATION_THRESHOLD = 500;
+const SWIPE_MOVE_THRESHOLD = 50;
+const SIDE_TAP_ZONE_RATIO = 0.28;
+
 const Reader = (props: { onClose: () => void }) => {
   const params = useParams<{ id: string }>();
   const bookId = () => parseInt(params.id, 10);
@@ -45,6 +50,13 @@ const Reader = (props: { onClose: () => void }) => {
   let allowSave = false;
   let wakeLock: WakeLockSentinel | null = null;
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  let readerGesture: {
+    pointerId: number;
+    startX: number;
+    startY: number;
+    startTime: number;
+    pointerType: string;
+  } | null = null;
 
   const getNormalizedSpineSize = (size: number | undefined) => Math.max(size || 0, 1);
 
@@ -414,6 +426,126 @@ const Reader = (props: { onClose: () => void }) => {
     renderer()?.seekToPercentage(clamped);
   };
 
+  const getReaderSelectionText = () => {
+    let selectionText = window.getSelection()?.toString() ?? "";
+
+    for (const host of Array.from(viewerRef?.children ?? [])) {
+      const shadowRoot = host.shadowRoot as (ShadowRoot & { getSelection?: () => Selection | null }) | null;
+      selectionText += shadowRoot?.getSelection?.()?.toString() ?? "";
+    }
+
+    return selectionText.trim();
+  };
+
+  const hasReaderSelection = () => getReaderSelectionText().length > 0;
+
+  const getEventPath = (e: Event) => e.composedPath().filter((target): target is Element => target instanceof Element);
+
+  const isReaderSurfaceEvent = (e: Event) => {
+    const path = getEventPath(e);
+    return path.some(
+      (target) =>
+        target === viewerRef ||
+        target.classList.contains("modal-overlay") ||
+        target.classList.contains("modal-positioner"),
+    );
+  };
+
+  const isReaderControlEvent = (e: Event) => {
+    const path = getEventPath(e);
+    return path.some(
+      (target) =>
+        target.closest(
+          "button, a, input, select, textarea, [role='button'], .header-wrapper, .reader-seek-button, .modal-content",
+        ) !== null,
+    );
+  };
+
+  const dismissReaderUi = () => {
+    setShowControls(false);
+    setShowSettings(false);
+    setShowContents(false);
+  };
+
+  const turnPage = (direction: "prev" | "next") => {
+    const r = renderer();
+    if (!r) return;
+
+    allowSave = true;
+    dismissReaderUi();
+    const result = direction === "prev" ? r.prev() : r.next();
+    void result;
+  };
+
+  const handleReaderTap = (e: PointerEvent) => {
+    const xPercentage = e.clientX / window.innerWidth;
+
+    if (xPercentage < SIDE_TAP_ZONE_RATIO) {
+      turnPage("prev");
+      return;
+    }
+
+    if (xPercentage > 1 - SIDE_TAP_ZONE_RATIO) {
+      turnPage("next");
+      return;
+    }
+
+    toggleControls();
+  };
+
+  const handleReaderPointerDown = (e: PointerEvent) => {
+    if (!e.isPrimary || !isReaderSurfaceEvent(e) || isReaderControlEvent(e)) {
+      readerGesture = null;
+      return;
+    }
+
+    readerGesture = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      startTime: Date.now(),
+      pointerType: e.pointerType,
+    };
+  };
+
+  const handleReaderPointerUp = (e: PointerEvent) => {
+    if (!readerGesture || readerGesture.pointerId !== e.pointerId || isReaderControlEvent(e)) {
+      readerGesture = null;
+      return;
+    }
+
+    const gesture = readerGesture;
+    readerGesture = null;
+
+    if (hasReaderSelection()) return;
+
+    const deltaX = e.clientX - gesture.startX;
+    const deltaY = e.clientY - gesture.startY;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+    const elapsed = Date.now() - gesture.startTime;
+    const isTap = absX < TAP_MOVE_THRESHOLD && absY < TAP_MOVE_THRESHOLD && elapsed < TAP_DURATION_THRESHOLD;
+    const isSwipe =
+      gesture.pointerType !== "mouse" && absX >= SWIPE_MOVE_THRESHOLD && absX > absY * 1.2 && elapsed < 1000;
+
+    if (isSwipe) {
+      e.preventDefault();
+      e.stopPropagation();
+      turnPage(deltaX < 0 ? "next" : "prev");
+      return;
+    }
+
+    if (isTap) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleReaderTap(e);
+    }
+  };
+
+  const handleReaderPointerCancel = () => {
+    readerGesture = null;
+  };
+
   // --- Lifecycle ---
 
   onCleanup(() => {
@@ -426,6 +558,9 @@ const Reader = (props: { onClose: () => void }) => {
 
     window.removeEventListener("beforeunload", saveProgress);
     document.removeEventListener("visibilitychange", handleVisibilityChange);
+    document.removeEventListener("pointerdown", handleReaderPointerDown, true);
+    document.removeEventListener("pointerup", handleReaderPointerUp, true);
+    document.removeEventListener("pointercancel", handleReaderPointerCancel, true);
 
     wakeLock?.release()?.then(() => {
       wakeLock = null;
@@ -545,6 +680,9 @@ const Reader = (props: { onClose: () => void }) => {
       await renderer.display(initialLocation);
       paginationMapCache.schedule(true);
       void ensureContentEntriesLoaded();
+      document.addEventListener("pointerdown", handleReaderPointerDown, true);
+      document.addEventListener("pointerup", handleReaderPointerUp, true);
+      document.addEventListener("pointercancel", handleReaderPointerCancel, true);
 
       // Keyboard
       document.onkeyup = (e) => {
@@ -592,35 +730,10 @@ const Reader = (props: { onClose: () => void }) => {
 
   // --- Actions ---
 
-  const prev = (e: Event) => {
-    e.stopPropagation();
-    allowSave = true;
-    renderer()?.prev();
-  };
-  const next = (e: Event) => {
-    e.stopPropagation();
-    allowSave = true;
-    renderer()?.next();
-  };
-
   const toggleControls = () => {
     setShowControls((c) => !c);
     if (showSettings()) setShowSettings(false);
     if (showContents()) setShowContents(false);
-  };
-
-  const handleViewerClick = (e: MouseEvent) => {
-    if (window.getSelection()?.toString().length !== 0) return;
-
-    if (showControls()) {
-      toggleControls();
-      return;
-    }
-
-    const xPercentage = e.clientX / window.innerWidth;
-    if (xPercentage < 0.3) prev(e);
-    else if (xPercentage > 0.7) next(e);
-    else toggleControls();
   };
 
   const openContents = (e: MouseEvent) => {
@@ -645,7 +758,7 @@ const Reader = (props: { onClose: () => void }) => {
 
   return (
     <div class="reader-container">
-      <div class="reader-viewer" ref={viewerRef} onClick={handleViewerClick} />
+      <div class="reader-viewer" ref={viewerRef} />
 
       <Show when={rendererBusy().active}>
         <div class="reader-loading-overlay" aria-live="polite" aria-busy="true">
