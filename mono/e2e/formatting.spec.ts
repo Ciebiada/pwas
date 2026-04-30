@@ -74,6 +74,57 @@ test("pressing star twice creates bold markers and ArrowRight exits the closing 
   ]);
 });
 
+test("pressing tilde twice creates strikethrough markers and ArrowRight exits the closing pair", async ({ page }) => {
+  await page.goto("/new");
+  await page.waitForURL(/\/note\/\d+$/);
+
+  const editor = page.locator(".editor");
+  await expect(editor).toBeVisible();
+  await editor.click();
+
+  await page.keyboard.type("Formatting");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("~");
+
+  await expectStoredNotes(page, [
+    {
+      name: "Formatting",
+      content: "~",
+    },
+  ]);
+
+  await page.keyboard.type("~");
+
+  await expectStoredNotes(page, [
+    {
+      name: "Formatting",
+      content: "~~~~",
+    },
+  ]);
+
+  await page.keyboard.type("strike");
+
+  await expectStoredNotes(page, [
+    {
+      name: "Formatting",
+      content: "~~strike~~",
+    },
+  ]);
+
+  await expect(page.locator(".md-inline-strikethrough")).toHaveCount(1);
+
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Space");
+  await page.keyboard.type("regular");
+
+  await expectStoredNotes(page, [
+    {
+      name: "Formatting",
+      content: "~~strike~~ regular",
+    },
+  ]);
+});
+
 test("backspace removes an empty auto-paired emphasis marker", async ({ page }) => {
   await page.goto("/new");
   await page.waitForURL(/\/note\/\d+$/);
