@@ -88,6 +88,27 @@ export const ChevronsLeftRightIcon = () => (
   </svg>
 );
 
+export const BookOpenIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <path
+      fill="none"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="40"
+      d="M256 432c-32-48-96-72-192-72a32 32 0 01-32-32V96a32 32 0 0132-32c96 0 160 24 192 72"
+    />
+    <path
+      fill="none"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="40"
+      d="M256 432c32-48 96-72 192-72a32 32 0 0032-32V96a32 32 0 00-32-32c-96 0-160 24-192 72v296z"
+    />
+  </svg>
+);
+
 export const CheckIcon = () => (
   <svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
     <path

@@ -1,7 +1,7 @@
 import { useParams } from "@solidjs/router";
 import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { Header, HeaderButton } from "ui/Header";
-import { BackIcon, ChevronsLeftRightIcon } from "ui/Icons";
+import { BackIcon, BookOpenIcon } from "ui/Icons";
 import { Modal, ModalPage, ModalSelect, ModalSlider, ModalToggle } from "ui/Modal";
 import { db } from "../db";
 import type { EpubManifestItem, EpubPackage } from "../lib/epub";
@@ -691,7 +691,7 @@ const Reader = (props: { onClose: () => void }) => {
         </div>
 
         <button class="reader-seek-button" onClick={openContents} aria-label="Open contents">
-          <ChevronsLeftRightIcon />
+          <BookOpenIcon />
         </button>
 
         <Modal open={showSettings} setOpen={setShowSettings} title="Appearance" height="auto">
