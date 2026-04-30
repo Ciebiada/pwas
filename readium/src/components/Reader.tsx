@@ -38,7 +38,6 @@ const Reader = (props: { onClose: () => void }) => {
   const [showContents, setShowContents] = createSignal(false);
   const [contentEntries, setContentEntries] = createSignal<ContentEntry[]>([]);
   const [contentsSliderValue, setContentsSliderValue] = createSignal(0);
-  const [contentsPageNumber, setContentsPageNumber] = createSignal<number | null>(null);
   const [rendererBusy, setRendererBusy] = createSignal<{ active: boolean; label?: string }>({ active: false });
   const [progress, setProgress] = createSignal<{
     current: number;
@@ -281,9 +280,7 @@ const Reader = (props: { onClose: () => void }) => {
 
   const currentContentsDisplayValue = () => {
     const entry = getContentEntryForPercentage(contentsSliderValue());
-    if (!entry) return "";
-    const pageNumber = contentsPageNumber();
-    return pageNumber === null ? entry.label : `${entry.label} • ${pageNumber}`;
+    return entry?.label ?? "";
   };
 
   // --- Helpers ---
@@ -386,14 +383,6 @@ const Reader = (props: { onClose: () => void }) => {
     return theme as "light" | "dark";
   };
 
-  const syncContentsPageNumber = (percentage: number) => {
-    if (!showContents()) {
-      setContentsPageNumber(null);
-      return;
-    }
-    setContentsPageNumber(renderer()?.getGlobalPageNumberForPercentage(percentage) ?? null);
-  };
-
   const updateProgressUI = (location: {
     start?: {
       cfi?: string;
@@ -414,9 +403,6 @@ const Reader = (props: { onClose: () => void }) => {
         percentage: parseFloat(d.percentage.toFixed(2)),
       });
       setContentsSliderValue(d.percentage);
-      if (showContents()) {
-        syncContentsPageNumber(d.percentage);
-      }
     }
   };
 
@@ -649,17 +635,12 @@ const Reader = (props: { onClose: () => void }) => {
       paginationMapCache = new PaginationMapCache({
         getBookId: bookId,
         getRenderer: () => rendererRef,
-        onReady: () => {
-          if (!isDisposed && showContents()) {
-            syncContentsPageNumber(contentsSliderValue());
-          }
-        },
+        onReady: () => {},
       });
       renderer.setOnPaginationIndexReady((snapshot) => {
         void paginationMapCache?.save(snapshot);
       });
       renderer.setOnPaginationIndexInvalidated(() => {
-        setContentsPageNumber(null);
         paginationMapCache?.schedule();
       });
 
@@ -740,21 +721,13 @@ const Reader = (props: { onClose: () => void }) => {
     e.stopPropagation();
     setShowSettings(false);
     setShowContents(true);
-    syncContentsPageNumber(contentsSliderValue());
     void ensureContentEntriesLoaded(true);
   };
 
   const seekByContentsSlider = (percentage: number) => {
     const clamped = Math.max(0, Math.min(100, percentage));
     setContentsSliderValue(clamped);
-    syncContentsPageNumber(clamped);
   };
-
-  createEffect(() => {
-    if (!showContents()) {
-      setContentsPageNumber(null);
-    }
-  });
 
   return (
     <div class="reader-container">

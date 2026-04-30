@@ -312,11 +312,6 @@ export class EpubRenderer {
       return;
     }
 
-    if (!this.exactPaginationIndex) {
-      void this.ensureExactPaginationIndexBackground();
-      return;
-    }
-
     await this.flushPendingPercentageSeek();
   }
 
@@ -328,20 +323,21 @@ export class EpubRenderer {
       return;
     }
 
-    if (!this.exactPaginationIndex) {
-      void this.ensureExactPaginationIndexBackground();
-      return;
-    }
-
     this.isBusy = true;
     let targetPercentage: number | null = this.pendingPercentageSeek;
+    let needsExactPagination = false;
     this.beginForegroundWork("Seeking");
     await this.yieldToMain();
 
     try {
       while (targetPercentage !== null) {
         this.pendingPercentageSeek = null;
-        await this.seekToPercentageInternal(targetPercentage);
+        if (this.exactPaginationIndex) {
+          await this.seekToPercentageInternal(targetPercentage);
+        } else {
+          await this.seekToEstimatedPercentageInternal(targetPercentage);
+          needsExactPagination = true;
+        }
         targetPercentage = this.pendingPercentageSeek;
       }
     } finally {
@@ -352,6 +348,8 @@ export class EpubRenderer {
       this.flushPendingResize();
       if (this.pendingPercentageSeek !== null) {
         this.schedulePendingPercentageSeekFlush();
+      } else if (needsExactPagination && !this.exactPaginationIndex) {
+        void this.ensureExactPaginationIndexBackground();
       }
     }
   }
@@ -375,6 +373,12 @@ export class EpubRenderer {
 
   private async seekToPercentageInternal(percentage: number) {
     const target = this.getExactPageTargetForPercentage(percentage);
+    await this.activateLeadingIndex(target.leadingSpineIndex, 0);
+    this.goToPage(this.normalizePageForLayout(target.pageIndex), true);
+  }
+
+  private async seekToEstimatedPercentageInternal(percentage: number) {
+    const target = await this.getEstimatedPageTargetForPercentage(percentage);
     await this.activateLeadingIndex(target.leadingSpineIndex, 0);
     this.goToPage(this.normalizePageForLayout(target.pageIndex), true);
   }
@@ -624,6 +628,36 @@ export class EpubRenderer {
     return {
       leadingSpineIndex: unit.leadingSpineIndex,
       pageIndex: Math.max(0, Math.min(unit.pageCount - 1, globalPageIndex - unit.pageStart)),
+    };
+  }
+
+  private async getEstimatedPageTargetForPercentage(percentage: number) {
+    const pagination = this.getEstimatedPagination();
+    const clamped = Math.max(0, Math.min(100, percentage));
+    const globalPageIndex = (clamped / 100) * Math.max(pagination.totalPages - 1, 0);
+    let spineIndex = 0;
+
+    for (let index = 0; index < pagination.pageStarts.length; index += 1) {
+      const pageStart = pagination.pageStarts[index] ?? 0;
+      const pageEnd = pageStart + (pagination.pageCounts[index] ?? 1);
+      if (globalPageIndex >= pageStart && globalPageIndex < pageEnd) {
+        spineIndex = index;
+        break;
+      }
+      if (globalPageIndex >= pageEnd) {
+        spineIndex = index;
+      }
+    }
+
+    const leadingSpineIndex = await this.getLeadingIndexForSpine(spineIndex);
+    const pageStart = pagination.pageStarts[spineIndex] ?? 0;
+    const pageCount = Math.max(1, pagination.pageCounts[spineIndex] ?? 1);
+    const pageRatio = Math.max(0, Math.min(1, (globalPageIndex - pageStart) / pageCount));
+    const estimatedSlotPages = Math.max(1, Math.round(pageCount));
+
+    return {
+      leadingSpineIndex,
+      pageIndex: Math.max(0, Math.min(estimatedSlotPages - 1, Math.round(pageRatio * (estimatedSlotPages - 1)))),
     };
   }
 
