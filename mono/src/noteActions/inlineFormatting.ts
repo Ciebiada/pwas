@@ -1,7 +1,7 @@
 import { wrapSelection } from "./helpers";
 import type { NoteActionContext, NoteActionResult } from "./types";
 
-export type InlineFormatType = "strong" | "emphasis";
+export type InlineFormatType = "strong" | "emphasis" | "strikethrough";
 
 export type InlineFormat = {
   type: InlineFormatType;
@@ -18,6 +18,7 @@ type InlineFormatToken = {
 const INLINE_FORMAT_PATTERNS: Array<InlineFormat & { regex: RegExp }> = [
   { type: "strong", delimiter: "**", regex: /^\*\*(\S(?:.*?\S)?)\*\*/ },
   { type: "strong", delimiter: "__", regex: /^__(\S(?:.*?\S)?)__/ },
+  { type: "strikethrough", delimiter: "~~", regex: /^~~(\S(?:.*?\S)?)~~/ },
   { type: "emphasis", delimiter: "*", regex: /^\*(\S(?:.*?\S)?)\*/ },
   { type: "emphasis", delimiter: "_", regex: /^_(?!_)([^_]+)_/ },
 ];

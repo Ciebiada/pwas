@@ -19,3 +19,13 @@ export const italicAction = createInlineFormatAction({
     delimiter: "*",
   },
 });
+
+export const strikethroughAction = createInlineFormatAction({
+  id: "strikethrough",
+  label: "Strikethrough",
+  icon: "~~",
+  format: {
+    type: "strikethrough",
+    delimiter: "~~",
+  },
+});
