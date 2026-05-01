@@ -163,6 +163,12 @@
   width: 100%;
 }
 
+@media (orientation: landscape) {
+  .reader-footer {
+    display: none;
+  }
+}
+
 .reader-ui-layer {
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) * -1);

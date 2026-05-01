@@ -23,6 +23,7 @@ const UA_STYLES = `
 
             figure { margin: 0; padding: 0; }
         `;
+const FOOTER_MARGIN_ADJUSTMENT = 8;
 
 export class EpubStyler {
   constructor(
@@ -67,10 +68,12 @@ export class EpubStyler {
 
     const previousTransform = preserveTransform ? contentElement.style.transform : "";
 
-    const { fontSize, fontFamily, margin, container } = options;
+    const { fontSize, fontFamily, margin } = options;
     const userScale = fontSize / 100;
     const backgroundColor = options.theme === "dark" ? "#000000" : "#ffffff";
     const textColor = options.theme === "dark" ? "#dedede" : "#000000";
+    const bottomMargin = this.getBottomMargin(options);
+    const readableHeight = this.getReadableHeight(options);
     const pageFillHeight = this.getPageFillHeight(options);
 
     const { columnWidth, gap } = computeLayoutInfo(options);
@@ -91,7 +94,7 @@ export class EpubStyler {
             font-family: ${fontFamily};
             background: var(--reader-background-color);
             color: var(--reader-text-color);
-            padding: 0 ${margin}px;
+            padding: ${margin}px ${margin}px ${bottomMargin}px;
             width: 100%;
             column-width: ${columnWidth}px;
             column-count: auto;
@@ -194,7 +197,7 @@ export class EpubStyler {
             }
             .epub-content > .epub-opening-block {
                 position: absolute;
-                top: 0;
+                top: ${margin}px;
                 box-sizing: border-box;
                 z-index: 1;
             }
@@ -227,7 +230,7 @@ export class EpubStyler {
                 display: block !important;
                 margin: 0 auto !important;
                 max-width: 100% !important;
-                max-height: ${container.clientHeight}px !important;
+                max-height: ${readableHeight}px !important;
                 break-inside: avoid;
                 box-sizing: border-box;
                 object-fit: contain;
@@ -237,7 +240,7 @@ export class EpubStyler {
                 display: block !important;
                 margin: 0 auto !important;
                 max-width: 100% !important;
-                max-height: ${container.clientHeight}px !important;
+                max-height: ${readableHeight}px !important;
                 break-inside: avoid;
                 ${options.invertImages ? "filter: invert(1) hue-rotate(180deg);" : ""}
             }
@@ -330,7 +333,6 @@ export class EpubStyler {
 
   private layoutOpeningBlock(contentElement: HTMLElement, options?: RendererOptions, gridUnit?: number) {
     contentElement.style.height = "100%";
-    contentElement.style.removeProperty("padding-top");
 
     const previousFlowOffset = contentElement.querySelector<HTMLElement>(':scope > [data-opening-flow-offset="1"]');
     if (previousFlowOffset) {
@@ -360,7 +362,7 @@ export class EpubStyler {
 
     const contentRect = contentElement.getBoundingClientRect();
     const wrapperRect = wrapper.getBoundingClientRect();
-    const reservedHeight = Math.max(0, Math.ceil(wrapperRect.bottom - contentRect.top));
+    const reservedHeight = Math.max(0, Math.ceil(wrapperRect.bottom - contentRect.top - margin));
 
     if (reservedHeight > 0) {
       const firstFlowElement = wrapper.nextElementSibling;
@@ -418,7 +420,19 @@ export class EpubStyler {
   }
 
   private getPageFillHeight(options: RendererOptions, minimumHeight: number = 1) {
-    return Math.max(minimumHeight, options.container.clientHeight - (isIOS ? 1 : 0));
+    return Math.max(minimumHeight, this.getReadableHeight(options) - (isIOS ? 1 : 0));
+  }
+
+  private getReadableHeight(options: RendererOptions, minimumHeight: number = 1) {
+    return Math.max(minimumHeight, options.container.clientHeight - options.margin - this.getBottomMargin(options));
+  }
+
+  private getBottomMargin(options: RendererOptions) {
+    const footer = options.container.nextElementSibling;
+    const footerHeight =
+      footer instanceof HTMLElement && getComputedStyle(footer).display !== "none" ? footer.offsetHeight : 0;
+    const footerAdjustment = footerHeight > 0 ? FOOTER_MARGIN_ADJUSTMENT : 0;
+    return Math.max(0, options.margin - footerAdjustment);
   }
 
   private setFixedPageBox(element: HTMLElement, width: number, height: number) {

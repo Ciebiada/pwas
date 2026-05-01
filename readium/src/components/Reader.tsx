@@ -19,6 +19,7 @@ const TAP_MOVE_THRESHOLD = 10;
 const TAP_DURATION_THRESHOLD = 500;
 const SWIPE_MOVE_THRESHOLD = 50;
 const SIDE_TAP_ZONE_RATIO = 0.28;
+const FOOTER_MARGIN_OFFSET = 16;
 
 const Reader = (props: { onClose: () => void }) => {
   const params = useParams<{ id: string }>();
@@ -750,6 +751,7 @@ const Reader = (props: { onClose: () => void }) => {
             style={{
               color: THEMES[getEffectiveTheme(settings().theme)].body.color,
               opacity: 0.5,
+              transform: settings().margin > 0 ? `translateY(-${FOOTER_MARGIN_OFFSET}px)` : "none",
             }}
           >
             {progress()?.current} / {progress()?.total}
