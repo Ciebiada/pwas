@@ -1,5 +1,6 @@
 import { createMemo, createSignal, mergeProps, onMount } from "solid-js";
 import { isIOS } from "ui/platform";
+import { useEditorHistory } from "../hooks/useEditorHistory";
 import { useEditorSelectionPresentation } from "../hooks/useEditorSelectionPresentation";
 import { usePrettyCaret } from "../hooks/usePrettyCaret";
 import { usePrettyCheckboxes } from "../hooks/usePrettyCheckboxes";
@@ -91,19 +92,31 @@ export const Editor = (_props: EditorProps) => {
     props.onChange?.(name, noteContent);
   };
 
+  const getCurrentSelection = () => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return lastSelection;
+
+    const range = selection.getRangeAt(0);
+    if (!editor.contains(range.commonAncestorContainer)) return lastSelection;
+
+    return getSelection(editor);
+  };
+
   const applySelection = (selection: EditorSelection) => {
     lastSelection = selection;
     return setSelection(editor, selection.start, { end: selection.end });
   };
 
-  const applyEdit = (newContent: string, selection: number | EditorSelection) => {
-    const nextSelection =
-      typeof selection === "number"
-        ? {
-            start: selection,
-            end: selection,
-          }
-        : selection;
+  const toSelection = (selection: number | EditorSelection): EditorSelection =>
+    typeof selection === "number"
+      ? {
+          start: selection,
+          end: selection,
+        }
+      : selection;
+
+  const applyContent = (newContent: string, selection: number | EditorSelection) => {
+    const nextSelection = toSelection(selection);
 
     setContent(newContent);
     applySelection(nextSelection);
@@ -112,6 +125,20 @@ export const Editor = (_props: EditorProps) => {
     requestAnimationFrame(() => {
       scrollCursorIntoView(window.getSelection()!, "smooth");
     });
+  };
+
+  const history = useEditorHistory({
+    getState: () => ({
+      content: content(),
+      selection: getCurrentSelection(),
+    }),
+    applyState: (state) => applyContent(state.content, state.selection),
+  });
+
+  const applyEdit = (newContent: string, selection: number | EditorSelection, inputType?: string) => {
+    const nextSelection = toSelection(selection);
+    history.record(newContent, inputType, nextSelection);
+    applyContent(newContent, nextSelection);
   };
 
   onMount(() => {
@@ -131,6 +158,7 @@ export const Editor = (_props: EditorProps) => {
         const { start } = getSelection(editor);
         const newCursor = calculateCursorPosition(content(), newContent, start);
 
+        history.reset();
         setContent(newContent);
         requestAnimationFrame(() => {
           applySelection({
@@ -160,10 +188,26 @@ export const Editor = (_props: EditorProps) => {
   const onTextInput = (event: InputEvent) => (iosReplacementText = event.data || "");
 
   const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === "y") {
+      event.preventDefault();
+      history.redo();
+      return;
+    }
+
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && !event.altKey) {
+      event.preventDefault();
+      if (event.shiftKey) {
+        history.redo();
+      } else {
+        history.undo();
+      }
+      return;
+    }
+
     if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey) {
       event.preventDefault();
       const result = handleTab(content(), getSelection(editor), event.shiftKey);
-      applyEdit(result.content, result.cursor);
+      applyEdit(result.content, result.cursor, "insertTab");
       return;
     }
 
@@ -176,25 +220,39 @@ export const Editor = (_props: EditorProps) => {
   const handleBeforeInput = (event: InputEvent) => {
     event.preventDefault();
 
+    if (event.inputType === "historyUndo") {
+      history.undo();
+      return;
+    }
+
+    if (event.inputType === "historyRedo") {
+      history.redo();
+      return;
+    }
+
     const result = processBeforeInput(event.inputType, content(), getSelection(editor), {
       eventData: event.inputType === "insertFromPaste" ? event.dataTransfer?.getData("text/plain") : event.data,
       iosReplacementText,
     });
 
     if (result) {
-      applyEdit(result.content, result.cursor);
+      applyEdit(result.content, result.cursor, event.inputType);
     }
   };
 
   const handleCheckboxToggle = (lineIndex: number) => {
-    const { start } = getSelection(editor);
+    const selection = getCurrentSelection();
+    const nextSelection = {
+      start: selection.start,
+      end: selection.start,
+    };
     const newContent = toggleCheckbox(content(), lineIndex);
+
+    history.record(newContent, "toggleCheckbox", nextSelection);
     setContent(newContent);
     if (document.activeElement === editor) {
-      applySelection({
-        start,
-        end: start,
-      });
+      applySelection(nextSelection);
+      selectionPresentation.sync();
     }
     emitChange();
   };
@@ -219,7 +277,7 @@ export const Editor = (_props: EditorProps) => {
 
     const result = processBeforeInput("deleteByCut", content(), selection, {});
     if (result) {
-      applyEdit(result.content, result.cursor);
+      applyEdit(result.content, result.cursor, "deleteByCut");
     }
   };
 
