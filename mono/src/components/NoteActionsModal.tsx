@@ -1,4 +1,4 @@
-import { type Accessor, createEffect, createMemo, createSignal, For, type Setter } from "solid-js";
+import { type Accessor, createEffect, createMemo, createSignal, For, type Setter, Show } from "solid-js";
 import { Modal, ModalButton, ModalPage } from "ui/Modal";
 import { getApplicableNoteActions } from "../noteActions";
 import type { NoteActionContext, ResolvedNoteAction } from "../noteActions/types";
@@ -19,6 +19,8 @@ type NoteActionsModalProps = {
 
 export const NoteActionsModal = (props: NoteActionsModalProps) => {
   const [frozenActionContext, setFrozenActionContext] = createSignal<NoteActionContext | null>(null);
+  const [canUndo, setCanUndo] = createSignal(false);
+  const [canRedo, setCanRedo] = createSignal(false);
 
   const readCurrentActionContext = () => {
     const editorApi = props.getEditorApi?.();
@@ -34,9 +36,14 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
 
   createEffect(() => {
     if (props.open()) {
+      const state = props.getEditorApi?.()?.getState();
       setFrozenActionContext(readCurrentActionContext());
+      setCanUndo(state?.canUndo ?? false);
+      setCanRedo(state?.canRedo ?? false);
     } else {
       setFrozenActionContext(null);
+      setCanUndo(false);
+      setCanRedo(false);
     }
   });
 
@@ -63,6 +70,22 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
       void close(true);
     };
 
+  const handleUndo = async (close: (fast?: boolean) => Promise<void>) => {
+    const editorApi = props.getEditorApi?.();
+    if (!editorApi?.getState().canUndo) return;
+
+    editorApi.undo();
+    void close(true);
+  };
+
+  const handleRedo = async (close: (fast?: boolean) => Promise<void>) => {
+    const editorApi = props.getEditorApi?.();
+    if (!editorApi?.getState().canRedo) return;
+
+    editorApi.redo();
+    void close(true);
+  };
+
   const handleDelete = async (close: () => Promise<void>) => {
     await close();
     const note = await db.notes.get(props.noteId);
@@ -81,6 +104,12 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   return (
     <Modal open={props.open} setOpen={props.setOpen} title="Note Actions" onClose={props.onClose}>
       <ModalPage id="root">
+        <Show when={canUndo()}>
+          <ModalButton onClick={handleUndo}>Undo</ModalButton>
+        </Show>
+        <Show when={canRedo()}>
+          <ModalButton onClick={handleRedo}>Redo</ModalButton>
+        </Show>
         <For each={actionItems()}>
           {(item) => (
             <ModalButton onClick={handleAction(item)} class={`note-action-${item.action.id}`}>

@@ -97,6 +97,8 @@ export const useEditorHistory = ({ getState, applyState }: UseEditorHistoryOptio
   };
 
   return {
+    canRedo: () => redoStack.length > 0,
+    canUndo: () => undoStack.length > 0,
     record,
     reset,
     undo,

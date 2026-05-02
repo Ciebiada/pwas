@@ -33,6 +33,8 @@ export type EditorEdit = {
 export type EditorState = {
   content: string;
   selection: EditorSelection;
+  canRedo: boolean;
+  canUndo: boolean;
 };
 
 export type EditorAPI = {
@@ -40,6 +42,8 @@ export type EditorAPI = {
   replaceContent: (name: string, content: string) => void;
   getState: () => EditorState;
   applyEdit: (edit: EditorEdit) => void;
+  redo: () => void;
+  undo: () => void;
 };
 
 type EditorProps = {
@@ -149,6 +153,8 @@ export const Editor = (_props: EditorProps) => {
       getState: () => ({
         content: content(),
         selection: lastSelection,
+        canRedo: history.canRedo(),
+        canUndo: history.canUndo(),
       }),
       applyEdit: (edit) => {
         applyEdit(edit.content, edit.selection ?? lastSelection);
@@ -168,6 +174,8 @@ export const Editor = (_props: EditorProps) => {
           selectionPresentation.sync();
         });
       },
+      redo: () => history.redo(),
+      undo: () => history.undo(),
     });
 
     const selection = applySelection({
@@ -219,16 +227,6 @@ export const Editor = (_props: EditorProps) => {
 
   const handleBeforeInput = (event: InputEvent) => {
     event.preventDefault();
-
-    if (event.inputType === "historyUndo") {
-      history.undo();
-      return;
-    }
-
-    if (event.inputType === "historyRedo") {
-      history.redo();
-      return;
-    }
 
     const result = processBeforeInput(event.inputType, content(), getSelection(editor), {
       eventData: event.inputType === "insertFromPaste" ? event.dataTransfer?.getData("text/plain") : event.data,
