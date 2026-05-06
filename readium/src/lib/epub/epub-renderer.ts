@@ -123,10 +123,11 @@ export class EpubRenderer {
     const spineFingerprint = this.hashString(this.package.spine.map((item) => `${item.idref}:${item.size}`).join(","));
 
     return [
-      "pagination-map-v1",
+      "pagination-map-v2",
       `w=${Math.max(1, Math.round(layout.containerWidth))}`,
       `h=${Math.max(1, Math.round(this.options.container.clientHeight))}`,
       `cols=${layout.isTwoColumn ? 2 : 1}`,
+      `gap=${Math.max(0, Math.round(layout.gap))}`,
       `fontSize=${this.options.fontSize}`,
       `fontFamily=${this.options.fontFamily}`,
       `margin=${this.options.margin}`,
