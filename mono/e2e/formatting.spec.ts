@@ -74,6 +74,40 @@ test("pressing star twice creates bold markers and ArrowRight exits the closing 
   ]);
 });
 
+test("underscore emphasis auto-pairs and follows intraword rules", async ({ page }) => {
+  await page.goto("/new");
+  await page.waitForURL(/\/note\/\d+$/);
+
+  const editor = page.locator(".editor");
+  await expect(editor).toBeVisible();
+  await editor.click();
+
+  await page.keyboard.type("Formatting");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("_");
+
+  await expectStoredNotes(page, [
+    {
+      name: "Formatting",
+      content: "__",
+    },
+  ]);
+
+  await page.keyboard.type("italic");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.type(" __bold__ word* word_ foo_bar_baz foo*bar*baz foo__bar__baz");
+
+  await expectStoredNotes(page, [
+    {
+      name: "Formatting",
+      content: "_italic_ __bold__ word* word_ foo_bar_baz foo*bar*baz foo__bar__baz",
+    },
+  ]);
+
+  await expect(page.locator(".md-inline-emphasis")).toHaveText(["_italic_", "*bar*"]);
+  await expect(page.locator(".md-inline-strong")).toHaveText(["__bold__"]);
+});
+
 test("typing closing strong markers over an existing auto-pair moves past them", async ({ page }) => {
   await page.goto("/new");
   await page.waitForURL(/\/note\/\d+$/);

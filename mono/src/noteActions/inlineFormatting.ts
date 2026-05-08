@@ -1,7 +1,8 @@
+import { type MarkdownInlineFormatType, matchInlineFormatAt } from "../services/markdown/inlineFormat";
 import { wrapSelection } from "./helpers";
 import type { NoteActionContext, NoteActionResult } from "./types";
 
-export type InlineFormatType = "strong" | "emphasis" | "strikethrough";
+export type InlineFormatType = MarkdownInlineFormatType;
 
 export type InlineFormat = {
   type: InlineFormatType;
@@ -14,14 +15,6 @@ type InlineFormatToken = {
   contentStart: number;
   contentEnd: number;
 };
-
-const INLINE_FORMAT_PATTERNS: Array<InlineFormat & { regex: RegExp }> = [
-  { type: "strong", delimiter: "**", regex: /^\*\*(\S(?:.*?\S)?)\*\*/ },
-  { type: "strong", delimiter: "__", regex: /^__(\S(?:.*?\S)?)__/ },
-  { type: "strikethrough", delimiter: "~~", regex: /^~~(\S(?:.*?\S)?)~~/ },
-  { type: "emphasis", delimiter: "*", regex: /^\*(\S(?:.*?\S)?)\*/ },
-  { type: "emphasis", delimiter: "_", regex: /^_(?!_)([^_]+)_/ },
-];
 
 export const normalizeInlineFormatContext = (context: NoteActionContext): NoteActionContext => {
   let { end } = context.selection;
@@ -45,33 +38,24 @@ const findEnclosingInlineFormat = ({ content, selection }: NoteActionContext) =>
   let index = 0;
 
   while (index < content.length) {
-    const slice = content.slice(index);
-    const matchedPattern = INLINE_FORMAT_PATTERNS.find(({ regex }) => regex.test(slice));
-
-    if (!matchedPattern) {
-      index += 1;
-      continue;
-    }
-
-    const match = slice.match(matchedPattern.regex);
+    const match = matchInlineFormatAt(content, index);
     if (!match) {
       index += 1;
       continue;
     }
 
-    const fullMatch = match[0];
     const token: InlineFormatToken = {
-      type: matchedPattern.type,
-      delimiter: matchedPattern.delimiter,
-      contentStart: index + matchedPattern.delimiter.length,
-      contentEnd: index + fullMatch.length - matchedPattern.delimiter.length,
+      type: match.type,
+      delimiter: match.delimiter,
+      contentStart: match.contentStart,
+      contentEnd: match.contentEnd,
     };
 
     if (selection.start >= token.contentStart && selection.end <= token.contentEnd) {
       return token;
     }
 
-    index += fullMatch.length;
+    index += match.raw.length;
   }
 
   return null;

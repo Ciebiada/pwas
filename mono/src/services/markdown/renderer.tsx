@@ -1,6 +1,7 @@
 import type { JSX } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { triggerHaptic } from "../../hooks/useHaptic";
+import { matchInlineFormatAt } from "./inlineFormat";
 
 type InlineTokenType = "text" | "strong" | "emphasis" | "strikethrough" | "link" | "code";
 type BlockType =
@@ -61,11 +62,6 @@ const INLINE_PATTERNS: InlinePattern[] = [
       raw: match[0],
     }),
   },
-  { type: "strong", regex: /^\*\*(\S(?:.*?\S)?)\*\*/, delimiter: "**" },
-  { type: "strong", regex: /^__(\S(?:.*?\S)?)__/, delimiter: "__" },
-  { type: "strikethrough", regex: /^~~(\S(?:.*?\S)?)~~/, delimiter: "~~" },
-  { type: "emphasis", regex: /^\*(\S(?:.*?\S)?)\*/, delimiter: "*" },
-  { type: "emphasis", regex: /^_(?!_)([^_]+)_/, delimiter: "_" },
 ];
 
 const BLOCK_PATTERNS = [
@@ -78,9 +74,11 @@ const BLOCK_PATTERNS = [
   { type: "list" as const, regex: /^(\s*[-*] )(.*)/ },
 ];
 
-const tryMatchPattern = (text: string): InlineToken | null => {
+const tryMatchPattern = (text: string, index: number): InlineToken | null => {
+  const slice = text.slice(index);
+
   for (const pattern of INLINE_PATTERNS) {
-    const match = text.match(pattern.regex);
+    const match = slice.match(pattern.regex);
     if (match) {
       if (pattern.createToken) {
         return pattern.createToken(match);
@@ -93,6 +91,12 @@ const tryMatchPattern = (text: string): InlineToken | null => {
       };
     }
   }
+
+  const inlineFormatMatch = matchInlineFormatAt(text, index);
+  if (inlineFormatMatch) {
+    return inlineFormatMatch;
+  }
+
   return null;
 };
 
@@ -100,7 +104,7 @@ const parseInlineMarkdown = (text: string): InlineToken[] => {
   const tokens: InlineToken[] = [];
   let index = 0;
   while (index < text.length) {
-    const token = tryMatchPattern(text.slice(index));
+    const token = tryMatchPattern(text, index);
     if (token) {
       tokens.push(token);
       index += token.raw ? token.raw.length : token.delimiter!.length * 2 + token.content.length;

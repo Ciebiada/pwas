@@ -1,23 +1,35 @@
 import { insert } from "../markdown/utils";
-import {
-  createPairInsert,
-  handleBackspaceAtEmptyPair,
-  handleOvertypeClosingDelimiter,
-  isAutoPairPosition,
-} from "./helpers";
+import { createPairInsert, handleBackspaceAtEmptyPair, handleOvertypeClosingDelimiter } from "./helpers";
 import type { EditorInputRule } from "./types";
 
-const EMPHASIS_DELIMITER = "*";
-const STRONG_DELIMITER = "**";
+const EMPHASIS_DELIMITERS = ["*", "_"];
+const OVERTYPE_DELIMITERS = ["**", "__", "*", "_", "~~"];
 const STRIKETHROUGH_DELIMITER = "~";
-const STRIKETHROUGH_PAIR_DELIMITER = "~~";
 
-const shouldExpandEmphasisToStrong = (content: string, selection: { start: number; end: number }, text: string) =>
-  text === EMPHASIS_DELIMITER &&
+const shouldExpandEmphasisToStrong = (
+  content: string,
+  selection: { start: number; end: number },
+  text: string,
+  delimiter: string,
+) =>
+  text === delimiter &&
   selection.start === selection.end &&
   selection.start > 0 &&
-  content[selection.start - 1] === EMPHASIS_DELIMITER &&
-  content[selection.start] === EMPHASIS_DELIMITER;
+  content[selection.start - 1] === delimiter[0] &&
+  content[selection.start] === delimiter;
+
+const isFormattingAutoPairPosition = (content: string, selection: { start: number; end: number }) => {
+  if (selection.start !== selection.end) return false;
+
+  const lineStart = content.lastIndexOf("\n", selection.start - 1) + 1;
+  if (lineStart === 0) return false;
+
+  const previousChar = content[selection.start - 1];
+  const nextChar = content[selection.start];
+  const isSeparateWordStart = selection.start === lineStart || /\s/.test(previousChar);
+
+  return isSeparateWordStart && (!nextChar || /\s/.test(nextChar));
+};
 
 const shouldCreateStrikethroughPair = (content: string, selection: { start: number; end: number }, text: string) => {
   if (text !== STRIKETHROUGH_DELIMITER || selection.start !== selection.end || selection.start === 0) return false;
@@ -31,13 +43,17 @@ export const inlineFormattingInputRule: EditorInputRule = {
   name: "inlineFormatting",
 
   onInsertText(text, { content, selection }) {
-    for (const delimiter of [STRONG_DELIMITER, EMPHASIS_DELIMITER, STRIKETHROUGH_PAIR_DELIMITER]) {
+    for (const delimiter of OVERTYPE_DELIMITERS) {
+      if (delimiter.length === 1 && !content.startsWith(text, selection.start)) continue;
+
       const overtypeResult = handleOvertypeClosingDelimiter(content, selection, text, delimiter);
       if (overtypeResult) return overtypeResult;
     }
 
-    if (shouldExpandEmphasisToStrong(content, selection, text)) {
-      return createPairInsert(content, selection, EMPHASIS_DELIMITER);
+    for (const delimiter of EMPHASIS_DELIMITERS) {
+      if (shouldExpandEmphasisToStrong(content, selection, text, delimiter)) {
+        return createPairInsert(content, selection, delimiter);
+      }
     }
 
     if (shouldCreateStrikethroughPair(content, selection, text)) {
@@ -47,14 +63,19 @@ export const inlineFormattingInputRule: EditorInputRule = {
       };
     }
 
-    if (text === EMPHASIS_DELIMITER && isAutoPairPosition(content, selection)) {
-      return createPairInsert(content, selection, EMPHASIS_DELIMITER);
+    if (EMPHASIS_DELIMITERS.includes(text) && isFormattingAutoPairPosition(content, selection)) {
+      return createPairInsert(content, selection, text);
     }
 
     return null;
   },
 
   onDeleteContentBackward({ content, selection }) {
-    return handleBackspaceAtEmptyPair(content, selection, EMPHASIS_DELIMITER);
+    for (const delimiter of EMPHASIS_DELIMITERS) {
+      const result = handleBackspaceAtEmptyPair(content, selection, delimiter);
+      if (result) return result;
+    }
+
+    return null;
   },
 };
