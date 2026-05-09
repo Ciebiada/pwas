@@ -337,7 +337,7 @@ test("reorders actions globally based on usage", async ({ page }) => {
     cursor: bodyOffset("First"),
   });
   await openNoteActions(page);
-  await page.getByRole("button", { name: /^##\s+Heading$/ }).click();
+  await page.locator(".note-action-heading-level-2").click();
 
   await openStoredNote(page, {
     name: "Second",

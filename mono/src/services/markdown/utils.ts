@@ -1,5 +1,5 @@
 export type Selection = { start: number; end: number };
-export type InputResult = { content: string; cursor: number };
+export type InputResult = { content: string; cursor: number; selection?: Selection };
 
 export const INDENT = "    ";
 export const INDENT_SIZE = INDENT.length;

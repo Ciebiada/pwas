@@ -215,7 +215,7 @@ export const Editor = (_props: EditorProps) => {
     if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey) {
       event.preventDefault();
       const result = handleTab(content(), getSelection(editor), event.shiftKey);
-      applyEdit(result.content, result.cursor, "insertTab");
+      applyEdit(result.content, result.selection ?? result.cursor, "insertTab");
       return;
     }
 

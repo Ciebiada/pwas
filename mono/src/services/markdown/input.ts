@@ -1,5 +1,6 @@
 import { MARKDOWN_FEATURES } from "./features";
 import { syncTaskCookiesWithCursor } from "./features/cookie";
+import { indentListSelection } from "./listIndentation";
 import {
   getLineRange,
   INDENT,
@@ -11,6 +12,15 @@ import {
 } from "./utils";
 
 export const handleBlockTab = (content: string, selection: Selection, shiftKey: boolean): InputResult | null => {
+  const listResult = indentListSelection(content, selection, shiftKey ? "unindent" : "indent");
+  if (listResult) {
+    return {
+      content: listResult.content,
+      cursor: listResult.selection.start,
+      selection: listResult.selection,
+    };
+  }
+
   const lineRange = getLineRange(content, selection.start);
   const { start: lineStart, line } = lineRange;
   if (lineStart === 0) return null;
