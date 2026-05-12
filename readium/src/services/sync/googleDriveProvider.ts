@@ -1,4 +1,5 @@
 import {
+  deleteFile,
   downloadBinaryFile,
   downloadTextFile,
   getAuthUrl,
@@ -18,4 +19,5 @@ export const GoogleDriveProvider: SyncProvider = {
   downloadTextFile,
   uploadBinaryFile,
   downloadBinaryFile,
+  deleteFile,
 };

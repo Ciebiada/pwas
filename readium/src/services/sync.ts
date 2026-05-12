@@ -21,10 +21,19 @@ type RemoteBook = {
   googleDriveId?: string;
 };
 
+type RemoteDeletedBook = {
+  syncId: string;
+  deletedAt: number;
+  title?: string;
+  fileName?: string;
+  googleDriveId?: string;
+};
+
 type RemoteManifest = {
   version: 1;
   updatedAt: number;
   books: RemoteBook[];
+  deletedBooks: RemoteDeletedBook[];
 };
 
 const MANIFEST_FILE = "readium-library.json";
@@ -80,6 +89,7 @@ const loadManifest = async (
         version: 1,
         updatedAt: 0,
         books: [],
+        deletedBooks: [],
       },
       manifestFile: null,
     };
@@ -93,6 +103,7 @@ const loadManifest = async (
         version: 1,
         updatedAt: Number(parsed.updatedAt) || 0,
         books: Array.isArray(parsed.books) ? parsed.books : [],
+        deletedBooks: Array.isArray(parsed.deletedBooks) ? parsed.deletedBooks : [],
       },
       manifestFile,
     };
@@ -103,6 +114,7 @@ const loadManifest = async (
         version: 1,
         updatedAt: 0,
         books: [],
+        deletedBooks: [],
       },
       manifestFile,
     };
@@ -112,6 +124,7 @@ const loadManifest = async (
 const saveManifest = async (provider: SyncProvider, manifest: RemoteManifest, manifestFile: RemoteFile | null) => {
   manifest.updatedAt = Date.now();
   manifest.books.sort((a, b) => (b.lastOpened || 0) - (a.lastOpened || 0));
+  manifest.deletedBooks.sort((a, b) => b.deletedAt - a.deletedAt);
   await provider.uploadTextFile(MANIFEST_FILE, JSON.stringify(manifest, null, 2), manifestFile?.ref);
 };
 
@@ -238,15 +251,33 @@ const importRemoteBook = async (remoteBook: RemoteBook, provider: SyncProvider) 
 
 const syncBooks = async (provider: SyncProvider, targetBookIds?: number[], importRemote = true) => {
   const { manifest, manifestFile } = await loadManifest(provider);
-  const remoteBySyncId = new Map(manifest.books.map((book) => [book.syncId, book]));
+  const deletedBySyncId = new Map(manifest.deletedBooks.map((book) => [book.syncId, book]));
   let manifestChanged = false;
+  const activeRemoteBooks = manifest.books.filter((book) => !deletedBySyncId.has(book.syncId));
+
+  if (activeRemoteBooks.length !== manifest.books.length) {
+    manifest.books = activeRemoteBooks;
+    manifestChanged = true;
+  }
+
+  const remoteBySyncId = new Map(manifest.books.map((book) => [book.syncId, book]));
 
   if (importRemote) {
     const localBooks = await db.books.toArray();
-    const localSyncIds = new Set(localBooks.map((book) => book.syncId).filter(Boolean));
+    const activeLocalBooks: Book[] = [];
+
+    for (const book of localBooks) {
+      if (book.id && book.syncId && deletedBySyncId.has(book.syncId)) {
+        await db.books.delete(book.id);
+      } else {
+        activeLocalBooks.push(book);
+      }
+    }
+
+    const localSyncIds = new Set(activeLocalBooks.map((book) => book.syncId).filter(Boolean));
 
     for (const remoteBook of manifest.books) {
-      if (!localSyncIds.has(remoteBook.syncId)) {
+      if (!deletedBySyncId.has(remoteBook.syncId) && !localSyncIds.has(remoteBook.syncId)) {
         await importRemoteBook(remoteBook, provider);
       }
     }
@@ -259,6 +290,11 @@ const syncBooks = async (provider: SyncProvider, targetBookIds?: number[], impor
   for (const book of books) {
     const syncedBook = await ensureBookSyncFields(book);
     if (!syncedBook) continue;
+
+    if (deletedBySyncId.has(syncedBook.syncId)) {
+      await db.books.delete(syncedBook.id);
+      continue;
+    }
 
     const remoteBook = remoteBySyncId.get(syncedBook.syncId);
 
@@ -309,16 +345,54 @@ export const syncBook = async (bookId: number): Promise<void> => {
 
 export const removeBookFromSync = async (book: Book): Promise<void> => {
   if (!book.syncId) return;
+  if (syncPromise) {
+    try {
+      await syncPromise;
+    } catch (error) {
+      console.warn("Previous sync failed before delete:", error);
+    }
+  }
 
   const provider = getActiveProvider();
   if (!provider) return;
 
-  const { manifest, manifestFile } = await loadManifest(provider);
-  const nextBooks = manifest.books.filter((remoteBook) => remoteBook.syncId !== book.syncId);
-  if (nextBooks.length === manifest.books.length) return;
+  syncPromise = (async () => {
+    const { manifest, manifestFile } = await loadManifest(provider);
+    const remoteBook = manifest.books.find((candidate) => candidate.syncId === book.syncId);
+    const remoteRef = remoteBook?.googleDriveId || book.googleDriveId;
+    const deletedAt = Date.now();
 
-  manifest.books = nextBooks;
-  await saveManifest(provider, manifest, manifestFile);
+    manifest.books = manifest.books.filter((candidate) => candidate.syncId !== book.syncId);
+
+    const existingDeletedBook = manifest.deletedBooks.find((candidate) => candidate.syncId === book.syncId);
+    const deletedBook: RemoteDeletedBook = {
+      syncId: book.syncId!,
+      deletedAt,
+      title: remoteBook?.title || book.title,
+      fileName: remoteBook?.fileName || book.remoteFileName,
+      googleDriveId: remoteRef,
+    };
+
+    if (existingDeletedBook) {
+      Object.assign(existingDeletedBook, deletedBook);
+    } else {
+      manifest.deletedBooks.push(deletedBook);
+    }
+
+    await saveManifest(provider, manifest, manifestFile);
+
+    if (remoteRef) {
+      try {
+        await provider.deleteFile(remoteRef);
+      } catch (error) {
+        console.warn("Could not delete remote book file:", error);
+      }
+    }
+  })().finally(() => {
+    syncPromise = null;
+  });
+
+  return syncPromise;
 };
 
 export const isSyncEnabled = () => !!getActiveProvider();

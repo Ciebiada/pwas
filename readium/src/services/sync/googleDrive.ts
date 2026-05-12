@@ -319,3 +319,9 @@ export const downloadTextFile = async (ref: string): Promise<string> => {
   const res = await fetchWithAuth(url);
   return await res.text();
 };
+
+export const deleteFile = async (ref: string): Promise<void> => {
+  await fetchWithAuth(`https://www.googleapis.com/drive/v3/files/${ref}`, {
+    method: "DELETE",
+  });
+};

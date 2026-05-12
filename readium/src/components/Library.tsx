@@ -38,10 +38,15 @@ const Library = (props: { onSelect: (id: number) => void }) => {
   const deleteBook = async (id: number, e: Event) => {
     e.stopPropagation();
     if (confirm("Delete this book?")) {
-      const book = await db.books.get(id);
-      await db.books.delete(id);
-      if (book) void removeBookFromSync(book);
-      await loadBooks();
+      try {
+        const book = await db.books.get(id);
+        if (book) await removeBookFromSync(book);
+        await db.books.delete(id);
+        await loadBooks();
+      } catch (error) {
+        console.error("Could not delete book:", error);
+        alert("Could not delete book.");
+      }
     }
   };
 

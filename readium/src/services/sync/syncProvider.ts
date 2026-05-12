@@ -18,4 +18,5 @@ export interface SyncProvider {
   downloadTextFile(ref: string): Promise<string>;
   uploadBinaryFile(name: string, content: Blob | ArrayBuffer, mimeType: string, ref?: string): Promise<RemoteFile>;
   downloadBinaryFile(ref: string): Promise<ArrayBuffer>;
+  deleteFile(ref: string): Promise<void>;
 }
