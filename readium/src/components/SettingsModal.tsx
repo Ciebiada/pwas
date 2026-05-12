@@ -1,9 +1,10 @@
 import { type Accessor, createSignal, type Setter, Show } from "solid-js";
 import { CheckIcon, ChevronRightIcon } from "ui/Icons";
-import { Modal, ModalButton, ModalPage, useModal } from "ui/Modal";
+import { Modal, ModalButton, ModalPage, ModalToggle, useModal } from "ui/Modal";
 import { useNavigate } from "../hooks/useNavigate";
 import { disconnectGoogleDrive } from "../services/sync/googleDrive";
 import { GoogleDriveProvider } from "../services/sync/googleDriveProvider";
+import { settings, updateSettings } from "../store/settings";
 import { GoogleDriveIcon } from "./Icons";
 import "./SettingsModal.css";
 
@@ -49,6 +50,13 @@ const SettingsModalContent = () => {
           </div>
         </ModalButton>
 
+        <ModalButton onClick={() => push("preferences", "Preferences")}>
+          <span>Preferences</span>
+          <span class="nav-button-text">
+            <ChevronRightIcon />
+          </span>
+        </ModalButton>
+
         <ModalButton
           onClick={async (close) => {
             await close(true);
@@ -88,6 +96,14 @@ const SettingsModalContent = () => {
           </ModalButton>
         </div>
         <p class="settings-description">Connect Google Drive to sync your library and reading position.</p>
+      </ModalPage>
+
+      <ModalPage id="preferences">
+        <ModalToggle
+          label="Page Turn Animations"
+          checked={() => settings().pageTurnAnimations}
+          onChange={(val: boolean) => updateSettings({ pageTurnAnimations: val })}
+        />
       </ModalPage>
     </>
   );

@@ -810,7 +810,7 @@ export class EpubRenderer {
   }
 
   private shouldAnimatePageTurn(internal: boolean) {
-    return !internal && !this.reducedMotionQuery.matches;
+    return !internal && this.options.pageTurnAnimations && !this.reducedMotionQuery.matches;
   }
 
   private async measurePages(slot: SpineSlot): Promise<number> {

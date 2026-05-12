@@ -610,6 +610,7 @@ const Reader = (props: { onClose: () => void }) => {
         margin: settings().margin,
         theme: getEffectiveTheme(settings().theme),
         invertImages: settings().invertImages,
+        pageTurnAnimations: settings().pageTurnAnimations,
       });
 
       renderer.setOnRelocated((location) => {
@@ -718,6 +719,7 @@ const Reader = (props: { onClose: () => void }) => {
       margin: s.margin,
       theme: effectiveTheme,
       invertImages: s.invertImages,
+      pageTurnAnimations: s.pageTurnAnimations,
     });
 
     // Sync data-theme attribute for ui CSS
@@ -843,6 +845,11 @@ const Reader = (props: { onClose: () => void }) => {
               label="Invert Images"
               checked={() => settings().invertImages}
               onChange={(val: boolean) => updateSettings({ invertImages: val })}
+            />
+            <ModalToggle
+              label="Page Turn Animations"
+              checked={() => settings().pageTurnAnimations}
+              onChange={(val: boolean) => updateSettings({ pageTurnAnimations: val })}
             />
           </ModalPage>
         </Modal>

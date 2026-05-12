@@ -11,6 +11,7 @@ export type Settings = {
   margin: number;
   fontFamily: string;
   invertImages: boolean;
+  pageTurnAnimations: boolean;
 };
 
 const defaultSettings: Settings = {
@@ -19,6 +20,7 @@ const defaultSettings: Settings = {
   margin: 20,
   fontFamily: "Literata, Georgia, serif",
   invertImages: false,
+  pageTurnAnimations: true,
 };
 
 const getStoredSettings = (): Settings => {

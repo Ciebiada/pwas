@@ -45,6 +45,7 @@ export type RendererOptions = {
   margin: number;
   theme: "light" | "dark";
   invertImages: boolean;
+  pageTurnAnimations: boolean;
 };
 
 export type EpubLocationDisplayed = {
