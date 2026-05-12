@@ -7,6 +7,7 @@ import { db } from "../db";
 import type { EpubManifestItem, EpubPackage } from "../lib/epub";
 import { EpubParser, EpubRenderer } from "../lib/epub";
 import { PaginationMapCache } from "../lib/epub/pagination-map-cache";
+import { isSyncEnabled, syncBook } from "../services/sync";
 import type { Theme } from "../store/settings";
 import { settings, THEMES, updateSettings } from "../store/settings";
 
@@ -372,7 +373,11 @@ const Reader = (props: { onClose: () => void }) => {
   const saveProgress = () => {
     if (!allowSave) return;
     if (pendingLocation) {
-      db.books.update(bookId(), { progress: pendingLocation });
+      const nextProgress = pendingLocation;
+      void db.books
+        .update(bookId(), { progress: nextProgress, syncUpdatedAt: Date.now() })
+        .then(() => syncBook(bookId()))
+        .catch((error) => console.error("Error saving reading progress:", error));
       pendingLocation = undefined;
     }
   };
@@ -568,14 +573,23 @@ const Reader = (props: { onClose: () => void }) => {
   onMount(async () => {
     document.documentElement.classList.add("scroll-lock");
     try {
+      if (isSyncEnabled()) {
+        try {
+          await syncBook(bookId());
+        } catch (error) {
+          console.error("Error syncing book before open:", error);
+        }
+      }
+
       const bookData = await db.books.get(bookId());
       if (!bookData || !viewerRef) {
         props.onClose();
         return;
       }
 
-      // Update last opened timestamp
-      db.books.update(bookId(), { lastOpened: Date.now() });
+      const openedAt = Date.now();
+      await db.books.update(bookId(), { lastOpened: openedAt, syncUpdatedAt: openedAt });
+      void syncBook(bookId());
 
       const arrayBuffer =
         bookData.data instanceof ArrayBuffer ? bookData.data : await new Blob([bookData.data]).arrayBuffer();

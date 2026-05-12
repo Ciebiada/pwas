@@ -4,6 +4,7 @@ import { AddIcon, MoreIcon } from "ui/Icons";
 import { Page } from "ui/Page";
 import { type Book, db } from "../db";
 import { useNavigate } from "../hooks/useNavigate";
+import { removeBookFromSync, sync } from "../services/sync";
 import FileUpload from "./FileUpload";
 import { SettingsModal } from "./SettingsModal";
 
@@ -20,14 +21,26 @@ const Library = (props: { onSelect: (id: number) => void }) => {
     setBooks(sorted);
   };
 
+  const handleFocusSync = () => {
+    void sync().finally(loadBooks);
+  };
+
   onMount(() => {
-    loadBooks();
+    void loadBooks();
+    handleFocusSync();
+    window.addEventListener("focus", handleFocusSync);
+  });
+
+  onCleanup(() => {
+    window.removeEventListener("focus", handleFocusSync);
   });
 
   const deleteBook = async (id: number, e: Event) => {
     e.stopPropagation();
     if (confirm("Delete this book?")) {
+      const book = await db.books.get(id);
       await db.books.delete(id);
+      if (book) void removeBookFromSync(book);
       await loadBooks();
     }
   };

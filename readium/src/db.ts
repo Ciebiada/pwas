@@ -9,6 +9,10 @@ export type Book = {
   progress: string | number; // CFI string (preferred) or legacy location index (number)
   locations?: string; // Cached locations JSON
   lastOpened?: number;
+  syncId?: string;
+  syncUpdatedAt?: number;
+  remoteFileName?: string;
+  googleDriveId?: string;
 };
 
 export type PaginationMapRecord = {

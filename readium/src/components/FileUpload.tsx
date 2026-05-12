@@ -1,6 +1,7 @@
 import { createSignal, Show } from "solid-js";
 import { db } from "../db";
 import { EpubParser } from "../lib/epub";
+import { syncBook } from "../services/sync";
 
 const FileUpload = (props: { onUpload: () => void }) => {
   const [isDragOver, setIsDragOver] = createSignal(false);
@@ -31,16 +32,19 @@ const FileUpload = (props: { onUpload: () => void }) => {
         // Cover extraction is best-effort; ignore failures.
       }
 
-      await db.books.add({
+      const now = Date.now();
+      const bookId = (await db.books.add({
         title: packageData.metadata.title || "Untitled",
         author: packageData.metadata.creator || "Unknown",
         data: arrayBuffer,
         cover: coverBuffer,
         progress: 0,
-        lastOpened: Date.now(),
-      });
+        lastOpened: now,
+        syncUpdatedAt: now,
+      })) as number;
 
       props.onUpload();
+      void syncBook(bookId);
     } catch {
       alert("Error parsing EPUB");
     } finally {

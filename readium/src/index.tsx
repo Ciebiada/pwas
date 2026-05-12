@@ -8,6 +8,7 @@ import About from "./components/About";
 import Library from "./components/Library";
 import Reader from "./components/Reader";
 import { useNavigate } from "./hooks/useNavigate";
+import { GoogleDriveCallback } from "./pages/GoogleDriveCallback";
 import "./pwa";
 
 const LibraryPage = () => {
@@ -32,6 +33,7 @@ render(
       <Route path="/" component={LibraryPage} />
       <Route path="/book/:id" component={ReaderPage} />
       <Route path="/about" component={About} />
+      <Route path="/google-callback" component={GoogleDriveCallback} />
     </Router>
   ),
   root!,
