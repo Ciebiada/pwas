@@ -11,6 +11,7 @@ export type Settings = {
   margin: number;
   fontFamily: string;
   invertImages: boolean;
+  reduceMotion: boolean;
   pageTurnAnimations: boolean;
 };
 
@@ -20,6 +21,7 @@ const defaultSettings: Settings = {
   margin: 20,
   fontFamily: "Literata, Georgia, serif",
   invertImages: false,
+  reduceMotion: false,
   pageTurnAnimations: true,
 };
 
@@ -43,6 +45,10 @@ export const updateSettings = (newSettings: Partial<Settings>) => {
     localStorage.setItem(STORE_KEY, JSON.stringify(next));
     return next;
   });
+};
+
+export const isReduceMotionEnabled = () => {
+  return settings().reduceMotion || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 };
 
 export const THEMES = {

@@ -100,6 +100,11 @@ const SettingsModalContent = () => {
 
       <ModalPage id="preferences">
         <ModalToggle
+          label="Reduce Motion"
+          checked={() => settings().reduceMotion}
+          onChange={(val: boolean) => updateSettings({ reduceMotion: val })}
+        />
+        <ModalToggle
           label="Page Turn Animations"
           checked={() => settings().pageTurnAnimations}
           onChange={(val: boolean) => updateSettings({ pageTurnAnimations: val })}

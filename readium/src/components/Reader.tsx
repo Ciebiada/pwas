@@ -9,7 +9,7 @@ import { EpubParser, EpubRenderer } from "../lib/epub";
 import { PaginationMapCache } from "../lib/epub/pagination-map-cache";
 import { isSyncEnabled, syncBook } from "../services/sync";
 import type { Theme } from "../store/settings";
-import { settings, THEMES, updateSettings } from "../store/settings";
+import { isReduceMotionEnabled, settings, THEMES, updateSettings } from "../store/settings";
 
 type ContentEntry = {
   label: string;
@@ -610,7 +610,7 @@ const Reader = (props: { onClose: () => void }) => {
         margin: settings().margin,
         theme: getEffectiveTheme(settings().theme),
         invertImages: settings().invertImages,
-        pageTurnAnimations: settings().pageTurnAnimations,
+        pageTurnAnimations: settings().pageTurnAnimations && !isReduceMotionEnabled(),
       });
 
       renderer.setOnRelocated((location) => {
@@ -719,7 +719,7 @@ const Reader = (props: { onClose: () => void }) => {
       margin: s.margin,
       theme: effectiveTheme,
       invertImages: s.invertImages,
-      pageTurnAnimations: s.pageTurnAnimations,
+      pageTurnAnimations: s.pageTurnAnimations && !isReduceMotionEnabled(),
     });
 
     // Sync data-theme attribute for ui CSS
@@ -845,6 +845,11 @@ const Reader = (props: { onClose: () => void }) => {
               label="Invert Images"
               checked={() => settings().invertImages}
               onChange={(val: boolean) => updateSettings({ invertImages: val })}
+            />
+            <ModalToggle
+              label="Reduce Motion"
+              checked={() => settings().reduceMotion}
+              onChange={(val: boolean) => updateSettings({ reduceMotion: val })}
             />
             <ModalToggle
               label="Page Turn Animations"

@@ -1,4 +1,5 @@
 import { useNavigate as _useNavigate, useIsRouting } from "@solidjs/router";
+import { isReduceMotionEnabled } from "../store/settings";
 import "./transitions.css";
 
 const yieldToEventLoop = () => new Promise((resolve) => setTimeout(resolve, 10));
@@ -29,7 +30,7 @@ export const useNavigate = () => {
       navigate(path, { replace: options?.replace });
     };
 
-    if (!document.startViewTransition) {
+    if (!document.startViewTransition || isReduceMotionEnabled()) {
       executeNavigation();
       return;
     }
