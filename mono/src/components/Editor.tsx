@@ -150,6 +150,8 @@ export const Editor = (_props: EditorProps) => {
     props.onReady?.({
       focus: () => {
         editor.focus();
+        applySelection(lastSelection);
+        selectionPresentation.sync();
       },
       isFocused: () => document.activeElement === editor,
       getState: () => ({

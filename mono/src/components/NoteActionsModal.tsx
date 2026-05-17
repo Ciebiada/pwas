@@ -90,6 +90,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   let focusProxyRef: HTMLInputElement | undefined;
   let focusSearchInputTimer: number | undefined;
   let hasObservedKeyboardOpen = false;
+  let restoreEditorFocusOnClose = false;
 
   const clearFocusSearchInputTimer = () => {
     if (focusSearchInputTimer !== undefined) {
@@ -137,6 +138,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   };
 
   const focusSearchOnOpen = () => {
+    restoreEditorFocusOnClose = props.getEditorApi?.()?.isFocused() ?? false;
     setSearchKeyboardOpen();
     if (props.open()) {
       focusSearchInputSoon();
@@ -220,6 +222,10 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
         focusSearchInputSoon();
       }
     } else {
+      if (restoreEditorFocusOnClose && searchKeyboardRequested()) {
+        props.getEditorApi?.()?.focus();
+      }
+      restoreEditorFocusOnClose = false;
       clearFocusSearchInputTimer();
       setFrozenActionContext(null);
       setCanUndo(false);
