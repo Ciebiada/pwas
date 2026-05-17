@@ -306,6 +306,7 @@ const renderListItem = (
               class="animated-checkbox-input"
               id={`cbx-${index}`}
               type="checkbox"
+              switch=""
               checked={isChecked}
               onChange={() => {
                 triggerHaptic();
