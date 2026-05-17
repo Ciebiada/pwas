@@ -36,7 +36,6 @@ type ModalProps = {
   onClose?: () => void;
   title?: string;
   header?: JSX.Element;
-  closeButtonPosition?: "left" | "right";
   restingHeightRatio?: number;
 };
 
@@ -73,26 +72,34 @@ export const Modal = (props: ModalProps) => {
 
   const restingPosition = () => window.innerHeight * (1 - (props.restingHeightRatio ?? 0.5));
   const sheet = useSheetDrag(() => closeWithAnimation(), restingPosition);
-  const headerActivatableRef = useActivatable({ fastRelease: true });
+  const backButtonActivatableRef = useActivatable({ fastRelease: true });
+  const closeButtonActivatableRef = useActivatable({ fastRelease: true });
   const hasCustomHeader = () => header() !== undefined && header() !== null && header() !== false;
-  const showRootCloseButtonOnRight = () => modalStack.isRoot() && props.closeButtonPosition === "right";
 
-  const renderHeaderButton = () => {
-    const isRoot = modalStack.isRoot();
+  const renderBackButton = () => (
+    <button
+      ref={backButtonActivatableRef}
+      class="header-button modal-header-transition-item"
+      data-animate={modalStack.direction()}
+      onClick={() => modalStack.pop()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+    >
+      <BackIcon />
+    </button>
+  );
 
-    return (
-      <button
-        ref={headerActivatableRef}
-        class="header-button"
-        classList={{ "modal-close-button": showRootCloseButtonOnRight() }}
-        onClick={() => (isRoot ? closeWithAnimation() : modalStack.pop())}
-        onMouseDown={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
-      >
-        {isRoot ? <CloseIcon /> : <BackIcon />}
-      </button>
-    );
-  };
+  const renderCloseButton = () => (
+    <button
+      ref={closeButtonActivatableRef}
+      class="header-button modal-close-button"
+      onClick={() => closeWithAnimation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+    >
+      <CloseIcon />
+    </button>
+  );
 
   createEffect(() => {
     const isOpen = props.open();
@@ -198,14 +205,22 @@ export const Modal = (props: ModalProps) => {
                 onMouseDown={sheet.handleDragStart}
                 onTouchStart={sheet.handleDragStart}
               >
-                <Show when={!modalStack.isRoot() || !showRootCloseButtonOnRight()}>{renderHeaderButton()}</Show>
-                <Show
-                  when={hasCustomHeader()}
-                  fallback={<h2 class="modal-fixed-title">{modalStack.currentTitle()}</h2>}
-                >
-                  <div class="modal-custom-header">{header()}</div>
-                </Show>
-                <Show when={showRootCloseButtonOnRight()}>{renderHeaderButton()}</Show>
+                <div class="modal-header-page" classList={{ "modal-header-page-custom": hasCustomHeader() }}>
+                  <Show when={!modalStack.isRoot()}>{renderBackButton()}</Show>
+                  <Show
+                    when={hasCustomHeader()}
+                    fallback={
+                      <h2 class="modal-fixed-title modal-header-transition-item" data-animate={modalStack.direction()}>
+                        {modalStack.currentTitle()}
+                      </h2>
+                    }
+                  >
+                    <div class="modal-custom-header modal-header-transition-item" data-animate={modalStack.direction()}>
+                      {header()}
+                    </div>
+                  </Show>
+                </div>
+                {renderCloseButton()}
               </div>
               <div class="modal-pages-container">{props.children}</div>
             </div>

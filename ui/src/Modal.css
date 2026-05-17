@@ -115,6 +115,17 @@ body.modal-open {
   background: linear-gradient(to bottom, var(--modal-background-color), transparent);
 }
 
+.modal-header-page {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-header-page-custom {
+  gap: 8px;
+}
+
 .modal-fixed-header-custom {
   gap: 8px;
 }
@@ -285,6 +296,14 @@ body.modal-open {
   animation: page-slide-in-backward var(--animation-duration) cubic-bezier(0.36, 0.66, 0.04, 1);
 }
 
+.modal-header-transition-item[data-animate="forward"] {
+  animation: header-item-slide-in-forward var(--animation-duration) cubic-bezier(0.36, 0.66, 0.04, 1);
+}
+
+.modal-header-transition-item[data-animate="backward"] {
+  animation: header-item-slide-in-backward var(--animation-duration) cubic-bezier(0.36, 0.66, 0.04, 1);
+}
+
 .modal-content p {
   margin: 0px 32px 16px 32px;
   font-size: 0.8rem;
@@ -313,6 +332,30 @@ body.modal-open {
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+@keyframes header-item-slide-in-forward {
+  from {
+    opacity: 0;
+    translate: 100% 0;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes header-item-slide-in-backward {
+  from {
+    opacity: 0;
+    translate: -100% 0;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
   }
 }
 
