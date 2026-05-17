@@ -1,0 +1,129 @@
+.action-list {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  margin: 8px 16px 16px;
+  overflow: hidden;
+  border-radius: 28px;
+  background-color: var(--element-background-color);
+}
+
+.action-list-item {
+  all: unset;
+  display: flex;
+  align-items: center;
+  min-height: 76px;
+  padding: 0 24px;
+  color: var(--text-strong-color);
+  cursor: pointer;
+  position: relative;
+  touch-action: pan-y;
+  --action-list-separator-left: 24px;
+}
+
+.action-list-item-with-icon {
+  padding-left: 18px;
+  --action-list-separator-left: 80px;
+}
+
+.action-list-item::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: transparent;
+  transition: background-color 0.1s ease;
+}
+
+.action-list-item:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: var(--action-list-separator-left);
+  right: 24px;
+  bottom: 0;
+  height: 1px;
+  background-color: color-mix(in srgb, var(--text-color), transparent 78%);
+}
+
+@media (hover: hover) {
+  .action-list-item:hover::before {
+    background-color: color-mix(in srgb, var(--text-color), transparent 92%);
+  }
+}
+
+.action-list-item.activated::before {
+  background-color: color-mix(in srgb, var(--text-color), transparent 85%);
+}
+
+.action-list-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-right: 18px;
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--text-color), transparent 45%);
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.action-list-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.action-list-icon[data-tone="blue"] {
+  background: linear-gradient(145deg, #7d8fa8, #5c6f8d);
+}
+
+.action-list-icon[data-tone="orange"] {
+  background: linear-gradient(145deg, #ff9f0a, #f05a28);
+}
+
+.action-list-icon[data-tone="pink"] {
+  background: linear-gradient(145deg, #ff5c93, #e83263);
+}
+
+.action-list-icon[data-tone="danger"] {
+  background: linear-gradient(145deg, #ff6961, #d93535);
+}
+
+.action-list-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 76px;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.action-list-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.action-list-subtitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 3px;
+  color: var(--text-secondary-color);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.action-list-item-danger .action-list-title {
+  color: var(--danger-color);
+}

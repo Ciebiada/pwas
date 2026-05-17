@@ -38,7 +38,7 @@ const openNoteActions = async (page: Page) => {
   const noteMoreButton = page.locator(".header-button.header-right");
   await expect(noteMoreButton).toBeVisible();
   await noteMoreButton.click();
-  await expect(page.getByText("Note Actions")).toBeVisible();
+  await expect(page.getByRole("searchbox", { name: "Search actions" })).toBeVisible();
 };
 
 const waitForEditorFocus = async (page: Page) => {
@@ -308,6 +308,27 @@ test("shows heading actions on a plain line and applies the chosen heading level
     name: note.name,
     content: "## hello world",
   });
+});
+
+test("filters note actions from the search field", async ({ page }) => {
+  await openStoredNote(page, {
+    name: "Formatting",
+    content: "hello world",
+    cursor: bodyOffset("Formatting"),
+  });
+  await openNoteActions(page);
+
+  const search = page.getByRole("searchbox", { name: "Search actions" });
+  await search.click();
+  await expect(search).toBeFocused();
+
+  await search.fill("head");
+  await expect(page.locator(".note-action-heading-level-2")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Bold" })).toHaveCount(0);
+
+  await search.fill("dele");
+  await expect(page.getByRole("button", { name: "Delete Note" })).toBeVisible();
+  await expect(page.locator(".note-action-heading-level-2")).toHaveCount(0);
 });
 
 test("hides the current heading level action and keeps the other heading options", async ({ page }) => {

@@ -1,10 +1,10 @@
-import { INDENT, insert, lineEnd } from "../utils";
+import { INDENT, insert, lineEnd, UNORDERED_LIST_PATTERN } from "../utils";
 import { handleEmptyLineEnter, handleIndentBackspace } from "./helpers";
 import type { MarkdownFeature } from "./types";
 
 export const UnorderedListFeature: MarkdownFeature = {
   name: "unorderedList",
-  pattern: /^(\s*[-*] )(?!\[[ x]\])/,
+  pattern: UNORDERED_LIST_PATTERN,
 
   onEnter(content, selection, match, lineRange) {
     const emptyLineResult = handleEmptyLineEnter(content, selection, match, lineRange, this.onBackspace!.bind(this));

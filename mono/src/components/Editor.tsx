@@ -39,6 +39,7 @@ export type EditorState = {
 
 export type EditorAPI = {
   focus: () => void;
+  isFocused: () => boolean;
   replaceContent: (name: string, content: string) => void;
   getState: () => EditorState;
   applyEdit: (edit: EditorEdit) => void;
@@ -150,6 +151,7 @@ export const Editor = (_props: EditorProps) => {
       focus: () => {
         editor.focus();
       },
+      isFocused: () => document.activeElement === editor,
       getState: () => ({
         content: content(),
         selection: lastSelection,

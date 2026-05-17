@@ -1,5 +1,5 @@
 import type { Accessor, JSX, Setter } from "solid-js";
-import { batch, createContext, createEffect, createSignal, onCleanup, Show, useContext } from "solid-js";
+import { batch, children, createContext, createEffect, createSignal, onCleanup, Show, useContext } from "solid-js";
 import { Portal } from "solid-js/web";
 import { BackIcon, ChevronUpDownIcon, CloseIcon } from "./Icons";
 import "./Modal.css";
@@ -8,9 +8,8 @@ import { isIOS } from "./platform";
 import { setIsScrolling } from "./scrollState";
 import { useActivatable } from "./useActivatable";
 import { useModalStack } from "./useModalStack";
-import { useSheetDrag } from "./useSheetDrag";
+import { SHEET_ANIMATION_DURATION, useSheetDrag } from "./useSheetDrag";
 
-const MODAL_ANIMATION_DURATION = 400;
 const MODAL_FAST_ANIMATION_DURATION = 100;
 
 type ModalContextType = {
@@ -34,20 +33,23 @@ type ModalProps = {
   open: Accessor<boolean>;
   setOpen: Setter<boolean>;
   children: JSX.Element;
-  height?: string;
   onClose?: () => void;
   title?: string;
+  header?: JSX.Element;
+  closeButtonPosition?: "left" | "right";
+  restingHeightRatio?: number;
 };
 
 export const Modal = (props: ModalProps) => {
   const modalStack = useModalStack(props.title || "");
+  const header = children(() => props.header);
   const [isVisible, setIsVisible] = createSignal(false);
   const [isClosing, setIsClosing] = createSignal(false);
 
   const closeWithAnimation = async (fast?: boolean) => {
     if (isClosing() || !isVisible()) return;
 
-    const duration = fast ? MODAL_FAST_ANIMATION_DURATION : MODAL_ANIMATION_DURATION;
+    const duration = fast ? MODAL_FAST_ANIMATION_DURATION : SHEET_ANIMATION_DURATION;
     setIsClosing(true);
 
     batch(() => {
@@ -69,15 +71,35 @@ export const Modal = (props: ModalProps) => {
     props.onClose?.();
   };
 
-  const sheet = useSheetDrag(() => closeWithAnimation());
+  const restingPosition = () => window.innerHeight * (1 - (props.restingHeightRatio ?? 0.5));
+  const sheet = useSheetDrag(() => closeWithAnimation(), restingPosition);
   const headerActivatableRef = useActivatable({ fastRelease: true });
+  const hasCustomHeader = () => header() !== undefined && header() !== null && header() !== false;
+  const showRootCloseButtonOnRight = () => modalStack.isRoot() && props.closeButtonPosition === "right";
+
+  const renderHeaderButton = () => {
+    const isRoot = modalStack.isRoot();
+
+    return (
+      <button
+        ref={headerActivatableRef}
+        class="header-button"
+        classList={{ "modal-close-button": showRootCloseButtonOnRight() }}
+        onClick={() => (isRoot ? closeWithAnimation() : modalStack.pop())}
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+      >
+        {isRoot ? <CloseIcon /> : <BackIcon />}
+      </button>
+    );
+  };
 
   createEffect(() => {
     const isOpen = props.open();
 
     if (isOpen) {
       batch(() => {
-        sheet.setAnimationDuration(MODAL_ANIMATION_DURATION);
+        sheet.setAnimationDuration(SHEET_ANIMATION_DURATION);
         setIsVisible(true);
         setIsClosing(false);
         sheet.setDragOffsetY(0);
@@ -87,11 +109,26 @@ export const Modal = (props: ModalProps) => {
 
       // Ensure the browser acknowledges the starting position before animating
       requestAnimationFrame(() => {
-        sheet.setModalPosition(window.innerHeight * 0.5);
+        sheet.setModalPosition(restingPosition());
       });
     } else if (isVisible() && !isClosing()) {
       closeWithAnimation();
     }
+  });
+
+  createEffect(() => {
+    const nextPosition = restingPosition();
+
+    if (!props.open() || !isVisible() || isClosing() || sheet.isDragging()) return;
+
+    const currentPosition = sheet.modalPosition();
+    if (currentPosition === 0 || Math.abs(currentPosition - window.innerHeight) < 1) return;
+    if (Math.abs(currentPosition - nextPosition) < 1) return;
+
+    batch(() => {
+      sheet.setDragOffsetY(0);
+      sheet.setModalPosition(nextPosition);
+    });
   });
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -155,22 +192,20 @@ export const Modal = (props: ModalProps) => {
               onClick={(e) => e.stopPropagation()}
             >
               <div class="modal-handle" onMouseDown={sheet.handleDragStart} onTouchStart={sheet.handleDragStart} />
-              <div class="modal-fixed-header" onMouseDown={sheet.handleDragStart} onTouchStart={sheet.handleDragStart}>
-                <button
-                  ref={headerActivatableRef}
-                  class="header-button"
-                  onClick={() => (modalStack.isRoot() ? closeWithAnimation() : modalStack.pop())}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onTouchStart={(e) => e.stopPropagation()}
+              <div
+                class="modal-fixed-header"
+                classList={{ "modal-fixed-header-custom": hasCustomHeader() }}
+                onMouseDown={sheet.handleDragStart}
+                onTouchStart={sheet.handleDragStart}
+              >
+                <Show when={!modalStack.isRoot() || !showRootCloseButtonOnRight()}>{renderHeaderButton()}</Show>
+                <Show
+                  when={hasCustomHeader()}
+                  fallback={<h2 class="modal-fixed-title">{modalStack.currentTitle()}</h2>}
                 >
-                  <span class="modal-icon" classList={{ "modal-icon-visible": modalStack.isRoot() }}>
-                    <CloseIcon />
-                  </span>
-                  <span class="modal-icon" classList={{ "modal-icon-visible": !modalStack.isRoot() }}>
-                    <BackIcon />
-                  </span>
-                </button>
-                <h2 class="modal-fixed-title">{modalStack.currentTitle()}</h2>
+                  <div class="modal-custom-header">{header()}</div>
+                </Show>
+                <Show when={showRootCloseButtonOnRight()}>{renderHeaderButton()}</Show>
               </div>
               <div class="modal-pages-container">{props.children}</div>
             </div>

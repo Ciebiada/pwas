@@ -1,12 +1,15 @@
-import { batch, createSignal } from "solid-js";
+import { batch, createSignal, onCleanup } from "solid-js";
 
-const MODAL_ANIMATION_DURATION = 400;
+export const SHEET_ANIMATION_DURATION = 400;
 
-export const useSheetDrag = (onClose: () => void) => {
+export const useSheetDrag = (
+  onClose: () => void,
+  getRestingPosition: () => number = () => window.innerHeight * 0.5,
+) => {
   const [modalPosition, setModalPosition] = createSignal(window.innerHeight);
   const [dragOffsetY, setDragOffsetY] = createSignal(0);
   const [isDragging, setIsDragging] = createSignal(false);
-  const [animationDuration, setAnimationDuration] = createSignal(MODAL_ANIMATION_DURATION);
+  const [animationDuration, setAnimationDuration] = createSignal(SHEET_ANIMATION_DURATION);
 
   let startY = 0;
   let lastY = 0;
@@ -14,7 +17,15 @@ export const useSheetDrag = (onClose: () => void) => {
   let prevY = 0;
   let prevTime = 0;
 
+  const removeDragListeners = () => {
+    window.removeEventListener("mousemove", handleDragMove);
+    window.removeEventListener("mouseup", handleDragEnd);
+    window.removeEventListener("touchmove", handleDragMove);
+    window.removeEventListener("touchend", handleDragEnd);
+  };
+
   const handleDragStart = (e: TouchEvent | MouseEvent) => {
+    removeDragListeners();
     setIsDragging(true);
     const now = Date.now();
     lastTime = now;
@@ -72,17 +83,14 @@ export const useSheetDrag = (onClose: () => void) => {
     const dismissThreshold = screenHeight * 0.75;
     const fullScreenThreshold = screenHeight * 0.25;
 
-    window.removeEventListener("mousemove", handleDragMove);
-    window.removeEventListener("mouseup", handleDragEnd);
-    window.removeEventListener("touchmove", handleDragMove);
-    window.removeEventListener("touchend", handleDragEnd);
+    removeDragListeners();
 
     batch(() => {
       setIsDragging(false);
-      setAnimationDuration(MODAL_ANIMATION_DURATION);
+      setAnimationDuration(SHEET_ANIMATION_DURATION);
 
       if (isFlickDown) {
-        if (modalPosition() === 0) setModalPosition(screenHeight * 0.5);
+        if (modalPosition() === 0) setModalPosition(getRestingPosition());
         else onClose();
         setDragOffsetY(0);
       } else if (isFlickUp) {
@@ -94,11 +102,13 @@ export const useSheetDrag = (onClose: () => void) => {
         setModalPosition(0);
         setDragOffsetY(0);
       } else {
-        setModalPosition(screenHeight * 0.5);
+        setModalPosition(getRestingPosition());
         setDragOffsetY(0);
       }
     });
   };
+
+  onCleanup(removeDragListeners);
 
   return {
     modalPosition,

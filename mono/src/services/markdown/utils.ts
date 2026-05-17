@@ -5,6 +5,9 @@ export const INDENT = "    ";
 export const INDENT_SIZE = INDENT.length;
 
 export const LIST_PATTERN = /^(\s*([-*]|\d+\.)\s(?:\[[ x]\]\s)?)/;
+export const UNORDERED_LIST_PATTERN = /^(\s*[-*] )(?!\[[ x]\])/;
+export const TODO_LIST_PATTERN = /^(\s*[-*] )\[([ x])\]\s/;
+export const TODO_CHECKBOX_PATTERN = /^(\s*[-*] )\[([ x])\]/;
 export const TABLE_PATTERN = /^\|/;
 
 export const getLineRange = (content: string, position: number) => {

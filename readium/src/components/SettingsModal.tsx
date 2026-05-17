@@ -116,13 +116,7 @@ const SettingsModalContent = () => {
 
 export const SettingsModal = (props: SettingsModalProps) => {
   return (
-    <Modal
-      open={props.open}
-      setOpen={props.setOpen}
-      height="45dvh"
-      title="Settings"
-      onClose={() => props.setOpen(false)}
-    >
+    <Modal open={props.open} setOpen={props.setOpen} title="Settings" onClose={() => props.setOpen(false)}>
       <SettingsModalContent />
     </Modal>
   );

@@ -23,6 +23,9 @@
 
 .header-title {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 1.618rem;
   font-weight: 500;
   color: var(--text-strong-color);
@@ -31,6 +34,27 @@
   overflow: hidden;
   text-overflow: ellipsis;
   pointer-events: auto;
+}
+
+.header-title-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.header-title-icon > img,
+.header-title-icon > svg {
+  display: block;
+  width: 32px;
+  height: 32px;
+}
+
+.header-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-title-fade {

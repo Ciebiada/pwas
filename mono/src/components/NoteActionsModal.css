@@ -1,17 +1,62 @@
-.note-action-button-content {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
+.note-actions-search-focus-proxy {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  font-size: 16px;
 }
 
-.note-action-button-icon {
-  min-width: 2.5ch;
-  font-size: 0.82em;
-  line-height: 1;
+.note-actions-search {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  gap: 8px;
+  border-radius: 22px;
+  background-color: var(--element-background-color);
   color: var(--text-color);
-  background-color: color-mix(in srgb, var(--modal-background-color), transparent 40%);
-  padding: 0.18rem 0.4rem;
-  border-radius: 6px;
-  margin-top: 1px;
+  cursor: text;
+}
+
+.note-actions-search-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: color-mix(in srgb, var(--text-color), transparent 25%);
+}
+
+.note-actions-search-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.note-actions-search-input {
+  all: unset;
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-strong-color);
+  line-height: 1.2;
+}
+
+.note-actions-search-input::placeholder {
+  color: color-mix(in srgb, var(--text-color), transparent 35%);
+  opacity: 1;
+}
+
+.note-actions-empty {
+  margin: 18px 16px;
+  color: var(--text-color);
+  font-size: 14px;
+  font-weight: 500;
   text-align: center;
 }

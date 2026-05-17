@@ -1,11 +1,11 @@
-import { INDENT, insert, lineEnd } from "../utils";
+import { INDENT, insert, lineEnd, TODO_CHECKBOX_PATTERN, TODO_LIST_PATTERN } from "../utils";
 import { syncTaskCookies, syncTaskCookiesWithCursor } from "./cookie";
 import { handleEmptyLineEnter, handleIndentBackspace } from "./helpers";
 import type { MarkdownFeature } from "./types";
 
 export const TodoListFeature: MarkdownFeature = {
   name: "todoList",
-  pattern: /^(\s*[-*] )\[([ x])\]\s/,
+  pattern: TODO_LIST_PATTERN,
 
   onEnter(content, selection, match, lineRange) {
     const emptyLineResult = handleEmptyLineEnter(content, selection, match, lineRange, this.onBackspace!.bind(this));
@@ -90,8 +90,7 @@ export const toggleCheckbox = (content: string, lineIndex: number): string => {
   const line = lines[lineIndex];
   if (!line) return content;
 
-  const checkboxPattern = /^(\s*[-*] )\[([ x])\]/;
-  const match = line.match(checkboxPattern);
+  const match = line.match(TODO_CHECKBOX_PATTERN);
   if (!match) return content;
 
   const isChecked = match[2] === "x";

@@ -53,7 +53,7 @@ export const NotesList = () => {
 
   return (
     <>
-      <Header title="Notes">
+      <Header title="Notes" titleIcon={<img src="/pwa-64x64.png" alt="" />}>
         <HeaderButton right onClick={() => navigate("/new")}>
           <AddIcon />
         </HeaderButton>

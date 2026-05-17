@@ -1,7 +1,6 @@
 import { calculateCursorPosition } from "../../cursor";
+import { LIST_PATTERN, TODO_LIST_PATTERN } from "../utils";
 
-const LIST_ITEM_PATTERN = /^(\s*)(?:[-*]|\d+\.)\s/;
-const CHECKBOX_PATTERN = /^(\s*)[-*] \[([ x])\]\s/;
 const HAS_COOKIE_PATTERN = /\[(?:\/|%|\d+\/\d+|\d+%)\]/;
 const COOKIE_PATTERN = /\[(?:\/|%|\d+\/\d+|\d+%)\]/g;
 
@@ -12,7 +11,7 @@ type CookieStats = {
 
 const getIndentation = (line: string) => line.match(/^ */)?.[0].length ?? 0;
 
-const isListItem = (line: string) => LIST_ITEM_PATTERN.test(line);
+const isListItem = (line: string) => LIST_PATTERN.test(line);
 
 const getIndentedChildStats = (lines: string[], lineIndex: number, currentIndentation: number): CookieStats => {
   let childIndentation: number | null = null;
@@ -28,7 +27,7 @@ const getIndentedChildStats = (lines: string[], lineIndex: number, currentIndent
     if (childIndentation === null) childIndentation = indentation;
     if (indentation !== childIndentation) continue;
 
-    const checkboxMatch = line.match(CHECKBOX_PATTERN);
+    const checkboxMatch = line.match(TODO_LIST_PATTERN);
     if (!checkboxMatch) continue;
 
     total += 1;
@@ -64,7 +63,7 @@ const getFollowingBlockStats = (lines: string[], lineIndex: number): CookieStats
     if (index !== firstBlockIndex && indentation === blockIndentation && !isListItem(line)) break;
     if (indentation !== blockIndentation) continue;
 
-    const checkboxMatch = line.match(CHECKBOX_PATTERN);
+    const checkboxMatch = line.match(TODO_LIST_PATTERN);
     if (!checkboxMatch) continue;
 
     total += 1;

@@ -76,10 +76,10 @@ body.modal-open {
 
 .modal-handle {
   position: absolute;
-  top: 8px;
+  top: 4px;
   left: 50%;
   transform: translateX(-50%);
-  width: 36px;
+  width: 50px;
   height: 5px;
   background-color: color-mix(in srgb, var(--text-color), transparent 80%);
   border-radius: 2.5px;
@@ -112,12 +112,26 @@ body.modal-open {
   align-items: center;
   cursor: grab;
   z-index: 5;
-  z-index: 5;
   background: linear-gradient(to bottom, var(--modal-background-color), transparent);
+}
+
+.modal-fixed-header-custom {
+  gap: 8px;
 }
 
 .modal-fixed-header:active {
   cursor: grabbing;
+}
+
+.modal-custom-header {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-close-button {
+  margin-left: auto;
 }
 
 .modal-fixed-title {
@@ -128,22 +142,6 @@ body.modal-open {
   font-size: inherit;
   font-weight: 600;
   pointer-events: none;
-}
-
-.modal-icon {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  opacity: 0;
-  transition: opacity 0.25s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-icon-visible {
-  opacity: 1;
 }
 
 .modal-button {
@@ -270,7 +268,9 @@ body.modal-open {
   overflow-y: auto;
   overscroll-behavior: contain;
   height: 100%;
+  box-sizing: border-box;
   padding-top: var(--modal-header-height);
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
 }
 
 .modal-page-scrollable {

@@ -798,7 +798,7 @@ const Reader = (props: { onClose: () => void }) => {
           <BookOpenIcon />
         </button>
 
-        <Modal open={showSettings} setOpen={setShowSettings} title="Appearance" height="auto">
+        <Modal open={showSettings} setOpen={setShowSettings} title="Appearance">
           <ModalPage id="root">
             <ModalSelect
               label="Theme"
@@ -859,7 +859,7 @@ const Reader = (props: { onClose: () => void }) => {
           </ModalPage>
         </Modal>
 
-        <Modal open={showContents} setOpen={setShowContents} title="Contents" height="auto">
+        <Modal open={showContents} setOpen={setShowContents} title="Contents">
           <ModalPage id="root">
             <Show when={contentEntries().length > 0}>
               <ModalSlider

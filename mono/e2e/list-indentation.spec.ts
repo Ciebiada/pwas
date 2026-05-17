@@ -109,7 +109,7 @@ const selectBodyText = async (page: Page, noteName: string, start: number, end: 
 
 const openNoteActions = async (page: Page) => {
   await page.locator(".header-button.header-right").click();
-  await expect(page.getByText("Note Actions")).toBeVisible();
+  await expect(page.getByRole("searchbox", { name: "Search actions" })).toBeVisible();
 };
 
 test("Tab indents all selected checklist items across indentation levels", async ({ page }) => {
@@ -176,6 +176,76 @@ test("note actions indent and unindent when the cursor is on a list item", async
     {
       name: note.name,
       content: "1. parent\n    1. child\n2. sibling",
+    },
+  ]);
+});
+
+test("note actions turn the current bullet item into a todo and back", async ({ page }) => {
+  const note = {
+    name: "Lists",
+    content: "- first\n- second",
+    cursor: bodyOffset("Lists", "- first".length),
+  };
+  await openStoredNote(page, note);
+
+  await openNoteActions(page);
+  await expect(page.getByRole("button", { name: "Turn Todo", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Turn Bullet", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Turn Todo", exact: true }).click();
+
+  await expectStoredNotes(page, [
+    {
+      name: note.name,
+      content: "- [ ] first\n- second",
+    },
+  ]);
+
+  await openNoteActions(page);
+  await expect(page.getByRole("button", { name: "Turn Bullet", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Turn Bullet", exact: true }).click();
+
+  await expectStoredNotes(page, [
+    {
+      name: note.name,
+      content: "- first\n- second",
+    },
+  ]);
+});
+
+test("note actions turn selected bullet items into todos", async ({ page }) => {
+  const note = {
+    name: "Lists",
+    content: "Project [/]\n- first\nParagraph\n* second\n- [x] done",
+  };
+  await openStoredNote(page, note);
+  await selectBodyText(page, note.name, "Project [/]\n".length, "Project [/]\n- first\nParagraph\n* second".length);
+
+  await openNoteActions(page);
+  await page.getByRole("button", { name: "Turn Todo", exact: true }).click();
+
+  await expectStoredNotes(page, [
+    {
+      name: note.name,
+      content: "Project [0/1]\n- [ ] first\nParagraph\n- [ ] second\n- [x] done",
+    },
+  ]);
+});
+
+test("note actions turn selected todos into bullet items", async ({ page }) => {
+  const note = {
+    name: "Lists",
+    content: "Project [/]\n- [x] done\n- [ ] later\n- keep",
+  };
+  await openStoredNote(page, note);
+  await selectBodyText(page, note.name, "Project [/]\n".length, "Project [/]\n- [x] done\n- [ ] later".length);
+
+  await openNoteActions(page);
+  await page.getByRole("button", { name: "Turn Bullet", exact: true }).click();
+
+  await expectStoredNotes(page, [
+    {
+      name: note.name,
+      content: "Project [0/0]\n- done\n- later\n- keep",
     },
   ]);
 });

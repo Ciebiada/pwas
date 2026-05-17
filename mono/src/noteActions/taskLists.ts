@@ -1,3 +1,4 @@
+import { TODO_LIST_PATTERN } from "../services/markdown/utils";
 import { createCollapsedSelection } from "./helpers";
 import type { NoteActionContext, NoteActionResult } from "./types";
 
@@ -12,8 +13,6 @@ type TaskListRange = {
   start: number;
   end: number;
 };
-
-const TASK_LIST_ITEM_PATTERN = /^(\s*[-*] )\[([ x])\]\s/;
 
 const getLines = (content: string): ContentLine[] => {
   let start = 0;
@@ -39,9 +38,9 @@ const getLineIndexAtPosition = (lines: ContentLine[], position: number) => {
   return index === -1 ? lines.length - 1 : index;
 };
 
-const isTaskListItem = (line: string) => TASK_LIST_ITEM_PATTERN.test(line);
+const isTaskListItem = (line: string) => TODO_LIST_PATTERN.test(line);
 
-const isCheckedTaskListItem = (line: string) => TASK_LIST_ITEM_PATTERN.exec(line)?.[2] === "x";
+const isCheckedTaskListItem = (line: string) => TODO_LIST_PATTERN.exec(line)?.[2] === "x";
 
 const getTaskListRange = (content: string, cursor: number): TaskListRange | null => {
   const lines = getLines(content);

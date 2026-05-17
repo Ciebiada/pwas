@@ -18,7 +18,7 @@ test("deletes a note from the notes list actions modal after a long press", asyn
   await page.waitForTimeout(500);
   await page.mouse.up();
 
-  await expect(page.getByText("Note Actions")).toBeVisible();
+  await expect(page.getByRole("searchbox", { name: "Search actions" })).toBeVisible();
   await page.getByRole("button", { name: "Delete Note" }).click();
 
   await expectStoredNotes(page, []);

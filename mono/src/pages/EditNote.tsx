@@ -4,7 +4,7 @@ import { Header, HeaderButton } from "ui/Header";
 import { BackIcon, MoreIcon } from "ui/Icons";
 import { Page } from "ui/Page";
 import { Editor, type EditorAPI } from "../components/Editor";
-import { NoteActionsModal } from "../components/NoteActionsModal";
+import { NoteActionsModal, type NoteActionsModalAPI } from "../components/NoteActionsModal";
 import { useNavigate } from "../hooks/useNavigate";
 import { db } from "../services/db";
 
@@ -17,6 +17,7 @@ export const EditNote = () => {
   const noteId = parseInt(useParams().id ?? "0", 10);
   const [modalOpen, setModalOpen] = createSignal(false);
   let editorApi: EditorAPI;
+  let noteActionsModalApi: NoteActionsModalAPI | undefined;
   let lastSeenSync = 0;
   let initialized = false;
 
@@ -70,13 +71,38 @@ export const EditNote = () => {
     await db.notes.update(noteId, { cursor });
   };
 
+  const prepareOpenNoteActions = () => {
+    noteActionsModalApi?.focusSearchOnOpen();
+  };
+
+  const handleOpenNoteActionsPressStart = (event: MouseEvent | TouchEvent) => {
+    if (!editorApi?.isFocused()) return;
+
+    event.preventDefault();
+    prepareOpenNoteActions();
+    setModalOpen(true);
+  };
+
+  const handleOpenNoteActions = () => {
+    if (modalOpen()) return;
+    if (editorApi?.isFocused()) {
+      prepareOpenNoteActions();
+    }
+    setModalOpen(true);
+  };
+
   return (
     <>
       <Header>
         <HeaderButton onClick={() => navigate(-1, { back: true })}>
           <BackIcon />
         </HeaderButton>
-        <HeaderButton right onClick={() => setModalOpen(true)}>
+        <HeaderButton
+          right
+          onMouseDown={handleOpenNoteActionsPressStart}
+          onTouchStart={handleOpenNoteActionsPressStart}
+          onClick={handleOpenNoteActions}
+        >
           <MoreIcon />
         </HeaderButton>
       </Header>
@@ -99,6 +125,7 @@ export const EditNote = () => {
         open={modalOpen}
         setOpen={setModalOpen}
         getEditorApi={() => editorApi}
+        onReady={(api) => (noteActionsModalApi = api)}
         onDelete={() => navigate(-1, { back: true })}
       />
     </>

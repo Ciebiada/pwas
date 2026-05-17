@@ -1,5 +1,6 @@
 import { headingLevel2Action, subheadingAction, titleHeadingAction } from "./actions/headings";
 import { boldAction, italicAction, strikethroughAction } from "./actions/inlineFormatting";
+import { turnBulletAction, turnTodoAction } from "./actions/listConversion";
 import { indentListAction, unindentListAction } from "./actions/listIndentation";
 import { removeCheckedTasksAction } from "./actions/removeCheckedTasks";
 import { getNoteActionLabel, type NoteActionContext, type ResolvedNoteAction } from "./types";
@@ -12,6 +13,8 @@ const noteActions = [
   titleHeadingAction,
   headingLevel2Action,
   subheadingAction,
+  turnTodoAction,
+  turnBulletAction,
   indentListAction,
   unindentListAction,
   removeCheckedTasksAction,
