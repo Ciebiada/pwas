@@ -108,8 +108,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 500;
   letter-spacing: 0;
 }
 
@@ -117,7 +117,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-top: 3px;
+  margin-top: 0;
   color: var(--text-secondary-color);
   font-size: 15px;
   font-weight: 500;
