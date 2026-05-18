@@ -11,47 +11,50 @@
 .action-list-item {
   all: unset;
   display: flex;
+  box-sizing: border-box;
   align-items: center;
   min-height: 76px;
   padding: 0 24px;
+  background-color: transparent;
   color: var(--text-strong-color);
   cursor: pointer;
   position: relative;
+  transition: background-color 0.15s ease;
   touch-action: pan-y;
-  --action-list-separator-left: 24px;
 }
 
 .action-list-item-with-icon {
   padding-left: 18px;
-  --action-list-separator-left: 80px;
-}
-
-.action-list-item::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-color: transparent;
-  transition: background-color 0.1s ease;
 }
 
 .action-list-item:not(:last-child)::after {
   content: "";
   position: absolute;
-  left: var(--action-list-separator-left);
+  left: 24px;
   right: 24px;
   bottom: 0;
   height: 1px;
-  background-color: color-mix(in srgb, var(--text-color), transparent 78%);
+  background-color: var(--bg-secondary-color);
 }
 
 @media (hover: hover) {
-  .action-list-item:hover::before {
-    background-color: color-mix(in srgb, var(--text-color), transparent 92%);
+  .action-list-item:hover {
+    background-color: var(--bg-secondary-color);
+  }
+
+  .action-list-item:hover::after,
+  .action-list-item:has(+ .action-list-item:hover)::after {
+    background-color: transparent;
   }
 }
 
-.action-list-item.activated::before {
-  background-color: color-mix(in srgb, var(--text-color), transparent 85%);
+.action-list-item.activated {
+  background-color: var(--bg-secondary-color);
+}
+
+.action-list-item.activated::after,
+.action-list-item:has(+ .action-list-item.activated)::after {
+  background-color: transparent;
 }
 
 .action-list-icon {
@@ -68,8 +71,6 @@
   font-weight: 700;
   line-height: 1;
   flex-shrink: 0;
-  position: relative;
-  z-index: 1;
 }
 
 .action-list-icon svg {
@@ -100,8 +101,6 @@
   min-height: 76px;
   flex-direction: column;
   justify-content: center;
-  position: relative;
-  z-index: 1;
 }
 
 .action-list-title {
