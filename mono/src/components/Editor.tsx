@@ -67,6 +67,7 @@ export const Editor = (_props: EditorProps) => {
   let editor: HTMLDivElement;
   let container: HTMLDivElement | undefined;
   let iosReplacementText = "";
+  let suppressNextFocusScroll = false;
   let lastSelection: EditorSelection = {
     start: props.initialCursor,
     end: props.initialCursor,
@@ -149,9 +150,11 @@ export const Editor = (_props: EditorProps) => {
   onMount(() => {
     props.onReady?.({
       focus: () => {
-        editor.focus();
+        suppressNextFocusScroll = true;
+        editor.focus({ preventScroll: true });
         applySelection(lastSelection);
         selectionPresentation.sync();
+        window.setTimeout(() => (suppressNextFocusScroll = false), 0);
       },
       isFocused: () => document.activeElement === editor,
       getState: () => ({
@@ -295,6 +298,10 @@ export const Editor = (_props: EditorProps) => {
         contentEditable={true}
         spellcheck={false}
         onFocus={() => {
+          if (suppressNextFocusScroll) {
+            suppressNextFocusScroll = false;
+            return;
+          }
           editor.focus({ preventScroll: true });
           selectionPresentation.sync();
           scrollWhenViewportStable(() => scrollCursorIntoView(window.getSelection()!, "smooth"));
