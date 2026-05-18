@@ -22,7 +22,6 @@
   cursor: pointer;
   animation: fade-in 0.2s ease;
   transition:
-    background-color 0.15s ease,
     transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
     filter 0.2s;
   touch-action: manipulation;

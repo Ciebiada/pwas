@@ -6,6 +6,8 @@
   overflow: hidden;
   border-radius: 28px;
   background-color: var(--element-background-color);
+  --action-list-hover-background: color-mix(in srgb, var(--element-background-color), var(--text-color) 8%);
+  --action-list-active-background: color-mix(in srgb, var(--element-background-color), var(--text-color) 15%);
 }
 
 .action-list-item {
@@ -19,7 +21,7 @@
   color: var(--text-strong-color);
   cursor: pointer;
   position: relative;
-  transition: background-color 0.15s ease;
+  transition: none;
   touch-action: pan-y;
 }
 
@@ -34,12 +36,12 @@
   right: 24px;
   bottom: 0;
   height: 1px;
-  background-color: var(--bg-secondary-color);
+  background-color: var(--action-list-hover-background);
 }
 
 @media (hover: hover) {
   .action-list-item:hover {
-    background-color: var(--bg-secondary-color);
+    background-color: var(--action-list-hover-background);
   }
 
   .action-list-item:hover::after,
@@ -49,7 +51,7 @@
 }
 
 .action-list-item.activated {
-  background-color: var(--bg-secondary-color);
+  background-color: var(--action-list-active-background);
 }
 
 .action-list-item.activated::after,
