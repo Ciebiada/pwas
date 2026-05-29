@@ -26,6 +26,13 @@ const openFoldedNote = async (page: Page) => {
   return noteId;
 };
 
+const openNoteActions = async (page: Page) => {
+  const noteMoreButton = page.locator(".header-button.header-right");
+  await expect(noteMoreButton).toBeVisible();
+  await noteMoreButton.click();
+  await expect(page.getByRole("searchbox", { name: "Search actions" })).toBeVisible();
+};
+
 const lineWithText = (page: Page, selector: string, text: string) => page.locator(selector).filter({ hasText: text });
 
 const setCaretAtLineEnd = async (line: Locator) => {
@@ -79,6 +86,9 @@ const getActiveLineText = async (page: Page) =>
     return (line.textContent ?? "").replaceAll("\u200B", "").trim();
   });
 
+const getFoldToggleColor = async (heading: Locator) =>
+  await heading.locator(".fold-toggle").evaluate((element) => getComputedStyle(element).color);
+
 test("folds and unfolds a hierarchical section from the gutter and remembers it locally", async ({ page }) => {
   await openFoldedNote(page);
 
@@ -90,8 +100,10 @@ test("folds and unfolds a hierarchical section from the gutter and remembers it 
   const childBodyLine = lineWithText(page, ".md-text", "child body");
   const grandBodyLine = lineWithText(page, ".md-text", "grand body");
 
+  const foldChevronColor = await getFoldToggleColor(projectHeading);
   await setCaretAtLineEnd(childBodyLine);
   await projectHeading.locator(".fold-toggle").click();
+  await expect.poll(async () => await getFoldToggleColor(projectHeading)).not.toBe(foldChevronColor);
 
   await expect.poll(async () => await getActiveLineText(page)).toBe("# Project");
   await expect(introLine).toBeHidden();
@@ -244,4 +256,48 @@ test("Enter at the end of a folded heading inserts after its hidden section", as
   await expect(hiddenLine).toBeHidden();
   await expect(afterLine).toBeHidden();
   await expect(heading.locator(".fold-toggle")).toHaveAttribute("aria-label", "Unfold section");
+});
+
+test("note actions can fold and unfold all sections without changing content", async ({ page }) => {
+  await openFoldedNote(page);
+
+  const projectHeading = lineWithText(page, "h1.md-h1", "Project");
+  const nextHeading = lineWithText(page, "h1.md-h1", "Next");
+  const introLine = lineWithText(page, ".md-text", "intro");
+  const childHeading = lineWithText(page, "h2.md-h2", "Child");
+  const childBodyLine = lineWithText(page, ".md-text", "child body");
+  const afterLine = lineWithText(page, ".md-text", "after");
+
+  await openNoteActions(page);
+  await expect(page.getByRole("button", { name: "Fold All Sections", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Unfold All Sections", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Fold All Sections", exact: true }).click();
+  await expect(page.getByRole("searchbox", { name: "Search actions" })).toHaveCount(0);
+
+  await expect(projectHeading).toBeVisible();
+  await expect(nextHeading).toBeVisible();
+  await expect(introLine).toBeHidden();
+  await expect(childHeading).toBeHidden();
+  await expect(childBodyLine).toBeHidden();
+  await expect(afterLine).toBeHidden();
+
+  await openNoteActions(page);
+  await expect(page.getByRole("button", { name: "Fold All Sections", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Unfold All Sections", exact: true })).toBeVisible();
+  await page.getByRole("searchbox", { name: "Search actions" }).fill("unfold");
+  await expect(page.getByRole("button", { name: "Unfold All Sections", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Unfold All Sections", exact: true }).click();
+  await expect(page.getByRole("searchbox", { name: "Search actions" })).toHaveCount(0);
+
+  await expect(introLine).toBeVisible();
+  await expect(childHeading).toBeVisible();
+  await expect(childBodyLine).toBeVisible();
+  await expect(afterLine).toBeVisible();
+
+  await expectStoredNotes(page, [
+    {
+      name: "Fold",
+      content: foldedNoteContent,
+    },
+  ]);
 });

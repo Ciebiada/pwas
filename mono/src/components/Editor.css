@@ -51,7 +51,7 @@
   background: transparent;
   border: 0;
   border-radius: 4px;
-  color: var(--text-secondary-color);
+  color: color-mix(in srgb, var(--text-secondary-color) 65%, transparent);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -76,8 +76,16 @@
   transform: rotate(0deg);
 }
 
+.fold-toggle.is-folded {
+  color: var(--text-secondary-color);
+}
+
 @media (hover: hover) {
   .fold-toggle:hover {
+    color: var(--text-secondary-color);
+  }
+
+  .fold-toggle.is-folded:hover {
     color: var(--text-color);
   }
 }

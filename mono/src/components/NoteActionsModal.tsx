@@ -75,6 +75,10 @@ const getActionSubtitle = (actionId: string) => {
       return "Press Shift+Tab on list items";
     case "remove-checked-tasks":
       return "Remove checked - [x] items";
+    case "fold-all-sections":
+      return "Collapse every heading section";
+    case "unfold-all-sections":
+      return "Expand every heading section";
     default:
       return undefined;
   }
@@ -84,6 +88,8 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   const [frozenActionContext, setFrozenActionContext] = createSignal<NoteActionContext | null>(null);
   const [canUndo, setCanUndo] = createSignal(false);
   const [canRedo, setCanRedo] = createSignal(false);
+  const [canFoldAllSections, setCanFoldAllSections] = createSignal(false);
+  const [canUnfoldAllSections, setCanUnfoldAllSections] = createSignal(false);
   const [searchQuery, setSearchQuery] = createSignal("");
   const [searchKeyboardRequested, setSearchKeyboardRequested] = createSignal(false);
   let searchInputRef: HTMLInputElement | undefined;
@@ -218,6 +224,8 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
       setFrozenActionContext(readCurrentActionContext());
       setCanUndo(state?.canUndo ?? false);
       setCanRedo(state?.canRedo ?? false);
+      setCanFoldAllSections(props.getEditorApi?.()?.canFoldAllSections() ?? false);
+      setCanUnfoldAllSections(props.getEditorApi?.()?.canUnfoldAllSections() ?? false);
       if (searchKeyboardRequested()) {
         focusSearchInputSoon();
       }
@@ -230,6 +238,8 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
       setFrozenActionContext(null);
       setCanUndo(false);
       setCanRedo(false);
+      setCanFoldAllSections(false);
+      setCanUnfoldAllSections(false);
       setSearchQuery("");
       setSearchKeyboardRequested(false);
     }
@@ -245,12 +255,20 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   const matchesSearch = (value: string) => searchMatches(value, searchQuery());
   const showUndo = createMemo(() => canUndo() && matchesSearch("Undo undo"));
   const showRedo = createMemo(() => canRedo() && matchesSearch("Redo redo"));
+  const showFoldAllSections = createMemo(() => canFoldAllSections() && matchesSearch("Fold All Sections fold"));
+  const showUnfoldAllSections = createMemo(() => canUnfoldAllSections() && matchesSearch("Unfold All Sections unfold"));
   const showDelete = createMemo(() => matchesSearch("Delete Note delete"));
   const filteredActionItems = createMemo(() =>
     actionItems().filter((item) => matchesSearch(`${item.label} ${item.action.icon ?? ""}`)),
   );
   const hasVisibleActions = createMemo(
-    () => showUndo() || showRedo() || filteredActionItems().length > 0 || showDelete(),
+    () =>
+      showUndo() ||
+      showRedo() ||
+      showFoldAllSections() ||
+      showUnfoldAllSections() ||
+      filteredActionItems().length > 0 ||
+      showDelete(),
   );
 
   const handleAction =
@@ -285,6 +303,22 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
     void close(true);
   };
 
+  const handleFoldAllSections = async (close: (fast?: boolean) => Promise<void>) => {
+    const editorApi = props.getEditorApi?.();
+    if (!editorApi?.canFoldAllSections()) return;
+
+    editorApi.foldAllSections();
+    void close(true);
+  };
+
+  const handleUnfoldAllSections = async (close: (fast?: boolean) => Promise<void>) => {
+    const editorApi = props.getEditorApi?.();
+    if (!editorApi?.canUnfoldAllSections()) return;
+
+    editorApi.unfoldAllSections();
+    void close(true);
+  };
+
   const handleDelete = async (close: () => Promise<void>) => {
     await close();
     const note = await db.notes.get(props.noteId);
@@ -310,6 +344,22 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
         </Show>
         <Show when={showRedo()}>
           <ActionListItem title="Redo" subtitle="Reapply the last edit" onClick={() => void handleRedo(close)} />
+        </Show>
+        <Show when={showFoldAllSections()}>
+          <ActionListItem
+            title="Fold All Sections"
+            subtitle={getActionSubtitle("fold-all-sections")}
+            class="note-action-fold-all-sections"
+            onClick={() => void handleFoldAllSections(close)}
+          />
+        </Show>
+        <Show when={showUnfoldAllSections()}>
+          <ActionListItem
+            title="Unfold All Sections"
+            subtitle={getActionSubtitle("unfold-all-sections")}
+            class="note-action-unfold-all-sections"
+            onClick={() => void handleUnfoldAllSections(close)}
+          />
         </Show>
         <For each={filteredActionItems()}>
           {(item) => (

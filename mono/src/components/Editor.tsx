@@ -44,7 +44,11 @@ export type EditorAPI = {
   replaceContent: (name: string, content: string) => void;
   getState: () => EditorState;
   applyEdit: (edit: EditorEdit) => void;
+  canFoldAllSections: () => boolean;
+  canUnfoldAllSections: () => boolean;
+  foldAllSections: () => void;
   redo: () => void;
+  unfoldAllSections: () => void;
   undo: () => void;
 };
 
@@ -173,6 +177,9 @@ export const Editor = (_props: EditorProps) => {
       applyEdit: (edit) => {
         applyEdit(edit.content, edit.selection ?? lastSelection);
       },
+      canFoldAllSections: () => folding.canFoldAll(),
+      canUnfoldAllSections: () => folding.canUnfoldAll(),
+      foldAllSections: () => folding.foldAll(),
       replaceContent: (name: string, noteContent: string) => {
         const newContent = name + (noteContent ? `\n${noteContent}` : "");
         const { start } = getSelection(editor);
@@ -189,6 +196,7 @@ export const Editor = (_props: EditorProps) => {
         });
       },
       redo: () => history.redo(),
+      unfoldAllSections: () => folding.unfoldAll(),
       undo: () => history.undo(),
     });
 

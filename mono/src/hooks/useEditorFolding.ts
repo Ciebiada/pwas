@@ -94,6 +94,18 @@ export const useEditorFolding = (options: UseEditorFoldingOptions) => {
     });
   };
 
+  const foldAll = () => {
+    setFoldedSectionIds(() => writeFoldedState(new Set(foldState().sections.map((section) => section.id))));
+  };
+
+  const unfoldAll = () => {
+    setFoldedSectionIds(() => writeFoldedState(new Set()));
+  };
+
+  const canFoldAll = () => foldState().sections.some((section) => !section.isFolded);
+
+  const canUnfoldAll = () => foldState().sections.some((section) => section.isFolded);
+
   const getSectionIdAtLineIndex = (lineIndex: number) => {
     const lineSectionId = foldState().lines[lineIndex]?.sectionId;
     if (lineSectionId) return lineSectionId;
@@ -166,10 +178,14 @@ export const useEditorFolding = (options: UseEditorFoldingOptions) => {
   };
 
   return {
+    canFoldAll,
+    canUnfoldAll,
     clampSelection,
+    foldAll,
     foldState,
     getSectionIdAtPosition,
     handleEnterAtFoldedHeading,
     toggleSection,
+    unfoldAll,
   };
 };
