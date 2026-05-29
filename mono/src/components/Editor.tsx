@@ -1,5 +1,6 @@
 import { createMemo, createSignal, mergeProps, onMount } from "solid-js";
 import { isIOS } from "ui/platform";
+import { useEditorFolding } from "../hooks/useEditorFolding";
 import { useEditorHistory } from "../hooks/useEditorHistory";
 import { useEditorSelectionPresentation } from "../hooks/useEditorSelectionPresentation";
 import { usePrettyCaret } from "../hooks/usePrettyCaret";
@@ -54,11 +55,16 @@ type EditorProps = {
   onReady?: (api: EditorAPI) => void;
   onChange?: (name: string, content: string) => void;
   onCursorChange?: (cursor: number) => void;
+  foldStorageKey?: string;
 };
 
 export const Editor = (_props: EditorProps) => {
   const props = mergeProps({ initialCursor: 0 }, _props);
   const [content, setContent] = createSignal(props.initialContent);
+  const folding = useEditorFolding({
+    content,
+    storageKey: props.foldStorageKey,
+  });
   const isEmpty = createMemo(() => {
     const { name, content: body } = splitNote(content());
     return name.trim().length === 0 && body.trim().length === 0;
@@ -109,8 +115,9 @@ export const Editor = (_props: EditorProps) => {
   };
 
   const applySelection = (selection: EditorSelection) => {
-    lastSelection = selection;
-    return setSelection(editor, selection.start, { end: selection.end });
+    const visibleSelection = folding.clampSelection(selection);
+    lastSelection = visibleSelection;
+    return setSelection(editor, visibleSelection.start, { end: visibleSelection.end });
   };
 
   const toSelection = (selection: number | EditorSelection): EditorSelection =>
@@ -203,6 +210,15 @@ export const Editor = (_props: EditorProps) => {
   const onTextInput = (event: InputEvent) => (iosReplacementText = event.data || "");
 
   const handleKeyDown = (event: KeyboardEvent) => {
+    if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "o") {
+      event.preventDefault();
+      const selection = getCurrentSelection();
+      const sectionId = folding.getSectionIdAtPosition(selection.start);
+
+      if (sectionId) toggleFoldSection(sectionId);
+      return;
+    }
+
     if (event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === "y") {
       event.preventDefault();
       history.redo();
@@ -235,7 +251,15 @@ export const Editor = (_props: EditorProps) => {
   const handleBeforeInput = (event: InputEvent) => {
     event.preventDefault();
 
-    const result = processBeforeInput(event.inputType, content(), getSelection(editor), {
+    const selection = getSelection(editor);
+    const foldedEnterEdit =
+      event.inputType === "insertParagraph" ? folding.handleEnterAtFoldedHeading(selection) : null;
+    if (foldedEnterEdit) {
+      applyEdit(foldedEnterEdit.content, foldedEnterEdit.selection, event.inputType);
+      return;
+    }
+
+    const result = processBeforeInput(event.inputType, content(), selection, {
       eventData: event.inputType === "insertFromPaste" ? event.dataTransfer?.getData("text/plain") : event.data,
       iosReplacementText,
     });
@@ -260,6 +284,20 @@ export const Editor = (_props: EditorProps) => {
       selectionPresentation.sync();
     }
     emitChange();
+  };
+
+  const toggleFoldSection = (sectionId: string) => {
+    const selection = getCurrentSelection();
+    const wasFocused = document.activeElement === editor;
+
+    folding.toggleSection(sectionId);
+
+    requestAnimationFrame(() => {
+      if (!wasFocused) return;
+
+      applySelection(selection);
+      selectionPresentation.sync();
+    });
   };
 
   const handleCopy = (event: ClipboardEvent) => {
@@ -312,7 +350,10 @@ export const Editor = (_props: EditorProps) => {
         onCopy={handleCopy}
         onCut={handleCut}
       >
-        {renderMarkdown(content(), handleCheckboxToggle)}
+        {renderMarkdown(content(), handleCheckboxToggle, {
+          foldState: folding.foldState(),
+          onFoldToggle: toggleFoldSection,
+        })}
       </div>
       <TouchHint isVisible={isEmpty()} />
     </div>

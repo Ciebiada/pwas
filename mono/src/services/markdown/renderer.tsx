@@ -1,6 +1,8 @@
 import type { JSX } from "solid-js";
 import { Dynamic } from "solid-js/web";
+import { ChevronRightIcon } from "ui/Icons";
 import { triggerHaptic } from "../../hooks/useHaptic";
+import type { FoldLineState, MarkdownFoldState } from "./folding";
 import { matchInlineFormatAt } from "./inlineFormat";
 
 type InlineTokenType = "text" | "strong" | "emphasis" | "strikethrough" | "link" | "code";
@@ -38,6 +40,11 @@ type InlinePattern = {
   regex: RegExp;
   delimiter?: string;
   createToken?: (match: RegExpMatchArray) => InlineToken;
+};
+
+type RenderMarkdownOptions = {
+  foldState?: MarkdownFoldState;
+  onFoldToggle?: (sectionId: string) => void;
 };
 
 const INLINE_PATTERNS: InlinePattern[] = [
@@ -262,10 +269,43 @@ const renderBlockContent = (block: BlockToken) => (
   </>
 );
 
-const renderHeader = (block: BlockToken, className: string, content: JSX.Element) => {
+const renderFoldToggle = (foldLine: FoldLineState | undefined, onFoldToggle?: (sectionId: string) => void) => {
+  if (!foldLine?.isFoldableHeading || !foldLine.sectionId) return null;
+
+  return (
+    <button
+      type="button"
+      class="fold-toggle"
+      classList={{ "is-folded": foldLine.isFolded }}
+      aria-label={foldLine.isFolded ? "Unfold section" : "Fold section"}
+      title={foldLine.isFolded ? "Unfold section" : "Fold section"}
+      contentEditable={false}
+      tabIndex={-1}
+      onPointerDown={(event) => event.preventDefault()}
+      onTouchStart={(event) => event.preventDefault()}
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={(event) => {
+        event.preventDefault();
+        triggerHaptic();
+        onFoldToggle?.(foldLine.sectionId!);
+      }}
+    >
+      <ChevronRightIcon />
+    </button>
+  );
+};
+
+const renderHeader = (
+  block: BlockToken,
+  className: string,
+  content: JSX.Element,
+  foldLine?: FoldLineState,
+  onFoldToggle?: (sectionId: string) => void,
+) => {
   const Tag = block.type as "h1" | "h2" | "h3";
   return (
     <Dynamic component={Tag} class={className}>
+      {renderFoldToggle(foldLine, onFoldToggle)}
       {content}
     </Dynamic>
   );
@@ -336,8 +376,15 @@ const renderListItem = (
   );
 };
 
-const renderBlock = (block: BlockToken, index: number, onCheckboxToggle?: (lineIndex: number) => void) => {
-  const className = `md-line md-${block.type}`;
+const renderBlock = (
+  block: BlockToken,
+  index: number,
+  onCheckboxToggle?: (lineIndex: number) => void,
+  options: RenderMarkdownOptions = {},
+) => {
+  const foldLine = options.foldState?.lines[index];
+  const blockClassName = block.type === "paragraph" ? "text" : block.type;
+  const className = `md-line md-${blockClassName}${foldLine?.isHidden ? " is-fold-hidden" : ""}`;
   const content = renderBlockContent(block);
   const codeBlockProps = block.codeBlockId ? { "data-code-block-id": block.codeBlockId } : {};
 
@@ -345,17 +392,17 @@ const renderBlock = (block: BlockToken, index: number, onCheckboxToggle?: (lineI
     case "h1":
     case "h2":
     case "h3":
-      return renderHeader(block, className, content);
+      return renderHeader(block, className, content, foldLine, options.onFoldToggle);
     case "checkbox":
     case "list":
     case "orderedList":
       return renderListItem(block, index, className, content, onCheckboxToggle);
     case "table":
-      return <div class="md-line md-table">{renderBlockContent(block)}</div>;
+      return <div class={className}>{renderBlockContent(block)}</div>;
     case "codeFence":
       return (
         <div
-          class="md-line md-code-block-line md-code-block-fence"
+          class={`${className} md-code-block-line md-code-block-fence`}
           {...codeBlockProps}
           data-code-fence-kind={block.codeFenceKind}
         >
@@ -364,32 +411,36 @@ const renderBlock = (block: BlockToken, index: number, onCheckboxToggle?: (lineI
       );
     case "codeContent":
       return (
-        <div class="md-line md-code-block-line md-code-block-content" {...codeBlockProps}>
+        <div class={`${className} md-code-block-line md-code-block-content`} {...codeBlockProps}>
           {block.content || "\u200B"}
         </div>
       );
     default:
       return block.content ? (
-        <div class="md-line md-text">
-          {block.disableInlineMarkdown ? block.content : renderInlineMarkdown(block.content)}
-        </div>
+        <div class={className}>{block.disableInlineMarkdown ? block.content : renderInlineMarkdown(block.content)}</div>
       ) : (
-        <div class="md-line md-text empty">{"\u200B"}</div>
+        <div class={`${className} empty`}>{"\u200B"}</div>
       );
   }
 };
 
-const renderTableGroup = (blocks: BlockToken[]) => (
+const renderTableGroup = (blocks: BlockToken[], startIndex: number, options: RenderMarkdownOptions = {}) => (
   <div class="md-table-scroll">
     <div class="md-table-group">
-      {blocks.map((block) => (
-        <div class="md-line md-table">{renderBlockContent(block)}</div>
-      ))}
+      {blocks.map((block, index) => {
+        const foldLine = options.foldState?.lines[startIndex + index];
+        const className = `md-line md-table${foldLine?.isHidden ? " is-fold-hidden" : ""}`;
+        return <div class={className}>{renderBlockContent(block)}</div>;
+      })}
     </div>
   </div>
 );
 
-export const renderMarkdown = (markdown: string, onCheckboxToggle?: (lineIndex: number) => void) => {
+export const renderMarkdown = (
+  markdown: string,
+  onCheckboxToggle?: (lineIndex: number) => void,
+  options: RenderMarkdownOptions = {},
+) => {
   const blocks = parseBlocks(markdown);
   const rendered: JSX.Element[] = [];
 
@@ -397,15 +448,16 @@ export const renderMarkdown = (markdown: string, onCheckboxToggle?: (lineIndex: 
     const block = blocks[index];
 
     if (block.type !== "table") {
-      rendered.push(renderBlock(block, index, onCheckboxToggle));
+      rendered.push(renderBlock(block, index, onCheckboxToggle, options));
       continue;
     }
 
+    const startIndex = index;
     const tableBlocks = [block];
     while (index + 1 < blocks.length && blocks[index + 1].type === "table") {
       tableBlocks.push(blocks[++index]);
     }
-    rendered.push(renderTableGroup(tableBlocks));
+    rendered.push(renderTableGroup(tableBlocks, startIndex, options));
   }
 
   return rendered;

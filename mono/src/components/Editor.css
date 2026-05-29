@@ -6,7 +6,10 @@
 }
 
 .editor {
+  --editor-gutter-width: 28px;
+
   outline: none;
+  padding-left: var(--editor-gutter-width);
 }
 
 .editor-container {
@@ -35,7 +38,48 @@
 }
 
 .md-line {
+  position: relative;
   white-space: pre-wrap;
+}
+
+.md-line.is-fold-hidden {
+  display: none;
+}
+
+.fold-toggle {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: var(--text-secondary-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  height: 1.5rem;
+  justify-content: center;
+  left: calc(-1 * var(--editor-gutter-width));
+  padding: 0;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+}
+
+.fold-toggle svg {
+  height: 18px;
+  transform: rotate(90deg);
+  transition: transform 120ms ease;
+  width: 18px;
+}
+
+.fold-toggle.is-folded svg {
+  transform: rotate(0deg);
+}
+
+@media (hover: hover) {
+  .fold-toggle:hover {
+    color: var(--text-color);
+  }
 }
 
 .editor[contenteditable="true"] > .md-line:first-child {

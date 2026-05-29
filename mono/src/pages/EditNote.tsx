@@ -113,6 +113,7 @@ export const EditNote = () => {
               initialContent={`${note()!.name}${note()!.content ? `\n${note()!.content}` : ""}`}
               initialCursor={note()!.cursor}
               autoFocus
+              foldStorageKey={`mono:folded-sections:v1:${noteId}`}
               onReady={(api) => (editorApi = api)}
               onChange={handleNoteChange}
               onCursorChange={handleCursorChange}
