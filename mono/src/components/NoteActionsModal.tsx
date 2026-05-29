@@ -8,6 +8,7 @@ import {
   onMount,
   type Setter,
   Show,
+  untrack,
 } from "solid-js";
 import { ActionList, ActionListItem } from "ui/ActionList";
 import { SearchIcon } from "ui/Icons";
@@ -218,30 +219,37 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   };
 
   createEffect(() => {
-    if (props.open()) {
-      const state = props.getEditorApi?.()?.getState();
-      setSearchQuery("");
-      setFrozenActionContext(readCurrentActionContext());
-      setCanUndo(state?.canUndo ?? false);
-      setCanRedo(state?.canRedo ?? false);
-      setCanFoldAllSections(props.getEditorApi?.()?.canFoldAllSections() ?? false);
-      setCanUnfoldAllSections(props.getEditorApi?.()?.canUnfoldAllSections() ?? false);
-      if (searchKeyboardRequested()) {
-        focusSearchInputSoon();
-      }
+    const isOpen = props.open();
+
+    if (isOpen) {
+      untrack(() => {
+        const editorApi = props.getEditorApi?.();
+        const state = editorApi?.getState();
+        setSearchQuery("");
+        setFrozenActionContext(readCurrentActionContext());
+        setCanUndo(state?.canUndo ?? false);
+        setCanRedo(state?.canRedo ?? false);
+        setCanFoldAllSections(editorApi?.canFoldAllSections() ?? false);
+        setCanUnfoldAllSections(editorApi?.canUnfoldAllSections() ?? false);
+        if (searchKeyboardRequested()) {
+          focusSearchInputSoon();
+        }
+      });
     } else {
-      if (restoreEditorFocusOnClose && searchKeyboardRequested()) {
-        props.getEditorApi?.()?.focus();
-      }
-      restoreEditorFocusOnClose = false;
-      clearFocusSearchInputTimer();
-      setFrozenActionContext(null);
-      setCanUndo(false);
-      setCanRedo(false);
-      setCanFoldAllSections(false);
-      setCanUnfoldAllSections(false);
-      setSearchQuery("");
-      setSearchKeyboardRequested(false);
+      untrack(() => {
+        if (restoreEditorFocusOnClose && searchKeyboardRequested()) {
+          props.getEditorApi?.()?.focus();
+        }
+        restoreEditorFocusOnClose = false;
+        clearFocusSearchInputTimer();
+        setFrozenActionContext(null);
+        setCanUndo(false);
+        setCanRedo(false);
+        setCanFoldAllSections(false);
+        setCanUnfoldAllSections(false);
+        setSearchQuery("");
+        setSearchKeyboardRequested(false);
+      });
     }
   });
 
@@ -303,20 +311,20 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
     void close(true);
   };
 
-  const handleFoldAllSections = async (close: (fast?: boolean) => Promise<void>) => {
+  const handleFoldAllSections = (close: (fast?: boolean) => Promise<void>) => {
     const editorApi = props.getEditorApi?.();
     if (!editorApi?.canFoldAllSections()) return;
 
-    editorApi.foldAllSections();
     void close(true);
+    editorApi.foldAllSections();
   };
 
-  const handleUnfoldAllSections = async (close: (fast?: boolean) => Promise<void>) => {
+  const handleUnfoldAllSections = (close: (fast?: boolean) => Promise<void>) => {
     const editorApi = props.getEditorApi?.();
     if (!editorApi?.canUnfoldAllSections()) return;
 
-    editorApi.unfoldAllSections();
     void close(true);
+    editorApi.unfoldAllSections();
   };
 
   const handleDelete = async (close: () => Promise<void>) => {
@@ -351,6 +359,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
             subtitle={getActionSubtitle("fold-all-sections")}
             class="note-action-fold-all-sections"
             onClick={() => void handleFoldAllSections(close)}
+            onPressStart={() => handleFoldAllSections(close)}
           />
         </Show>
         <Show when={showUnfoldAllSections()}>
@@ -359,6 +368,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
             subtitle={getActionSubtitle("unfold-all-sections")}
             class="note-action-unfold-all-sections"
             onClick={() => void handleUnfoldAllSections(close)}
+            onPressStart={() => handleUnfoldAllSections(close)}
           />
         </Show>
         <For each={filteredActionItems()}>

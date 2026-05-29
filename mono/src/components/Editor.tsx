@@ -158,6 +158,19 @@ export const Editor = (_props: EditorProps) => {
     applyContent(newContent, nextSelection);
   };
 
+  const applyFoldingChange = (change: () => void) => {
+    const selection = getCurrentSelection();
+
+    change();
+
+    requestAnimationFrame(() => {
+      if (document.activeElement !== editor) return;
+
+      applySelection(selection);
+      selectionPresentation.sync();
+    });
+  };
+
   onMount(() => {
     props.onReady?.({
       focus: () => {
@@ -179,7 +192,7 @@ export const Editor = (_props: EditorProps) => {
       },
       canFoldAllSections: () => folding.canFoldAll(),
       canUnfoldAllSections: () => folding.canUnfoldAll(),
-      foldAllSections: () => folding.foldAll(),
+      foldAllSections: () => applyFoldingChange(folding.foldAll),
       replaceContent: (name: string, noteContent: string) => {
         const newContent = name + (noteContent ? `\n${noteContent}` : "");
         const { start } = getSelection(editor);
@@ -196,7 +209,7 @@ export const Editor = (_props: EditorProps) => {
         });
       },
       redo: () => history.redo(),
-      unfoldAllSections: () => folding.unfoldAll(),
+      unfoldAllSections: () => applyFoldingChange(folding.unfoldAll),
       undo: () => history.undo(),
     });
 

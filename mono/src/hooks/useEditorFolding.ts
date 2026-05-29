@@ -36,6 +36,11 @@ const writeFoldedSectionIds = (storageKey: string | undefined, foldedSectionIds:
   if (!storageKey) return;
 
   try {
+    if (foldedSectionIds.size === 0) {
+      localStorage.removeItem(storageKey);
+      return;
+    }
+
     localStorage.setItem(storageKey, JSON.stringify([...foldedSectionIds]));
   } catch {
     return;

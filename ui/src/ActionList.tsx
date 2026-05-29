@@ -14,12 +14,33 @@ type ActionListItemProps = {
   danger?: boolean;
   class?: string;
   onClick?: () => void | Promise<void>;
+  onPressStart?: () => void;
 };
 
 export const ActionList = (props: ActionListProps) => <div class="action-list">{props.children}</div>;
 
 export const ActionListItem = (props: ActionListItemProps) => {
   const activatableRef = useActivatable();
+  let handledPressStart = false;
+
+  const handlePressStart = (event: MouseEvent | TouchEvent) => {
+    if (!props.onPressStart) return;
+    if (event instanceof MouseEvent && event.button !== 0) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    handledPressStart = true;
+    props.onPressStart();
+  };
+
+  const handleClick = () => {
+    if (handledPressStart) {
+      handledPressStart = false;
+      return;
+    }
+
+    props.onClick?.();
+  };
 
   return (
     <button
@@ -32,7 +53,9 @@ export const ActionListItem = (props: ActionListItemProps) => {
         [props.class!]: !!props.class,
       }}
       aria-label={props.title}
-      onClick={() => props.onClick?.()}
+      onMouseDown={handlePressStart}
+      onTouchStart={handlePressStart}
+      onClick={handleClick}
     >
       {props.icon && (
         <span
