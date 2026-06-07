@@ -1,5 +1,6 @@
 import { onCleanup, onMount } from "solid-js";
 import { fixCursorPositionForZeroWidthSpace, getSelection } from "../services/cursor";
+import { getOffsetInNode } from "../services/editorDom";
 
 const syncActiveElement = (
   current: HTMLElement | null,
@@ -29,7 +30,17 @@ const syncActiveCodeBlock = (editor: HTMLElement, currentId: string | null, next
   return nextId;
 };
 
-const getSelectionAnchorElement = (editor: HTMLElement): Element | null => {
+const HEADING_LINE_SELECTOR = ".md-h1, .md-h2, .md-h3";
+
+const isHeadingLine = (line: HTMLElement | null): line is HTMLElement => line?.matches(HEADING_LINE_SELECTOR) ?? false;
+
+type CollapsedSelection = {
+  anchor: Element;
+  line: HTMLElement | null;
+  offsetInLine: number | null;
+};
+
+const getCollapsedSelection = (editor: HTMLElement): CollapsedSelection | null => {
   if (document.activeElement !== editor) return null;
 
   const selection = window.getSelection();
@@ -40,7 +51,26 @@ const getSelectionAnchorElement = (editor: HTMLElement): Element | null => {
 
   const anchor =
     range.startContainer.nodeType === Node.TEXT_NODE ? range.startContainer.parentElement : range.startContainer;
-  return anchor instanceof Element ? anchor : null;
+  if (!(anchor instanceof Element)) return null;
+
+  const line = anchor.closest<HTMLElement>(".md-line");
+  return {
+    anchor,
+    line,
+    offsetInLine: isHeadingLine(line) ? getOffsetInNode(line, range.startContainer, range.startOffset) : null,
+  };
+};
+
+const isHeadingPrefixActive = (line: HTMLElement | null, offsetInLine: number | null) => {
+  if (!isHeadingLine(line) || offsetInLine === null) return false;
+
+  for (const child of line.children) {
+    if (child instanceof HTMLElement && child.classList.contains("markdown-prefix")) {
+      return offsetInLine <= (child.textContent?.length ?? 0);
+    }
+  }
+
+  return false;
 };
 
 const moveSelectionPastHiddenInlineFormat = (editor: HTMLElement) => {
@@ -111,19 +141,25 @@ type UseEditorSelectionPresentationOptions = {
 export const useEditorSelectionPresentation = (options: UseEditorSelectionPresentationOptions) => {
   let activeInlineFormat: HTMLElement | null = null;
   let activeLine: HTMLElement | null = null;
+  let activeHeadingPrefixLine: HTMLElement | null = null;
   let activeCodeBlockId: string | null = null;
 
   const sync = () => {
     const editor = options.getEditor();
     if (!editor) return;
 
-    const anchor = getSelectionAnchorElement(editor);
+    const selection = getCollapsedSelection(editor);
+    const anchor = selection?.anchor;
     activeInlineFormat = syncActiveElement(
       activeInlineFormat,
       anchor?.closest<HTMLElement>(".md-inline-format") ?? null,
       "is-active-inline-format",
     );
-    activeLine = syncActiveElement(activeLine, anchor?.closest<HTMLElement>(".md-line") ?? null, "is-active-line");
+    activeLine = syncActiveElement(activeLine, selection?.line ?? null, "is-active-line");
+    const headingPrefixLine = isHeadingPrefixActive(selection?.line ?? null, selection?.offsetInLine ?? null)
+      ? (selection?.line ?? null)
+      : null;
+    activeHeadingPrefixLine = syncActiveElement(activeHeadingPrefixLine, headingPrefixLine, "is-active-heading-prefix");
     activeCodeBlockId = syncActiveCodeBlock(
       editor,
       activeCodeBlockId,
@@ -173,6 +209,7 @@ export const useEditorSelectionPresentation = (options: UseEditorSelectionPresen
       const editor = options.getEditor();
       activeInlineFormat = syncActiveElement(activeInlineFormat, null, "is-active-inline-format");
       activeLine = syncActiveElement(activeLine, null, "is-active-line");
+      activeHeadingPrefixLine = syncActiveElement(activeHeadingPrefixLine, null, "is-active-heading-prefix");
       if (editor) activeCodeBlockId = syncActiveCodeBlock(editor, activeCodeBlockId, null);
       document.removeEventListener("selectionchange", handleSelectionChange);
     });

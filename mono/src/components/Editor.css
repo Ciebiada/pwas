@@ -33,9 +33,9 @@
   display: inline;
 }
 
-.md-h1.is-active-line > .markdown-prefix,
-.md-h2.is-active-line > .markdown-prefix,
-.md-h3.is-active-line > .markdown-prefix {
+.md-h1.is-active-heading-prefix > .markdown-prefix,
+.md-h2.is-active-heading-prefix > .markdown-prefix,
+.md-h3.is-active-heading-prefix > .markdown-prefix {
   display: inline;
 }
 
