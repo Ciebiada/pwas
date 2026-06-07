@@ -2,6 +2,7 @@ import { createMemo, createSignal, mergeProps, onMount } from "solid-js";
 import { isIOS } from "ui/platform";
 import { useEditorFolding } from "../hooks/useEditorFolding";
 import { useEditorHistory } from "../hooks/useEditorHistory";
+import { useEditorLineReorder } from "../hooks/useEditorLineReorder";
 import { useEditorSelectionPresentation } from "../hooks/useEditorSelectionPresentation";
 import { usePrettyCaret } from "../hooks/usePrettyCaret";
 import { usePrettyCheckboxes } from "../hooks/usePrettyCheckboxes";
@@ -82,6 +83,7 @@ export const Editor = (_props: EditorProps) => {
     start: props.initialCursor,
     end: props.initialCursor,
   };
+  let syncLineReorderHandle = () => {};
 
   if (isPrettyCaretEnabled()) {
     usePrettyCaret(
@@ -100,8 +102,14 @@ export const Editor = (_props: EditorProps) => {
     onSelectionChange: (selection) => {
       lastSelection = selection;
       props.onCursorChange?.(selection.start);
+      syncLineReorderHandle();
     },
   });
+
+  const syncSelectionPresentation = () => {
+    selectionPresentation.sync();
+    syncLineReorderHandle();
+  };
 
   const emitChange = () => {
     const { name, content: noteContent } = splitNote(content());
@@ -137,7 +145,7 @@ export const Editor = (_props: EditorProps) => {
 
     setContent(newContent);
     applySelection(nextSelection);
-    selectionPresentation.sync();
+    syncSelectionPresentation();
     emitChange();
     requestAnimationFrame(() => {
       scrollCursorIntoView(window.getSelection()!, "smooth");
@@ -158,6 +166,31 @@ export const Editor = (_props: EditorProps) => {
     applyContent(newContent, nextSelection);
   };
 
+  const applyLineReorderEdit = (edit: { content: string; selection: EditorSelection }) => {
+    history.record(edit.content, "reorderLine", edit.selection);
+    setContent(edit.content);
+    suppressNextFocusScroll = true;
+    editor.focus({ preventScroll: true });
+    window.setTimeout(() => (suppressNextFocusScroll = false), 0);
+    applySelection(edit.selection);
+    syncSelectionPresentation();
+    requestAnimationFrame(() => {
+      scrollCursorIntoView(window.getSelection()!, "smooth");
+    });
+
+    emitChange();
+  };
+
+  const lineReorder = useEditorLineReorder({
+    applyEdit: applyLineReorderEdit,
+    content,
+    foldState: folding.foldState,
+    getContainer: () => container,
+    getCursor: () => lastSelection.start,
+    getEditor: () => editor,
+  });
+  syncLineReorderHandle = lineReorder.syncHandle;
+
   const applyFoldingChange = (change: () => void) => {
     const selection = getCurrentSelection();
 
@@ -167,7 +200,7 @@ export const Editor = (_props: EditorProps) => {
       if (document.activeElement !== editor) return;
 
       applySelection(selection);
-      selectionPresentation.sync();
+      syncSelectionPresentation();
     });
   };
 
@@ -177,7 +210,7 @@ export const Editor = (_props: EditorProps) => {
         suppressNextFocusScroll = true;
         editor.focus({ preventScroll: true });
         applySelection(lastSelection);
-        selectionPresentation.sync();
+        syncSelectionPresentation();
         window.setTimeout(() => (suppressNextFocusScroll = false), 0);
       },
       isFocused: () => document.activeElement === editor,
@@ -205,7 +238,7 @@ export const Editor = (_props: EditorProps) => {
             start: newCursor,
             end: newCursor,
           });
-          selectionPresentation.sync();
+          syncSelectionPresentation();
         });
       },
       redo: () => history.redo(),
@@ -221,7 +254,7 @@ export const Editor = (_props: EditorProps) => {
 
     if (props.autoFocus && !isIOS) {
       editor.focus();
-      selectionPresentation.sync();
+      syncSelectionPresentation();
     } else {
       // This is to blur the forced focus after the initialCursor position has been set
       editor.blur();
@@ -302,7 +335,7 @@ export const Editor = (_props: EditorProps) => {
     setContent(newContent);
     if (document.activeElement === editor) {
       applySelection(nextSelection);
-      selectionPresentation.sync();
+      syncSelectionPresentation();
     }
     emitChange();
   };
@@ -317,7 +350,7 @@ export const Editor = (_props: EditorProps) => {
       if (!wasFocused) return;
 
       applySelection(selection);
-      selectionPresentation.sync();
+      syncSelectionPresentation();
     });
   };
 
@@ -351,6 +384,7 @@ export const Editor = (_props: EditorProps) => {
         ref={(e) => (editor = e)}
         classList={{
           editor: true,
+          "is-line-reordering": lineReorder.indicator() !== null,
           monospace: isMonospaceEnabled(),
           "pretty-checkboxes": isPrettyCheckboxesEnabled(),
         }}
@@ -362,7 +396,7 @@ export const Editor = (_props: EditorProps) => {
             return;
           }
           editor.focus({ preventScroll: true });
-          selectionPresentation.sync();
+          syncSelectionPresentation();
           scrollWhenViewportStable(() => scrollCursorIntoView(window.getSelection()!, "smooth"));
         }}
         onBeforeInput={handleBeforeInput}
@@ -376,6 +410,24 @@ export const Editor = (_props: EditorProps) => {
           onFoldToggle: toggleFoldSection,
         })}
       </div>
+      {lineReorder.handle() && (
+        <button
+          type="button"
+          class="line-reorder-handle"
+          style={{ top: `${lineReorder.handle()!.top}px` }}
+          aria-label="Reorder line"
+          title="Reorder line"
+          onPointerDown={lineReorder.onHandlePointerDown}
+        />
+      )}
+      {lineReorder.indicator() && (
+        <div
+          class="line-reorder-drop-indicator"
+          classList={{ "is-move": lineReorder.indicator()!.isMove }}
+          style={{ top: `${lineReorder.indicator()!.top}px` }}
+          contentEditable={false}
+        />
+      )}
       <TouchHint isVisible={isEmpty()} />
     </div>
   );
