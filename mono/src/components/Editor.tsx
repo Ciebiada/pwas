@@ -47,6 +47,7 @@ export type EditorAPI = {
   applyEdit: (edit: EditorEdit) => void;
   canFoldAllSections: () => boolean;
   canUnfoldAllSections: () => boolean;
+  cycleFoldSections: () => void;
   foldAllSections: () => void;
   redo: () => void;
   unfoldAllSections: () => void;
@@ -225,6 +226,7 @@ export const Editor = (_props: EditorProps) => {
       },
       canFoldAllSections: () => folding.canFoldAll(),
       canUnfoldAllSections: () => folding.canUnfoldAll(),
+      cycleFoldSections: () => applyFoldingChange(folding.cycleAll),
       foldAllSections: () => applyFoldingChange(folding.foldAll),
       replaceContent: (name: string, noteContent: string) => {
         const newContent = name + (noteContent ? `\n${noteContent}` : "");
@@ -264,12 +266,18 @@ export const Editor = (_props: EditorProps) => {
   const onTextInput = (event: InputEvent) => (iosReplacementText = event.data || "");
 
   const handleKeyDown = (event: KeyboardEvent) => {
-    if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "o") {
+    if (event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "i") {
       event.preventDefault();
       const selection = getCurrentSelection();
       const sectionId = folding.getSectionIdAtPosition(selection.start);
 
-      if (sectionId) toggleFoldSection(sectionId);
+      if (sectionId) cycleFoldSection(sectionId);
+      return;
+    }
+
+    if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "o") {
+      event.preventDefault();
+      applyFoldingChange(folding.cycleAll);
       return;
     }
 
@@ -352,6 +360,10 @@ export const Editor = (_props: EditorProps) => {
       applySelection(selection);
       syncSelectionPresentation();
     });
+  };
+
+  const cycleFoldSection = (sectionId: string) => {
+    applyFoldingChange(() => folding.cycleSection(sectionId));
   };
 
   const handleCopy = (event: ClipboardEvent) => {

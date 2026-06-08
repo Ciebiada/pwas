@@ -277,8 +277,8 @@ const renderFoldToggle = (foldLine: FoldLineState | undefined, onFoldToggle?: (s
       type="button"
       class="fold-toggle"
       classList={{ "is-folded": foldLine.isFolded }}
-      aria-label={foldLine.isFolded ? "Unfold section" : "Fold section"}
-      title={foldLine.isFolded ? "Unfold section" : "Fold section"}
+      aria-label={foldLine.isFolded || foldLine.isShowingChildren ? "Unfold section" : "Fold section"}
+      title={foldLine.isFolded || foldLine.isShowingChildren ? "Unfold section" : "Fold section"}
       contentEditable={false}
       tabIndex={-1}
       onPointerDown={(event) => event.preventDefault()}

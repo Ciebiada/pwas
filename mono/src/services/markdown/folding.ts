@@ -1,11 +1,18 @@
 export type FoldHeadingLevel = 1 | 2 | 3;
 
+export type FoldSectionVisibility = "folded" | "children";
+
+export type FoldSectionStates = ReadonlyMap<string, FoldSectionVisibility>;
+
 export type FoldSection = {
   id: string;
   lineIndex: number;
   level: FoldHeadingLevel;
   endLineIndex: number;
+  firstChildLineIndex?: number;
+  visibility?: FoldSectionVisibility;
   isFolded: boolean;
+  isShowingChildren: boolean;
 };
 
 export type FoldLineState = {
@@ -13,6 +20,7 @@ export type FoldLineState = {
   level?: FoldHeadingLevel;
   isFoldableHeading?: boolean;
   isFolded?: boolean;
+  isShowingChildren?: boolean;
   isHidden?: boolean;
 };
 
@@ -79,7 +87,7 @@ const getHeadingByLine = (lines: string[]) => {
   return headings;
 };
 
-export const getMarkdownFoldState = (markdown: string, foldedSectionIds: ReadonlySet<string>): MarkdownFoldState => {
+export const getMarkdownFoldState = (markdown: string, sectionStates: FoldSectionStates): MarkdownFoldState => {
   const lines = markdown.split("\n");
   const headingByLine = getHeadingByLine(lines);
   const lineStates: FoldLineState[] = Array.from({ length: lines.length }, () => ({}));
@@ -105,8 +113,13 @@ export const getMarkdownFoldState = (markdown: string, foldedSectionIds: Readonl
     headingStack[heading.level - 1] = segment;
 
     let endLineIndex = lines.length - 1;
+    let firstChildLineIndex: number | undefined;
     for (let nextLineIndex = lineIndex + 1; nextLineIndex < lines.length; nextLineIndex += 1) {
       const nextHeading = headingByLine.get(nextLineIndex);
+      if (nextHeading?.level === heading.level + 1 && firstChildLineIndex === undefined) {
+        firstChildLineIndex = nextLineIndex;
+      }
+
       if (nextHeading && nextHeading.level <= heading.level) {
         endLineIndex = nextLineIndex - 1;
         break;
@@ -115,12 +128,16 @@ export const getMarkdownFoldState = (markdown: string, foldedSectionIds: Readonl
 
     if (endLineIndex <= lineIndex) continue;
 
+    const visibility = sectionStates.get(id);
     const section = {
       id,
       lineIndex,
       level: heading.level,
       endLineIndex,
-      isFolded: foldedSectionIds.has(id),
+      firstChildLineIndex,
+      visibility,
+      isFolded: visibility === "folded",
+      isShowingChildren: visibility === "children",
     };
 
     sections.push(section);
@@ -130,6 +147,7 @@ export const getMarkdownFoldState = (markdown: string, foldedSectionIds: Readonl
       level: heading.level,
       isFoldableHeading: true,
       isFolded: section.isFolded,
+      isShowingChildren: section.isShowingChildren,
     };
   }
 

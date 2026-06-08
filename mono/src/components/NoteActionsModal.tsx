@@ -76,10 +76,12 @@ const getActionSubtitle = (actionId: string) => {
       return "Press Shift+Tab on list items";
     case "remove-checked-tasks":
       return "Remove checked - [x] items";
+    case "toggle-fold":
+      return "Cycle all heading sections";
     case "fold-all-sections":
-      return "Collapse every heading section";
+      return "Collapse all heading sections";
     case "unfold-all-sections":
-      return "Expand every heading section";
+      return "Expand all heading sections";
     default:
       return undefined;
   }
@@ -263,6 +265,9 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   const matchesSearch = (value: string) => searchMatches(value, searchQuery());
   const showUndo = createMemo(() => canUndo() && matchesSearch("Undo undo"));
   const showRedo = createMemo(() => canRedo() && matchesSearch("Redo redo"));
+  const showToggleFold = createMemo(
+    () => (canFoldAllSections() || canUnfoldAllSections()) && matchesSearch("Toggle Fold fold Ctrl O outline"),
+  );
   const showFoldAllSections = createMemo(() => canFoldAllSections() && matchesSearch("Fold All Sections fold"));
   const showUnfoldAllSections = createMemo(() => canUnfoldAllSections() && matchesSearch("Unfold All Sections unfold"));
   const showDelete = createMemo(() => matchesSearch("Delete Note delete"));
@@ -273,6 +278,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
     () =>
       showUndo() ||
       showRedo() ||
+      showToggleFold() ||
       showFoldAllSections() ||
       showUnfoldAllSections() ||
       filteredActionItems().length > 0 ||
@@ -309,6 +315,15 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
 
     editorApi.redo();
     void close(true);
+  };
+
+  const handleToggleFold = (close: (fast?: boolean) => Promise<void>) => {
+    const editorApi = props.getEditorApi?.();
+    if (!editorApi) return;
+    if (!editorApi.canFoldAllSections() && !editorApi.canUnfoldAllSections()) return;
+
+    void close(true);
+    editorApi.cycleFoldSections();
   };
 
   const handleFoldAllSections = (close: (fast?: boolean) => Promise<void>) => {
@@ -353,13 +368,20 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
         <Show when={showRedo()}>
           <ActionListItem title="Redo" subtitle="Reapply the last edit" onClick={() => void handleRedo(close)} />
         </Show>
+        <Show when={showToggleFold()}>
+          <ActionListItem
+            title="Toggle Fold"
+            subtitle={getActionSubtitle("toggle-fold")}
+            class="note-action-toggle-fold"
+            onClick={() => void handleToggleFold(close)}
+          />
+        </Show>
         <Show when={showFoldAllSections()}>
           <ActionListItem
             title="Fold All Sections"
             subtitle={getActionSubtitle("fold-all-sections")}
             class="note-action-fold-all-sections"
             onClick={() => void handleFoldAllSections(close)}
-            onPressStart={() => handleFoldAllSections(close)}
           />
         </Show>
         <Show when={showUnfoldAllSections()}>
@@ -368,7 +390,6 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
             subtitle={getActionSubtitle("unfold-all-sections")}
             class="note-action-unfold-all-sections"
             onClick={() => void handleUnfoldAllSections(close)}
-            onPressStart={() => handleUnfoldAllSections(close)}
           />
         </Show>
         <For each={filteredActionItems()}>

@@ -1,5 +1,10 @@
 import { type Accessor, createMemo, createSignal } from "solid-js";
-import { getMarkdownFoldState } from "../services/markdown/folding";
+import {
+  type FoldSection,
+  type FoldSectionStates,
+  type FoldSectionVisibility,
+  getMarkdownFoldState,
+} from "../services/markdown/folding";
 
 type Selection = {
   start: number;
@@ -16,32 +21,59 @@ type UseEditorFoldingOptions = {
   storageKey?: string;
 };
 
-const readFoldedSectionIds = (storageKey: string | undefined): Set<string> => {
-  if (!storageKey) return new Set();
+const isFoldSectionVisibility = (value: unknown): value is FoldSectionVisibility =>
+  value === "folded" || value === "children";
+
+const toFoldSectionVisibility = (value: unknown): FoldSectionVisibility | null => {
+  if (isFoldSectionVisibility(value)) return value;
+  if (value === "headings") return "children";
+  return null;
+};
+
+const readSectionStates = (storageKey: string | undefined): Map<string, FoldSectionVisibility> => {
+  if (!storageKey) return new Map();
 
   try {
     const stored = localStorage.getItem(storageKey);
-    if (!stored) return new Set();
+    if (!stored) return new Map();
 
     const parsed = JSON.parse(stored);
-    if (!Array.isArray(parsed)) return new Set();
+    if (Array.isArray(parsed)) {
+      return new Map(
+        parsed
+          .filter((value): value is string => typeof value === "string")
+          .map((sectionId) => [sectionId, "folded" as const]),
+      );
+    }
 
-    return new Set(parsed.filter((value): value is string => typeof value === "string"));
+    if (!parsed || typeof parsed !== "object") return new Map();
+
+    return new Map(
+      Object.entries(parsed).flatMap(([sectionId, value]) => {
+        const visibility = toFoldSectionVisibility(value);
+        return visibility ? [[sectionId, visibility]] : [];
+      }),
+    );
   } catch {
-    return new Set();
+    return new Map();
   }
 };
 
-const writeFoldedSectionIds = (storageKey: string | undefined, foldedSectionIds: ReadonlySet<string>) => {
+const writeSectionStates = (storageKey: string | undefined, sectionStates: FoldSectionStates) => {
   if (!storageKey) return;
 
   try {
-    if (foldedSectionIds.size === 0) {
+    if (sectionStates.size === 0) {
       localStorage.removeItem(storageKey);
       return;
     }
 
-    localStorage.setItem(storageKey, JSON.stringify([...foldedSectionIds]));
+    const entries = [...sectionStates.entries()];
+    const storedValue = entries.every(([, visibility]) => visibility === "folded")
+      ? entries.map(([sectionId]) => sectionId)
+      : Object.fromEntries(entries);
+
+    localStorage.setItem(storageKey, JSON.stringify(storedValue));
   } catch {
     return;
   }
@@ -57,8 +89,7 @@ const getLineStartOffsets = (content: string) => {
   return offsets;
 };
 
-const getLineIndexAtOffset = (content: string, offset: number) => {
-  const lineStarts = getLineStartOffsets(content);
+const getLineIndexAtOffset = (lineStarts: number[], offset: number) => {
   let lineIndex = 0;
 
   for (let index = 1; index < lineStarts.length; index += 1) {
@@ -74,25 +105,104 @@ const getLineEndOffset = (content: string, lineStarts: number[], lineIndex: numb
   return nextLineStart === undefined ? content.length : nextLineStart - 1;
 };
 
-export const useEditorFolding = (options: UseEditorFoldingOptions) => {
-  const [foldedSectionIds, setFoldedSectionIds] = createSignal<ReadonlySet<string>>(
-    readFoldedSectionIds(options.storageKey),
-  );
-  const foldState = createMemo(() => getMarkdownFoldState(options.content(), foldedSectionIds()));
+const getDescendantSectionIds = (section: FoldSection, sections: FoldSection[]) =>
+  sections
+    .filter((candidate) => candidate.lineIndex > section.lineIndex && candidate.endLineIndex <= section.endLineIndex)
+    .map((candidate) => candidate.id);
 
-  const writeFoldedState = (next: Set<string>) => {
-    writeFoldedSectionIds(options.storageKey, next);
+const getChildSections = (section: FoldSection, sections: FoldSection[]) =>
+  sections.filter(
+    (candidate) =>
+      candidate.lineIndex > section.lineIndex &&
+      candidate.endLineIndex <= section.endLineIndex &&
+      candidate.level === section.level + 1,
+  );
+
+const getRootSections = (sections: FoldSection[]) =>
+  sections.filter(
+    (section) =>
+      !sections.some(
+        (candidate) => section.lineIndex > candidate.lineIndex && section.endLineIndex <= candidate.endLineIndex,
+      ),
+  );
+
+const showChildSections = (next: Map<string, FoldSectionVisibility>, section: FoldSection, sections: FoldSection[]) => {
+  next.set(section.id, "children");
+  for (const childSection of getChildSections(section, sections)) {
+    next.set(childSection.id, "folded");
+  }
+};
+
+const getGlobalChildrenStates = (sections: FoldSection[]) => {
+  const next = new Map<string, FoldSectionVisibility>();
+
+  for (const section of getRootSections(sections)) {
+    const childSections = getChildSections(section, sections);
+    if (childSections.length === 0) continue;
+
+    next.set(section.id, "children");
+    for (const childSection of childSections) {
+      next.set(childSection.id, "folded");
+    }
+  }
+
+  return next;
+};
+
+export const useEditorFolding = (options: UseEditorFoldingOptions) => {
+  const [sectionStates, setSectionStates] = createSignal<FoldSectionStates>(readSectionStates(options.storageKey));
+  const foldState = createMemo(() => getMarkdownFoldState(options.content(), sectionStates()));
+
+  const writeFoldedState = (next: Map<string, FoldSectionVisibility>) => {
+    writeSectionStates(options.storageKey, next);
     return next;
   };
 
   const toggleSection = (sectionId: string) => {
-    setFoldedSectionIds((current) => {
-      const next = new Set(current);
+    const currentFoldState = foldState();
+    const section = currentFoldState.sectionsById.get(sectionId);
+    if (!section) return;
 
-      if (next.has(sectionId)) {
+    setSectionStates((current) => {
+      const next = new Map(current);
+
+      if (section.visibility === "children") {
+        next.delete(sectionId);
+        for (const descendantSectionId of getDescendantSectionIds(section, currentFoldState.sections)) {
+          next.delete(descendantSectionId);
+        }
+      } else if (next.has(sectionId)) {
         next.delete(sectionId);
       } else {
-        next.add(sectionId);
+        next.set(sectionId, "folded");
+      }
+
+      return writeFoldedState(next);
+    });
+  };
+
+  const hasChildSections = (section: FoldSection) => section.firstChildLineIndex !== undefined;
+
+  const cycleSection = (sectionId: string) => {
+    const currentFoldState = foldState();
+    const section = currentFoldState.sectionsById.get(sectionId);
+    if (!section) return;
+
+    setSectionStates((current) => {
+      const next = new Map(current);
+
+      if (section.visibility === "folded") {
+        next.delete(sectionId);
+        if (hasChildSections(section)) {
+          showChildSections(next, section, currentFoldState.sections);
+        }
+      } else if (section.visibility === "children") {
+        next.delete(sectionId);
+        for (const descendantSectionId of getDescendantSectionIds(section, currentFoldState.sections)) {
+          next.delete(descendantSectionId);
+        }
+      } else {
+        next.set(sectionId, "folded");
       }
 
       return writeFoldedState(next);
@@ -100,16 +210,47 @@ export const useEditorFolding = (options: UseEditorFoldingOptions) => {
   };
 
   const foldAll = () => {
-    setFoldedSectionIds(() => writeFoldedState(new Set(foldState().sections.map((section) => section.id))));
+    setSectionStates(() =>
+      writeFoldedState(new Map(foldState().sections.map((section) => [section.id, "folded" as const]))),
+    );
   };
 
   const unfoldAll = () => {
-    setFoldedSectionIds(() => writeFoldedState(new Set()));
+    setSectionStates(() => writeFoldedState(new Map()));
   };
 
-  const canFoldAll = () => foldState().sections.some((section) => !section.isFolded);
+  const getGlobalCycleVisibility = (): FoldSectionVisibility | undefined => {
+    const sections = foldState().sections;
+    if (sections.length > 0 && sections.every((section) => section.visibility === "folded")) return "folded";
+    const childrenStates = getGlobalChildrenStates(sections);
+    if (childrenStates.size > 0 && sections.every((section) => section.visibility === childrenStates.get(section.id))) {
+      return "children";
+    }
 
-  const canUnfoldAll = () => foldState().sections.some((section) => section.isFolded);
+    return undefined;
+  };
+
+  const cycleAll = () => {
+    const visibility = getGlobalCycleVisibility();
+    if (visibility === "folded") {
+      setSectionStates(() => {
+        const next = getGlobalChildrenStates(foldState().sections);
+        return writeFoldedState(next);
+      });
+      return;
+    }
+
+    if (visibility === "children") {
+      unfoldAll();
+      return;
+    }
+
+    foldAll();
+  };
+
+  const canFoldAll = () => foldState().sections.some((section) => section.visibility !== "folded");
+
+  const canUnfoldAll = () => foldState().sections.some((section) => section.visibility !== undefined);
 
   const getSectionIdAtLineIndex = (lineIndex: number) => {
     const lineSectionId = foldState().lines[lineIndex]?.sectionId;
@@ -126,11 +267,29 @@ export const useEditorFolding = (options: UseEditorFoldingOptions) => {
   };
 
   const getSectionIdAtPosition = (position: number) =>
-    getSectionIdAtLineIndex(getLineIndexAtOffset(options.content(), position));
+    getSectionIdAtLineIndex(getLineIndexAtOffset(getLineStartOffsets(options.content()), position));
 
   const clampPosition = (position: number) => {
     const currentContent = options.content();
     const lineStarts = getLineStartOffsets(currentContent);
+    const lineIndex = getLineIndexAtOffset(lineStarts, position);
+    if (foldState().lines[lineIndex]?.isHidden) {
+      let containingVisibleSection: FoldSection | undefined;
+
+      for (const section of foldState().sections) {
+        if (
+          lineIndex > section.lineIndex &&
+          lineIndex <= section.endLineIndex &&
+          !foldState().lines[section.lineIndex]?.isHidden
+        ) {
+          containingVisibleSection = section;
+        }
+      }
+
+      if (containingVisibleSection) {
+        return getLineEndOffset(currentContent, lineStarts, containingVisibleSection.lineIndex);
+      }
+    }
 
     for (const section of foldState().sections) {
       if (!section.isFolded) continue;
@@ -157,7 +316,7 @@ export const useEditorFolding = (options: UseEditorFoldingOptions) => {
 
     const currentContent = options.content();
     const lineStarts = getLineStartOffsets(currentContent);
-    const lineIndex = getLineIndexAtOffset(currentContent, selection.start);
+    const lineIndex = getLineIndexAtOffset(lineStarts, selection.start);
     const lineEnd = getLineEndOffset(currentContent, lineStarts, lineIndex);
     if (selection.start !== lineEnd) return null;
 
@@ -167,8 +326,8 @@ export const useEditorFolding = (options: UseEditorFoldingOptions) => {
 
     const insertAt = getLineEndOffset(currentContent, lineStarts, section.endLineIndex);
 
-    setFoldedSectionIds((current) => {
-      const next = new Set(current);
+    setSectionStates((current) => {
+      const next = new Map(current);
       next.delete(section.id);
       return writeFoldedState(next);
     });
@@ -186,6 +345,8 @@ export const useEditorFolding = (options: UseEditorFoldingOptions) => {
     canFoldAll,
     canUnfoldAll,
     clampSelection,
+    cycleAll,
+    cycleSection,
     foldAll,
     foldState,
     getSectionIdAtPosition,
