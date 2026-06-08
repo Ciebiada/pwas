@@ -70,9 +70,52 @@ const pageScrollTop = async (page: Page) => await page.evaluate(() => document.q
 const selectionAnchorText = async (page: Page) =>
   await page.evaluate(() => window.getSelection()?.anchorNode?.textContent ?? "");
 
+const getPrettyCaretLeft = async (page: Page) =>
+  await page.evaluate(() => {
+    const caret = document.querySelector<HTMLElement>(".custom-caret");
+    if (!caret) throw new Error("Expected pretty caret");
+    return parseFloat(window.getComputedStyle(caret).left);
+  });
+
+const installVisualViewportMock = async (page: Page) =>
+  await page.addInitScript(() => {
+    const target = new EventTarget();
+    let height = window.innerHeight;
+    const viewport = {
+      get height() {
+        return height;
+      },
+      get offsetTop() {
+        return 0;
+      },
+      get scale() {
+        return 1;
+      },
+      get width() {
+        return window.innerWidth;
+      },
+      addEventListener: target.addEventListener.bind(target),
+      removeEventListener: target.removeEventListener.bind(target),
+      setHeight(nextHeight: number) {
+        height = nextHeight;
+        target.dispatchEvent(new Event("resize"));
+      },
+    };
+
+    Object.defineProperty(window, "visualViewport", {
+      configurable: true,
+      value: viewport,
+    });
+  });
+
 const setVisualViewportHeight = async (page: Page, height: number) =>
   await page.evaluate((nextHeight) => {
-    const viewport = window.visualViewport;
+    const viewport = window.visualViewport as (VisualViewport & { setHeight?: (height: number) => void }) | null;
+
+    if (viewport?.setHeight) {
+      viewport.setHeight(nextHeight);
+      return viewport.offsetTop + viewport.height;
+    }
 
     Object.defineProperty(window, "visualViewport", {
       configurable: true,
@@ -156,6 +199,104 @@ test("dragging the active-line handle reorders and keeps the cursor on iOS", asy
       content: "Third! line\nFirst line\nSecond line",
     },
   ]);
+});
+
+test("hides the active-line handle when the iOS keyboard closes", async ({ page, browserName }) => {
+  test.skip(browserName !== "webkit", "This regression is specific to the mobile WebKit path.");
+
+  await installVisualViewportMock(page);
+
+  const noteId = await createStoredNote(page, {
+    name: "iOS keyboard close",
+    content: "First line\nSecond line\nThird line",
+  });
+
+  await page.goto(`/note/${noteId}`);
+
+  const thirdLine = page.locator(".md-text").filter({ hasText: "Third line" });
+  const handle = page.locator(".line-reorder-handle");
+  await expect(thirdLine).toBeVisible();
+  await expect(handle).toBeHidden();
+
+  await focusLineAtOffset(thirdLine, "Third".length);
+  await expect(handle).toBeVisible();
+
+  await setVisualViewportHeight(page, 420);
+  await expect(handle).toBeVisible();
+
+  await setVisualViewportHeight(page, await page.evaluate(() => window.innerHeight));
+  await expect(handle).toBeHidden();
+  await expect.poll(() => isEditorFocused(page)).toBe(false);
+});
+
+test("keeps the cursor with the reordered line when the iOS keyboard closes during drag", async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName !== "webkit", "This regression is specific to the mobile WebKit path.");
+
+  await installVisualViewportMock(page);
+
+  const noteId = await createStoredNote(page, {
+    name: "iOS drag cursor",
+    content: "First line\nSecond line\nThird line",
+  });
+
+  await page.goto(`/note/${noteId}`);
+
+  const firstLine = page.locator(".md-text").filter({ hasText: "First line" });
+  const thirdLine = page.locator(".md-text").filter({ hasText: "Third line" });
+  const handle = page.locator(".line-reorder-handle");
+  await expect(thirdLine).toBeVisible();
+  await focusLineAtOffset(thirdLine, "Third".length);
+  await setVisualViewportHeight(page, 420);
+  await expect(handle).toBeVisible();
+
+  await dispatchTouchPointer(handle, "pointerdown", await getHandleCenter(handle));
+  await dispatchTouchPointer(page.locator("body"), "pointermove", await getPointBeforeLine(firstLine));
+  await dispatchTouchPointer(page.locator("body"), "pointerup", await getPointBeforeLine(firstLine));
+  await setVisualViewportHeight(page, await page.evaluate(() => window.innerHeight));
+
+  await expect.poll(() => isEditorFocused(page)).toBe(true);
+  await expect.poll(() => selectionAnchorText(page)).toContain("Third line");
+  await page.keyboard.type("!");
+
+  await expectStoredNotes(page, [
+    {
+      name: "iOS drag cursor",
+      content: "Third! line\nFirst line\nSecond line",
+    },
+  ]);
+});
+
+test("positions the hidden pretty caret before iOS editor focus", async ({ page, browserName }) => {
+  test.skip(browserName !== "webkit", "This regression is specific to the mobile WebKit path.");
+
+  await page.addInitScript(() => {
+    localStorage.setItem("custom_caret_enabled", "true");
+  });
+
+  const noteName = "iOS pretty caret";
+  const noteId = await createStoredNote(page, {
+    name: noteName,
+    content: "First line\nSecond line\nThird line",
+    cursor: `${noteName}\nFirst line\nSecond line\nThird`.length,
+  });
+
+  await page.goto(`/note/${noteId}`);
+
+  const thirdLine = page.locator(".md-text").filter({ hasText: "Third line" });
+  await expect(thirdLine).toBeVisible();
+  await expect.poll(() => getPrettyCaretLeft(page)).not.toBeNaN();
+  const hiddenLeft = await getPrettyCaretLeft(page);
+
+  await focusLineAtOffset(thirdLine, "Third".length);
+  const focusedLeft = await getPrettyCaretLeft(page);
+  await page.waitForTimeout(150);
+  const settledLeft = await getPrettyCaretLeft(page);
+
+  expect(Math.abs(focusedLeft - hiddenLeft)).toBeLessThan(1);
+  expect(Math.abs(settledLeft - hiddenLeft)).toBeLessThan(1);
 });
 
 test("dragging the active-line handle near the visible bottom edge scrolls", async ({ page, browserName }) => {

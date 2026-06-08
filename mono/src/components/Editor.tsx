@@ -1,4 +1,4 @@
-import { createMemo, createSignal, mergeProps, onMount } from "solid-js";
+import { createMemo, createSignal, mergeProps, onCleanup, onMount } from "solid-js";
 import { isIOS } from "ui/platform";
 import { useEditorFolding } from "../hooks/useEditorFolding";
 import { useEditorHistory } from "../hooks/useEditorHistory";
@@ -21,6 +21,8 @@ import { splitNote } from "../services/note";
 import { isMonospaceEnabled, isPrettyCaretEnabled, isPrettyCheckboxesEnabled } from "../services/preferences";
 import { TouchHint } from "./TouchHint";
 import "./Editor.css";
+
+const IOS_KEYBOARD_OFFSET_THRESHOLD = 20;
 
 export type EditorSelection = {
   start: number;
@@ -78,6 +80,9 @@ export const Editor = (_props: EditorProps) => {
 
   let editor: HTMLDivElement;
   let container: HTMLDivElement | undefined;
+  let didSeeIOSKeyboard = false;
+  let ignoreNextIOSKeyboardBlur = false;
+  let ignoreNextIOSKeyboardBlurTimeout: number | undefined;
   let iosReplacementText = "";
   let suppressNextFocusScroll = false;
   let lastSelection: EditorSelection = {
@@ -85,12 +90,15 @@ export const Editor = (_props: EditorProps) => {
     end: props.initialCursor,
   };
   let syncLineReorderHandle = () => {};
+  let syncPrettyCaret = () => {};
+  let isLineReordering = () => false;
 
   if (isPrettyCaretEnabled()) {
-    usePrettyCaret(
+    const prettyCaret = usePrettyCaret(
       () => container,
       () => editor,
     );
+    syncPrettyCaret = prettyCaret.sync;
   }
 
   if (isPrettyCheckboxesEnabled()) {
@@ -112,6 +120,50 @@ export const Editor = (_props: EditorProps) => {
     syncLineReorderHandle();
   };
 
+  const ignoreIOSKeyboardBlurForReorder = () => {
+    ignoreNextIOSKeyboardBlur = true;
+    clearTimeout(ignoreNextIOSKeyboardBlurTimeout);
+    ignoreNextIOSKeyboardBlurTimeout = window.setTimeout(() => {
+      ignoreNextIOSKeyboardBlur = false;
+      ignoreNextIOSKeyboardBlurTimeout = undefined;
+    }, 600);
+  };
+
+  const handleEditorBlur = () => {
+    syncSelectionPresentation();
+  };
+
+  const handleIOSViewportResize = () => {
+    const keyboardVisible =
+      !!window.visualViewport && window.innerHeight - window.visualViewport.height > IOS_KEYBOARD_OFFSET_THRESHOLD;
+    const editorHasDOMFocus = document.activeElement === editor;
+
+    if (isLineReordering()) {
+      didSeeIOSKeyboard = false;
+      return;
+    }
+
+    if (keyboardVisible) {
+      if (editorHasDOMFocus) didSeeIOSKeyboard = true;
+      return;
+    }
+
+    if (ignoreNextIOSKeyboardBlur) {
+      ignoreNextIOSKeyboardBlur = false;
+      didSeeIOSKeyboard = false;
+      clearTimeout(ignoreNextIOSKeyboardBlurTimeout);
+      ignoreNextIOSKeyboardBlurTimeout = undefined;
+      return;
+    }
+
+    if (!didSeeIOSKeyboard) return;
+    didSeeIOSKeyboard = false;
+    if (!editorHasDOMFocus) return;
+
+    editor.blur();
+    syncSelectionPresentation();
+  };
+
   const emitChange = () => {
     const { name, content: noteContent } = splitNote(content());
     props.onChange?.(name, noteContent);
@@ -130,7 +182,9 @@ export const Editor = (_props: EditorProps) => {
   const applySelection = (selection: EditorSelection) => {
     const visibleSelection = folding.clampSelection(selection);
     lastSelection = visibleSelection;
-    return setSelection(editor, visibleSelection.start, { end: visibleSelection.end });
+    const appliedSelection = setSelection(editor, visibleSelection.start, { end: visibleSelection.end });
+    syncPrettyCaret();
+    return appliedSelection;
   };
 
   const toSelection = (selection: number | EditorSelection): EditorSelection =>
@@ -168,6 +222,7 @@ export const Editor = (_props: EditorProps) => {
   };
 
   const applyLineReorderEdit = (edit: { content: string; selection: EditorSelection }) => {
+    if (isIOS) ignoreIOSKeyboardBlurForReorder();
     history.record(edit.content, "reorderLine", edit.selection);
     setContent(edit.content);
     suppressNextFocusScroll = true;
@@ -187,10 +242,11 @@ export const Editor = (_props: EditorProps) => {
     content,
     foldState: folding.foldState,
     getContainer: () => container,
-    getCursor: () => lastSelection.start,
+    getCursor: () => getCurrentSelection().start,
     getEditor: () => editor,
   });
   syncLineReorderHandle = lineReorder.syncHandle;
+  isLineReordering = () => lineReorder.indicator() !== null;
 
   const applyFoldingChange = (change: () => void) => {
     const selection = getCurrentSelection();
@@ -206,6 +262,14 @@ export const Editor = (_props: EditorProps) => {
   };
 
   onMount(() => {
+    onCleanup(() => clearTimeout(ignoreNextIOSKeyboardBlurTimeout));
+
+    const visualViewport = window.visualViewport;
+    if (isIOS && visualViewport) {
+      visualViewport.addEventListener("resize", handleIOSViewportResize);
+      onCleanup(() => visualViewport.removeEventListener("resize", handleIOSViewportResize));
+    }
+
     props.onReady?.({
       focus: () => {
         suppressNextFocusScroll = true;
@@ -260,6 +324,7 @@ export const Editor = (_props: EditorProps) => {
     } else {
       // This is to blur the forced focus after the initialCursor position has been set
       editor.blur();
+      syncSelectionPresentation();
     }
   });
 
@@ -411,6 +476,7 @@ export const Editor = (_props: EditorProps) => {
           syncSelectionPresentation();
           scrollWhenViewportStable(() => scrollCursorIntoView(window.getSelection()!, "smooth"));
         }}
+        onBlur={handleEditorBlur}
         onBeforeInput={handleBeforeInput}
         onKeyDown={handleKeyDown}
         on:textInput={onTextInput}

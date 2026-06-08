@@ -27,6 +27,8 @@ export const usePrettyCaret = (
   getContainer: () => HTMLElement | undefined,
   getEditor: () => HTMLElement | undefined,
 ) => {
+  let sync = () => {};
+
   onMount(() => {
     const editor = getEditor();
     const container = getContainer();
@@ -38,7 +40,11 @@ export const usePrettyCaret = (
     container.appendChild(caret);
 
     let blinkTimeout: number | undefined;
+    let focusSettleFrame: number | undefined;
+    let focusSettleToken = 0;
+    let isFocusSettling = false;
     let selectionFrame: number | undefined;
+    let showFrame: number | undefined;
 
     const clearBlinkTimer = () => {
       clearTimeout(blinkTimeout);
@@ -50,6 +56,16 @@ export const usePrettyCaret = (
       selectionFrame = undefined;
     };
 
+    const clearFocusSettleFrame = () => {
+      cancelAnimationFrame(focusSettleFrame);
+      focusSettleFrame = undefined;
+    };
+
+    const clearShowFrame = () => {
+      cancelAnimationFrame(showFrame);
+      showFrame = undefined;
+    };
+
     const startBlinkTimer = () => {
       clearBlinkTimer();
       caret.classList.remove("blinking");
@@ -59,8 +75,8 @@ export const usePrettyCaret = (
       }, BLINK_DELAY_MS);
     };
 
-    const getValidCollapsedRange = () => {
-      if (document.activeElement !== editor) return null;
+    const getValidCollapsedRange = (requireFocus = true) => {
+      if (requireFocus && document.activeElement !== editor) return null;
       const selection = window.getSelection();
       if (!selection || selection.rangeCount === 0) return null;
       const range = selection.getRangeAt(0);
@@ -96,8 +112,8 @@ export const usePrettyCaret = (
       return rect;
     };
 
-    const updateCaretPosition = () => {
-      const range = getValidCollapsedRange();
+    const updateCaretPosition = (requireFocus = true) => {
+      const range = getValidCollapsedRange(requireFocus);
       if (!range || !container) return;
 
       const rect = getRectForVisibleContent(range);
@@ -113,31 +129,85 @@ export const usePrettyCaret = (
       caret.style.width = `${width}px`;
       caret.style.borderRadius = `${width / 2}px`;
       caret.style.height = `${rect.height}px`;
-      if (caret.style.opacity === "1") startBlinkTimer();
+      if (caret.classList.contains("is-visible")) startBlinkTimer();
     };
 
     const showCaret = () => {
       editor.style.caretColor = "transparent";
+      caret.classList.add("is-visible");
       caret.style.opacity = "1";
       startBlinkTimer();
     };
 
-    const hideCaret = () => {
-      editor.style.caretColor = "var(--main-color)";
+    const concealCaret = () => {
+      caret.classList.remove("is-visible");
       caret.style.opacity = "0";
+      clearShowFrame();
       clearBlinkTimer();
       caret.classList.remove("blinking");
     };
 
+    const hideCaret = () => {
+      focusSettleToken += 1;
+      isFocusSettling = false;
+      clearFocusSettleFrame();
+      editor.style.caretColor = "var(--main-color)";
+      concealCaret();
+    };
+
+    const scheduleFocusSettledShow = () => {
+      const token = ++focusSettleToken;
+      let remainingFrames = 2;
+
+      clearShowFrame();
+      clearFocusSettleFrame();
+
+      const settle = () => {
+        focusSettleFrame = undefined;
+        if (token !== focusSettleToken) return;
+
+        if (!getValidCollapsedRange()) {
+          hideCaret();
+          return;
+        }
+
+        updateCaretPosition(false);
+        if (remainingFrames > 0) {
+          remainingFrames -= 1;
+          focusSettleFrame = requestAnimationFrame(settle);
+          return;
+        }
+
+        isFocusSettling = false;
+        showCaret();
+      };
+
+      focusSettleFrame = requestAnimationFrame(settle);
+    };
+
     const handleSelectionChange = () => {
-      const range = getValidCollapsedRange();
-      if (range) {
-        updateCaretPosition();
-        // Have to delay showing the caret in order to update the position first
-        requestAnimationFrame(showCaret);
-      } else {
+      const range = getValidCollapsedRange(false);
+      if (!range) {
         hideCaret();
+        return;
       }
+
+      updateCaretPosition(false);
+      if (document.activeElement !== editor) {
+        hideCaret();
+        return;
+      }
+
+      if (isFocusSettling) {
+        scheduleFocusSettledShow();
+        return;
+      }
+
+      clearShowFrame();
+      showFrame = requestAnimationFrame(() => {
+        showFrame = undefined;
+        if (getValidCollapsedRange()) showCaret();
+      });
     };
 
     const scheduleSelectionChange = () => {
@@ -148,7 +218,15 @@ export const usePrettyCaret = (
       });
     };
 
-    // RAF is needed because of delayed showCaret in handleSelectionChange
+    const handleFocus = () => {
+      isFocusSettling = true;
+      focusSettleToken += 1;
+      editor.style.caretColor = "transparent";
+      concealCaret();
+      clearFocusSettleFrame();
+      scheduleSelectionChange();
+    };
+
     const handleBlur = () => requestAnimationFrame(hideCaret);
     const handleVisibilityChange = () => (document.hidden ? hideCaret() : scheduleSelectionChange());
 
@@ -156,17 +234,26 @@ export const usePrettyCaret = (
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("resize", updateCaretPosition);
     editor.addEventListener("blur", handleBlur);
-    editor.addEventListener("focus", scheduleSelectionChange);
+    editor.addEventListener("focus", handleFocus);
+    sync = handleSelectionChange;
+    sync();
 
     onCleanup(() => {
+      sync = () => {};
       clearBlinkTimer();
+      clearFocusSettleFrame();
       clearSelectionFrame();
+      clearShowFrame();
       document.removeEventListener("selectionchange", scheduleSelectionChange);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("resize", updateCaretPosition);
       editor.removeEventListener("blur", handleBlur);
-      editor.removeEventListener("focus", scheduleSelectionChange);
+      editor.removeEventListener("focus", handleFocus);
       caret.remove();
     });
   });
+
+  return {
+    sync: () => sync(),
+  };
 };

@@ -3,6 +3,10 @@
   background-color: var(--main-color);
   pointer-events: none;
   opacity: 0;
+  transition: opacity 0.1s ease-out;
+}
+
+.custom-caret.is-visible {
   transition:
     left 0.1s ease-out,
     top 0.1s ease-out,
