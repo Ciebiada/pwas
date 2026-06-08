@@ -1,8 +1,7 @@
 import type { JSX } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import { ChevronRightIcon } from "ui/Icons";
 import { triggerHaptic } from "../../hooks/useHaptic";
-import type { FoldLineState, MarkdownFoldState } from "./folding";
+import type { MarkdownFoldState } from "./folding";
 import { matchInlineFormatAt } from "./inlineFormat";
 
 type InlineTokenType = "text" | "strong" | "emphasis" | "strikethrough" | "link" | "code";
@@ -44,7 +43,6 @@ type InlinePattern = {
 
 type RenderMarkdownOptions = {
   foldState?: MarkdownFoldState;
-  onFoldToggle?: (sectionId: string) => void;
 };
 
 const INLINE_PATTERNS: InlinePattern[] = [
@@ -269,43 +267,10 @@ const renderBlockContent = (block: BlockToken) => (
   </>
 );
 
-const renderFoldToggle = (foldLine: FoldLineState | undefined, onFoldToggle?: (sectionId: string) => void) => {
-  if (!foldLine?.isFoldableHeading || !foldLine.sectionId) return null;
-
-  return (
-    <button
-      type="button"
-      class="fold-toggle"
-      classList={{ "is-folded": foldLine.isFolded }}
-      aria-label={foldLine.isFolded || foldLine.isShowingChildren ? "Unfold section" : "Fold section"}
-      title={foldLine.isFolded || foldLine.isShowingChildren ? "Unfold section" : "Fold section"}
-      contentEditable={false}
-      tabIndex={-1}
-      onPointerDown={(event) => event.preventDefault()}
-      onTouchStart={(event) => event.preventDefault()}
-      onMouseDown={(event) => event.preventDefault()}
-      onClick={(event) => {
-        event.preventDefault();
-        triggerHaptic();
-        onFoldToggle?.(foldLine.sectionId!);
-      }}
-    >
-      <ChevronRightIcon />
-    </button>
-  );
-};
-
-const renderHeader = (
-  block: BlockToken,
-  className: string,
-  content: JSX.Element,
-  foldLine?: FoldLineState,
-  onFoldToggle?: (sectionId: string) => void,
-) => {
+const renderHeader = (block: BlockToken, className: string, content: JSX.Element) => {
   const Tag = block.type as "h1" | "h2" | "h3";
   return (
     <Dynamic component={Tag} class={className}>
-      {renderFoldToggle(foldLine, onFoldToggle)}
       {content}
     </Dynamic>
   );
@@ -392,7 +357,7 @@ const renderBlock = (
     case "h1":
     case "h2":
     case "h3":
-      return renderHeader(block, className, content, foldLine, options.onFoldToggle);
+      return renderHeader(block, className, content);
     case "checkbox":
     case "list":
     case "orderedList":

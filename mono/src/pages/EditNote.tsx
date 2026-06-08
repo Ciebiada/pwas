@@ -11,7 +11,6 @@ import { db } from "../services/db";
 import { debounce } from "../services/debounce";
 import { createDexieSignalQuery } from "../services/solid-dexie";
 import { syncNote } from "../services/sync";
-import "./EditNote.css";
 
 export const EditNote = () => {
   const navigate = useNavigate();
@@ -108,7 +107,7 @@ export const EditNote = () => {
         </HeaderButton>
       </Header>
       <Page>
-        <div class="page-content edit-note-content">
+        <div class="page-content">
           <Show when={note()}>
             <Editor
               initialContent={`${note()!.name}${note()!.content ? `\n${note()!.content}` : ""}`}

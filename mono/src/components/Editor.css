@@ -6,11 +6,9 @@
 }
 
 .editor {
-  --editor-gutter-width: 28px;
   --editor-reorder-handle-width: 36px;
 
   outline: none;
-  padding-left: var(--editor-gutter-width);
   padding-right: var(--editor-reorder-handle-width);
 }
 
@@ -106,6 +104,8 @@
 }
 
 .fold-toggle {
+  --fold-toggle-hitbox-size: 34px;
+
   appearance: none;
   background: transparent;
   border: 0;
@@ -114,14 +114,16 @@
   cursor: pointer;
   display: flex;
   align-items: center;
-  height: 1.5rem;
+  height: var(--fold-toggle-hitbox-size);
   justify-content: center;
-  left: calc(-1 * var(--editor-gutter-width));
   padding: 0;
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: var(--editor-gutter-width);
+  transform: translate(calc((1.5rem - var(--fold-toggle-hitbox-size)) / 2), -50%);
+  width: var(--fold-toggle-hitbox-size);
+  z-index: 3;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .fold-toggle svg {

@@ -1,9 +1,12 @@
-import { createMemo, createSignal, mergeProps, onCleanup, onMount } from "solid-js";
+import { createMemo, createSignal, For, mergeProps, onCleanup, onMount } from "solid-js";
+import { ChevronRightIcon } from "ui/Icons";
 import { isIOS } from "ui/platform";
 import { useEditorFolding } from "../hooks/useEditorFolding";
+import { useEditorFoldToggles } from "../hooks/useEditorFoldToggles";
 import { useEditorHistory } from "../hooks/useEditorHistory";
 import { useEditorLineReorder } from "../hooks/useEditorLineReorder";
 import { useEditorSelectionPresentation } from "../hooks/useEditorSelectionPresentation";
+import { triggerHaptic } from "../hooks/useHaptic";
 import { usePrettyCaret } from "../hooks/usePrettyCaret";
 import { usePrettyCheckboxes } from "../hooks/usePrettyCheckboxes";
 import {
@@ -90,6 +93,7 @@ export const Editor = (_props: EditorProps) => {
     end: props.initialCursor,
   };
   let syncLineReorderHandle = () => {};
+  let syncFoldToggleHandles = () => {};
   let syncPrettyCaret = () => {};
   let isLineReordering = () => false;
 
@@ -112,12 +116,14 @@ export const Editor = (_props: EditorProps) => {
       lastSelection = selection;
       props.onCursorChange?.(selection.start);
       syncLineReorderHandle();
+      syncFoldToggleHandles();
     },
   });
 
   const syncSelectionPresentation = () => {
     selectionPresentation.sync();
     syncLineReorderHandle();
+    syncFoldToggleHandles();
   };
 
   const ignoreIOSKeyboardBlurForReorder = () => {
@@ -247,6 +253,13 @@ export const Editor = (_props: EditorProps) => {
   });
   syncLineReorderHandle = lineReorder.syncHandle;
   isLineReordering = () => lineReorder.indicator() !== null;
+
+  const foldToggles = useEditorFoldToggles({
+    foldState: folding.foldState,
+    getContainer: () => container,
+    getEditor: () => editor,
+  });
+  syncFoldToggleHandles = foldToggles.syncHandles;
 
   const applyFoldingChange = (change: () => void) => {
     const selection = getCurrentSelection();
@@ -485,9 +498,33 @@ export const Editor = (_props: EditorProps) => {
       >
         {renderMarkdown(content(), handleCheckboxToggle, {
           foldState: folding.foldState(),
-          onFoldToggle: toggleFoldSection,
         })}
       </div>
+      <For each={foldToggles.handles()}>
+        {(handle) => (
+          <button
+            type="button"
+            class="fold-toggle"
+            classList={{ "is-folded": handle.isFolded }}
+            style={{ left: `${handle.left}px`, top: `${handle.top}px` }}
+            aria-label={handle.isFolded || handle.isShowingChildren ? "Unfold section" : "Fold section"}
+            title={handle.isFolded || handle.isShowingChildren ? "Unfold section" : "Fold section"}
+            tabIndex={-1}
+            onPointerDown={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              triggerHaptic();
+              toggleFoldSection(handle.sectionId);
+            }}
+          >
+            <ChevronRightIcon />
+          </button>
+        )}
+      </For>
       {lineReorder.handle() && (
         <button
           type="button"
