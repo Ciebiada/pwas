@@ -331,6 +331,30 @@ test("filters note actions from the search field", async ({ page }) => {
   await expect(page.locator(".note-action-heading-level-2")).toHaveCount(0);
 });
 
+test("keeps the modal height stable while an action press blurs search", async ({ page }) => {
+  await openStoredNote(page, {
+    name: "Formatting",
+    content: "hello world",
+    cursor: bodyOffset("Formatting"),
+  });
+  await openNoteActions(page);
+
+  const search = page.getByRole("searchbox", { name: "Search actions" });
+  const action = page.getByRole("button", { name: "Bold" });
+  const modal = page.locator(".modal-content");
+
+  await expect(search).toBeFocused();
+  await expect(action).toBeVisible();
+  await page.waitForTimeout(450);
+
+  const initialHeight = await modal.evaluate((element) => element.getBoundingClientRect().height);
+  await action.focus();
+  await page.waitForTimeout(120);
+
+  const heightDuringPress = await modal.evaluate((element) => element.getBoundingClientRect().height);
+  expect(Math.abs(heightDuringPress - initialHeight)).toBeLessThan(4);
+});
+
 test("hides the current heading level action and keeps the other heading options", async ({ page }) => {
   const note = {
     name: "Formatting",
@@ -368,7 +392,7 @@ test("reorders actions globally based on usage", async ({ page }) => {
   await openNoteActions(page);
 
   const actionOrder = await page
-    .locator(".modal-page .modal-button")
+    .locator(".modal-page .action-list-item")
     .evaluateAll((elements) => elements.map((element) => element.className));
 
   expect(actionOrder[0]).toContain("note-action-heading-level-2");

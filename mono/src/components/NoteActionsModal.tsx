@@ -37,7 +37,6 @@ export type NoteActionsModalAPI = {
 };
 
 const KEYBOARD_OFFSET_THRESHOLD = 80;
-
 const normalizeSearchText = (value: string) => value.trim().toLowerCase();
 
 const searchMatches = (value: string, query: string) => {
@@ -100,6 +99,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   let focusSearchInputTimer: number | undefined;
   let hasObservedKeyboardOpen = false;
   let restoreEditorFocusOnClose = false;
+  let restoreEditorFocusAfterClose = false;
 
   const clearFocusSearchInputTimer = () => {
     if (focusSearchInputTimer !== undefined) {
@@ -124,6 +124,13 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
     hasObservedKeyboardOpen = false;
     clearFocusSearchInputTimer();
     setSearchKeyboardRequested(false);
+  };
+
+  const closeSearchKeyboardIfBlurred = () => {
+    if (!props.open()) return;
+    if (document.activeElement === searchInputRef || document.activeElement === focusProxyRef) return;
+
+    setSearchKeyboardClosed();
   };
 
   const focusSearchInput = () => {
@@ -199,12 +206,11 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
     openKeyboardForSearch();
   };
 
-  const handleSearchBlur = () => {
-    window.setTimeout(() => {
-      if (!props.open()) return;
-      if (document.activeElement === searchInputRef || document.activeElement === focusProxyRef) return;
+  const handleSearchBlur = (event: FocusEvent) => {
+    if (event.relatedTarget instanceof HTMLElement && event.relatedTarget.closest(".action-list-item")) return;
 
-      setSearchKeyboardClosed();
+    window.setTimeout(() => {
+      closeSearchKeyboardIfBlurred();
     }, 0);
   };
 
@@ -239,18 +245,15 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
       });
     } else {
       untrack(() => {
-        if (restoreEditorFocusOnClose && searchKeyboardRequested()) {
-          props.getEditorApi?.()?.focus();
-        }
+        restoreEditorFocusAfterClose = restoreEditorFocusOnClose;
         restoreEditorFocusOnClose = false;
-        clearFocusSearchInputTimer();
         setFrozenActionContext(null);
         setCanUndo(false);
         setCanRedo(false);
         setCanFoldAllSections(false);
         setCanUnfoldAllSections(false);
         setSearchQuery("");
-        setSearchKeyboardRequested(false);
+        setSearchKeyboardClosed();
       });
     }
   });
@@ -296,49 +299,54 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
       if (!result) return;
 
       incrementNoteActionUsage(action.id);
+      await close(true);
       editorApi.focus();
       editorApi.applyEdit(result);
-      void close(true);
     };
 
   const handleUndo = async (close: (fast?: boolean) => Promise<void>) => {
     const editorApi = props.getEditorApi?.();
     if (!editorApi?.getState().canUndo) return;
 
+    await close(true);
+    editorApi.focus();
     editorApi.undo();
-    void close(true);
   };
 
   const handleRedo = async (close: (fast?: boolean) => Promise<void>) => {
     const editorApi = props.getEditorApi?.();
     if (!editorApi?.getState().canRedo) return;
 
+    await close(true);
+    editorApi.focus();
     editorApi.redo();
-    void close(true);
   };
 
-  const handleToggleFold = (close: (fast?: boolean) => Promise<void>) => {
+  const handleToggleFold = async (close: (fast?: boolean) => Promise<void>) => {
     const editorApi = props.getEditorApi?.();
     if (!editorApi) return;
     if (!editorApi.canFoldAllSections() && !editorApi.canUnfoldAllSections()) return;
 
-    void close(true);
+    await close(true);
+    editorApi.focus();
     editorApi.cycleFoldSections();
   };
 
-  const handleFoldAllSections = (close: (fast?: boolean) => Promise<void>) => {
+  const handleFoldAllSections = async (close: (fast?: boolean) => Promise<void>) => {
     const editorApi = props.getEditorApi?.();
     if (!editorApi?.canFoldAllSections()) return;
 
-    void close(true);
+    await close(true);
+    editorApi.focus();
     editorApi.foldAllSections();
   };
 
-  const handleUnfoldAllSections = (close: (fast?: boolean) => Promise<void>) => {
+  const handleUnfoldAllSections = async (close: (fast?: boolean) => Promise<void>) => {
     const editorApi = props.getEditorApi?.();
     if (!editorApi?.canUnfoldAllSections()) return;
 
-    void close(true);
+    await close(true);
+    editorApi.focus();
     editorApi.unfoldAllSections();
   };
 
@@ -355,6 +363,15 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
     }
 
     await props.onDelete?.();
+  };
+
+  const handleModalClose = () => {
+    if (restoreEditorFocusAfterClose) {
+      restoreEditorFocusAfterClose = false;
+      props.getEditorApi?.()?.focus();
+    }
+
+    props.onClose?.();
   };
 
   const ActionRows = () => {
@@ -447,7 +464,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
             />
           </label>
         }
-        onClose={props.onClose}
+        onClose={handleModalClose}
       >
         <ModalPage id="root">
           <Show when={hasVisibleActions()} fallback={<div class="note-actions-empty">No actions found</div>}>
