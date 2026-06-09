@@ -1,8 +1,17 @@
 import { type Accessor, createEffect, createSignal, onCleanup } from "solid-js";
 import type { MarkdownFoldState } from "../services/markdown/folding";
 
-const FOLD_TOGGLE_BASELINE_OFFSET_EM = 0.13;
+let FOLD_TOGGLE_BASELINE_OFFSET_EM = 0.13;
 const FOLD_TOGGLE_TEXT_GAP_PX = 4;
+
+// Adjust baseline offset for iOS to prevent the fold toggle from sitting too low
+if (typeof navigator !== "undefined") {
+  const ua = navigator.userAgent;
+  const isIOS = /iPhone|iPad|iPod/i.test(ua) || (ua.includes("Mac") && "ontouchend" in document);
+  if (isIOS) {
+    FOLD_TOGGLE_BASELINE_OFFSET_EM = 0.08;
+  }
+}
 
 export type EditorFoldToggleHandle = {
   isFolded: boolean;
