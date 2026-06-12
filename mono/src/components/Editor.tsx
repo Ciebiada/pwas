@@ -1,4 +1,4 @@
-import { createMemo, createSignal, For, mergeProps, onCleanup, onMount } from "solid-js";
+import { createMemo, createSignal, For, mergeProps, onMount } from "solid-js";
 import { ChevronRightIcon } from "ui/Icons";
 import { isIOS } from "ui/platform";
 import { useEditorFolding } from "../hooks/useEditorFolding";
@@ -7,6 +7,7 @@ import { useEditorHistory } from "../hooks/useEditorHistory";
 import { useEditorLineReorder } from "../hooks/useEditorLineReorder";
 import { useEditorSelectionPresentation } from "../hooks/useEditorSelectionPresentation";
 import { triggerHaptic } from "../hooks/useHaptic";
+import { useIOSKeyboardDismiss } from "../hooks/useIOSKeyboardDismiss";
 import { usePrettyCaret } from "../hooks/usePrettyCaret";
 import { usePrettyCheckboxes } from "../hooks/usePrettyCheckboxes";
 import {
@@ -24,8 +25,6 @@ import { splitNote } from "../services/note";
 import { isMonospaceEnabled, isPrettyCaretEnabled, isPrettyCheckboxesEnabled } from "../services/preferences";
 import { TouchHint } from "./TouchHint";
 import "./Editor.css";
-
-const IOS_KEYBOARD_OFFSET_THRESHOLD = 20;
 
 export type EditorSelection = {
   start: number;
@@ -83,9 +82,6 @@ export const Editor = (_props: EditorProps) => {
 
   let editor: HTMLDivElement;
   let container: HTMLDivElement | undefined;
-  let didSeeIOSKeyboard = false;
-  let ignoreNextIOSKeyboardBlur = false;
-  let ignoreNextIOSKeyboardBlurTimeout: number | undefined;
   let iosReplacementText = "";
   let suppressNextFocusScroll = false;
   let lastSelection: EditorSelection = {
@@ -126,47 +122,17 @@ export const Editor = (_props: EditorProps) => {
     syncFoldToggleHandles();
   };
 
-  const ignoreIOSKeyboardBlurForReorder = () => {
-    ignoreNextIOSKeyboardBlur = true;
-    clearTimeout(ignoreNextIOSKeyboardBlurTimeout);
-    ignoreNextIOSKeyboardBlurTimeout = window.setTimeout(() => {
-      ignoreNextIOSKeyboardBlur = false;
-      ignoreNextIOSKeyboardBlurTimeout = undefined;
-    }, 600);
-  };
+  const { ignoreNextBlurForReorder: ignoreIOSKeyboardBlurForReorder } = useIOSKeyboardDismiss({
+    isIOS,
+    getEditor: () => editor,
+    isReordering: () => isLineReordering(),
+    onDismiss: () => {
+      editor.blur();
+      syncSelectionPresentation();
+    },
+  });
 
   const handleEditorBlur = () => {
-    syncSelectionPresentation();
-  };
-
-  const handleIOSViewportResize = () => {
-    const keyboardVisible =
-      !!window.visualViewport && window.innerHeight - window.visualViewport.height > IOS_KEYBOARD_OFFSET_THRESHOLD;
-    const editorHasDOMFocus = document.activeElement === editor;
-
-    if (isLineReordering()) {
-      didSeeIOSKeyboard = false;
-      return;
-    }
-
-    if (keyboardVisible) {
-      if (editorHasDOMFocus) didSeeIOSKeyboard = true;
-      return;
-    }
-
-    if (ignoreNextIOSKeyboardBlur) {
-      ignoreNextIOSKeyboardBlur = false;
-      didSeeIOSKeyboard = false;
-      clearTimeout(ignoreNextIOSKeyboardBlurTimeout);
-      ignoreNextIOSKeyboardBlurTimeout = undefined;
-      return;
-    }
-
-    if (!didSeeIOSKeyboard) return;
-    didSeeIOSKeyboard = false;
-    if (!editorHasDOMFocus) return;
-
-    editor.blur();
     syncSelectionPresentation();
   };
 
@@ -276,14 +242,6 @@ export const Editor = (_props: EditorProps) => {
   };
 
   onMount(() => {
-    onCleanup(() => clearTimeout(ignoreNextIOSKeyboardBlurTimeout));
-
-    const visualViewport = window.visualViewport;
-    if (isIOS && visualViewport) {
-      visualViewport.addEventListener("resize", handleIOSViewportResize);
-      onCleanup(() => visualViewport.removeEventListener("resize", handleIOSViewportResize));
-    }
-
     props.onReady?.({
       focus: () => {
         suppressNextFocusScroll = true;
