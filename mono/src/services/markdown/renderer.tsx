@@ -39,6 +39,8 @@ type RenderSegment =
   | { kind: "line"; index: number; token: BlockToken; isHidden: boolean; sectionId?: string }
   | { kind: "table"; rows: TableRow[] };
 
+const INLINE_TRIGGER_CHARS = new Set(["`", "[", "h", "H", "w", "W", "*", "_", "~"]);
+
 const INLINE_PATTERNS: InlinePattern[] = [
   { type: "code", regex: /^`([^`]+)`/, delimiter: "`" },
   {
@@ -93,17 +95,18 @@ const parseInlineMarkdown = (text: string): InlineToken[] => {
   const tokens: InlineToken[] = [];
   let index = 0;
   while (index < text.length) {
-    const token = tryMatchPattern(text, index);
+    const char = text[index];
+    const token = INLINE_TRIGGER_CHARS.has(char) ? tryMatchPattern(text, index) : null;
     if (token) {
       tokens.push(token);
-      index += token.raw ? token.raw.length : token.delimiter!.length * 2 + token.content.length;
+      index += token.raw!.length;
       continue;
     }
     const lastToken = tokens[tokens.length - 1];
     if (lastToken?.type === "text") {
-      lastToken.content += text[index];
+      lastToken.content += char;
     } else {
-      tokens.push({ type: "text", content: text[index] });
+      tokens.push({ type: "text", content: char });
     }
     index++;
   }
