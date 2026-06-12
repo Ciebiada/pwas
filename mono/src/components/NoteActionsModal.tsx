@@ -295,31 +295,38 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
       if (!editorApi) return;
       if (!action.isApplicable(context)) return;
 
-      const result = await action.run(context);
+      // Note actions are synchronous: apply the edit and refocus the editor
+      // within the tap gesture and *before* closing the modal. iOS only shows and
+      // keeps the keyboard for an in-gesture focus, and applying before the modal
+      // closes (and before the user can type) prevents the edit from clobbering
+      // early keystrokes. A Promise result (allowed by the type) falls back to the
+      // post-await path.
+      const ran = action.run(context);
+      const result = ran instanceof Promise ? await ran : ran;
       if (!result) return;
 
       incrementNoteActionUsage(action.id);
-      await close(true);
       editorApi.focus();
       editorApi.applyEdit(result);
+      await close(true);
     };
 
   const handleUndo = async (close: (fast?: boolean) => Promise<void>) => {
     const editorApi = props.getEditorApi?.();
     if (!editorApi?.getState().canUndo) return;
 
-    await close(true);
     editorApi.focus();
     editorApi.undo();
+    await close(true);
   };
 
   const handleRedo = async (close: (fast?: boolean) => Promise<void>) => {
     const editorApi = props.getEditorApi?.();
     if (!editorApi?.getState().canRedo) return;
 
-    await close(true);
     editorApi.focus();
     editorApi.redo();
+    await close(true);
   };
 
   const handleToggleFold = async (close: (fast?: boolean) => Promise<void>) => {
@@ -327,27 +334,27 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
     if (!editorApi) return;
     if (!editorApi.canFoldAllSections() && !editorApi.canUnfoldAllSections()) return;
 
-    await close(true);
     editorApi.focus();
     editorApi.cycleFoldSections();
+    await close(true);
   };
 
   const handleFoldAllSections = async (close: (fast?: boolean) => Promise<void>) => {
     const editorApi = props.getEditorApi?.();
     if (!editorApi?.canFoldAllSections()) return;
 
-    await close(true);
     editorApi.focus();
     editorApi.foldAllSections();
+    await close(true);
   };
 
   const handleUnfoldAllSections = async (close: (fast?: boolean) => Promise<void>) => {
     const editorApi = props.getEditorApi?.();
     if (!editorApi?.canUnfoldAllSections()) return;
 
-    await close(true);
     editorApi.focus();
     editorApi.unfoldAllSections();
+    await close(true);
   };
 
   const handleDelete = async (close: () => Promise<void>) => {
