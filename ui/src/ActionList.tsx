@@ -24,19 +24,8 @@ export const ActionListItem = (props: ActionListItemProps) => {
   let handledPressStart = false;
 
   const handlePressStart = (event: MouseEvent | TouchEvent) => {
-    // Retain whatever is currently focused (the editor, or the modal's search
-    // field) when pressing an action. Otherwise the press blurs that element and
-    // dismisses the iOS keyboard; the dismissal reflows the sheet mid-tap, the
-    // button slides out from under the finger, and the tap is lost — so the
-    // action only fires on a second tap. preventDefault on mousedown keeps focus
-    // while still letting the click through. touchstart is left alone (unless an
-    // explicit onPressStart opts in) so the action list stays scrollable.
-    if (event instanceof MouseEvent) {
-      if (event.button !== 0) return;
-      event.preventDefault();
-    }
-
     if (!props.onPressStart) return;
+    if (event instanceof MouseEvent && event.button !== 0) return;
 
     event.preventDefault();
     event.stopPropagation();
