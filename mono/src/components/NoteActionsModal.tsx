@@ -455,6 +455,9 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
         type="search"
         aria-hidden="true"
         autocomplete="off"
+        autocorrect="off"
+        autocapitalize="none"
+        spellcheck={false}
         tabindex="-1"
       />
       <Modal
@@ -474,6 +477,13 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
               value={searchQuery()}
               placeholder="Search actions"
               aria-label="Search actions"
+              // No autocorrection on the action filter: while iOS shows an
+              // autocorrect suggestion for the typed word, it consumes the next
+              // tap to commit/dismiss it, eating the first tap on an action.
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="none"
+              spellcheck={false}
               onFocus={setSearchKeyboardOpen}
               onBlur={handleSearchBlur}
               onInput={(e) => setSearchQuery(e.currentTarget.value)}
