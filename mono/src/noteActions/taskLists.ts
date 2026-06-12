@@ -47,10 +47,6 @@ const isTaskListItem = (line: string) => TODO_LIST_PATTERN.test(line);
 
 const isCheckedTaskListItem = (line: string) => TODO_LIST_PATTERN.exec(line)?.[2] === "x";
 
-// Offset of the editable text within a task line, i.e. just past the "- [ ] "
-// marker. Falls back to the line start for non-task lines.
-const getTaskTextStartColumn = (line: string) => TODO_LIST_PATTERN.exec(line)?.[0].length ?? 0;
-
 const getTaskListRange = (content: string, cursor: number): TaskListRange | null => {
   const lines = getLines(content);
   const currentLineIndex = getLineIndexAtPosition(lines, cursor);
@@ -79,14 +75,14 @@ export const hasCheckedTasksInCurrentList = ({ content, selection }: NoteActionC
     .some((line) => isCheckedTaskListItem(line.text));
 };
 
-// Place the caret in the editable text after removing checked tasks: keep the
-// column if the caret's own line survived, otherwise drop into the next
-// surviving item's text (or the end of the previous one when the last item was
-// removed). Computed from the list structure rather than a character diff, which
-// otherwise lands the caret inside the next item's "[ ]" marker.
+// After removing checked tasks, place the caret where the user can keep typing or
+// press Enter: keep the column when the caret's own line survived, otherwise move
+// to the end of the nearest surviving item in the same list — the next one, or
+// the previous one when the last item was removed.
 const collapsedSelectionAfterRemoval = (
   survivors: SurvivingLine[],
   lines: ContentLine[],
+  range: TaskListRange,
   cursor: number,
 ): Selection => {
   const cursorLineIndex = getLineIndexAtPosition(lines, cursor);
@@ -94,17 +90,20 @@ const collapsedSelectionAfterRemoval = (
 
   const position = cursorLine
     ? cursorLine.newStart + Math.min(cursor - lines[cursorLineIndex].start, cursorLine.text.length)
-    : nextEditablePosition(survivors, cursorLineIndex);
+    : endOfNearestSurvivingItem(survivors, range, cursorLineIndex);
 
   return { start: position, end: position };
 };
 
-const nextEditablePosition = (survivors: SurvivingLine[], removedLineIndex: number) => {
-  const nextLine = survivors.find((survivor) => survivor.lineIndex > removedLineIndex);
-  if (nextLine) return nextLine.newStart + getTaskTextStartColumn(nextLine.text);
+const endOfNearestSurvivingItem = (survivors: SurvivingLine[], range: TaskListRange, removedLineIndex: number) => {
+  const isInList = (index: number) => index >= range.start && index <= range.end;
+  const target =
+    survivors.find((survivor) => survivor.lineIndex > removedLineIndex && isInList(survivor.lineIndex)) ??
+    survivors.findLast((survivor) => survivor.lineIndex < removedLineIndex && isInList(survivor.lineIndex)) ??
+    survivors.findLast((survivor) => survivor.lineIndex < removedLineIndex) ??
+    survivors.find((survivor) => survivor.lineIndex > removedLineIndex);
 
-  const previousLine = survivors.findLast((survivor) => survivor.lineIndex < removedLineIndex);
-  return previousLine ? previousLine.newStart + previousLine.text.length : 0;
+  return target ? target.newStart + target.text.length : 0;
 };
 
 export const removeCheckedTasksFromCurrentList = ({
@@ -130,6 +129,6 @@ export const removeCheckedTasksFromCurrentList = ({
 
   return {
     content: nextContent,
-    selection: collapsedSelectionAfterRemoval(survivors, lines, selection.start),
+    selection: collapsedSelectionAfterRemoval(survivors, lines, taskListRange, selection.start),
   };
 };

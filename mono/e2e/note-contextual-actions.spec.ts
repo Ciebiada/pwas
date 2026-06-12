@@ -417,7 +417,7 @@ test("shows Remove Checked Tasks inside a task list and removes checked items fr
   });
 });
 
-test("places the cursor in the next item's text after removing the checked task under it", async ({ page }) => {
+test("moves the caret to the end of the next item after removing the checked task under it", async ({ page }) => {
   const note = {
     name: "Tasks",
     content: "- [ ] one\n- [x] two\n- [ ] three",
@@ -429,11 +429,53 @@ test("places the cursor in the next item's text after removing the checked task 
   await page.getByRole("button", { name: "Remove Checked Tasks" }).click();
   await waitForEditorFocus(page);
 
-  // Typing must land in the surviving item's text, not inside its "[ ]" marker.
+  // The caret should sit at the end of the next item's text (ready to type or
+  // press Enter), not inside its "[ ]" marker.
   await page.keyboard.type("X");
 
   await expectSingleStoredNote(page, {
     name: "Tasks",
-    content: "- [ ] one\n- [ ] Xthree",
+    content: "- [ ] one\n- [ ] threeX",
+  });
+});
+
+test("moves the caret to the end of the previous item when the last task is removed", async ({ page }) => {
+  const note = {
+    name: "Tasks",
+    content: "- [ ] one\n- [ ] two\n- [x] three",
+    // Caret inside the checked last item (the one being removed).
+    cursor: bodyOffset("Tasks", "- [ ] one\n- [ ] two\n- [x] thr".length),
+  };
+  await openStoredNote(page, note);
+  await openNoteActions(page);
+  await page.getByRole("button", { name: "Remove Checked Tasks" }).click();
+  await waitForEditorFocus(page);
+
+  await page.keyboard.type("X");
+
+  await expectSingleStoredNote(page, {
+    name: "Tasks",
+    content: "- [ ] one\n- [ ] twoX",
+  });
+});
+
+test("keeps the caret on an unchecked item when removing other checked tasks", async ({ page }) => {
+  const note = {
+    name: "Tasks",
+    content: "- [x] one\n- [ ] two\n- [x] three",
+    // Caret in the middle of the surviving unchecked item's text ("tw|o").
+    cursor: bodyOffset("Tasks", "- [x] one\n- [ ] tw".length),
+  };
+  await openStoredNote(page, note);
+  await openNoteActions(page);
+  await page.getByRole("button", { name: "Remove Checked Tasks" }).click();
+  await waitForEditorFocus(page);
+
+  // The caret's own line survived, so its column is preserved ("tw|o" -> "twXo").
+  await page.keyboard.type("X");
+
+  await expectSingleStoredNote(page, {
+    name: "Tasks",
+    content: "- [ ] twXo",
   });
 });
