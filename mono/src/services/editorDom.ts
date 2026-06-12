@@ -29,6 +29,16 @@ export const getOffsetInNode = (root: Node, target: Node, offset: number): numbe
   return null;
 };
 
+export const getScrollParent = (node: Node | null): HTMLElement | null => {
+  if (!node || !(node instanceof HTMLElement)) return null;
+
+  const { overflowY } = window.getComputedStyle(node);
+  const isScrollable = overflowY !== "visible" && overflowY !== "hidden";
+  if (isScrollable && node.scrollHeight > node.clientHeight) return node;
+
+  return getScrollParent(node.parentNode);
+};
+
 export const isElementHidden = (element: Element) =>
   element instanceof HTMLElement && window.getComputedStyle(element).display === "none";
 

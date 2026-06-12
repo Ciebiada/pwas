@@ -1,4 +1,5 @@
 import { type Accessor, createEffect, createSignal, onCleanup } from "solid-js";
+import { getScrollParent } from "../services/editorDom";
 import { isLineDropMove, type LineRange, type LineReorderEdit, moveLineRange } from "../services/editorLineReorder";
 import type { MarkdownFoldState } from "../services/markdown/folding";
 import { triggerHaptic } from "./useHaptic";
@@ -59,17 +60,6 @@ export const useEditorLineReorder = (options: UseEditorLineReorderOptions) => {
   const getLineElements = () => Array.from(options.getEditor()?.querySelectorAll<HTMLElement>(".md-line") ?? []);
 
   const canReorderLine = (lineIndex: number) => lineIndex > 0;
-
-  const getScrollParent = (element: HTMLElement | null): HTMLElement | null => {
-    if (!element) return null;
-
-    const { overflowY } = window.getComputedStyle(element);
-    if (overflowY !== "visible" && overflowY !== "hidden" && element.scrollHeight > element.clientHeight) {
-      return element;
-    }
-
-    return getScrollParent(element.parentElement);
-  };
 
   const getLineRange = (lineIndex: number): LineRange => {
     const foldState = options.foldState();

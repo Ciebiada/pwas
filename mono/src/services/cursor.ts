@@ -1,5 +1,10 @@
-import DiffMatchPatch from "diff-match-patch";
-import { countWithoutZeroWidthSpaces, getNodeTextLength, getOffsetInNode, ZERO_WIDTH_SPACE } from "./editorDom";
+import {
+  countWithoutZeroWidthSpaces,
+  getNodeTextLength,
+  getOffsetInNode,
+  getScrollParent,
+  ZERO_WIDTH_SPACE,
+} from "./editorDom";
 
 type CursorPosition = {
   start: number;
@@ -168,21 +173,6 @@ const getRangeAtOffset = (element: HTMLElement, offset: number): Range | null =>
   return range;
 };
 
-const getScrollParent = (node: Node | null): HTMLElement | null => {
-  if (!node || !(node instanceof HTMLElement)) {
-    return null;
-  }
-
-  const { overflowY } = window.getComputedStyle(node);
-  const isScrollable = overflowY !== "visible" && overflowY !== "hidden";
-
-  if (isScrollable && node.scrollHeight > node.clientHeight) {
-    return node;
-  }
-
-  return getScrollParent(node.parentNode);
-};
-
 export const scrollCursorIntoView = (selection: Selection, behavior: ScrollBehavior) => {
   if (selection.rangeCount === 0) return;
 
@@ -290,44 +280,24 @@ export const setSelection = (element: HTMLElement, start: number, { end = start 
   return selection;
 };
 
-const DIFF_TYPE = {
-  EQUAL: 0,
-  INSERT: 1,
-  DELETE: -1,
-} as const;
-
 export const calculateCursorPosition = (currentContent: string, newContent: string, currentCursor: number): number => {
-  const dmp = new DiffMatchPatch();
-  const diffs = dmp.diff_main(currentContent, newContent);
+  const minLength = Math.min(currentContent.length, newContent.length);
 
-  let newCursor = 0;
-  let oldCursor = 0;
+  let prefix = 0;
+  while (prefix < minLength && currentContent[prefix] === newContent[prefix]) prefix += 1;
 
-  for (const [type, text] of diffs) {
-    const length = text.length;
-    switch (type) {
-      case DIFF_TYPE.EQUAL:
-        if (oldCursor + length > currentCursor) {
-          // Cursor is within this equal block
-          newCursor += currentCursor - oldCursor;
-          return newCursor;
-        }
-        newCursor += length;
-        oldCursor += length;
-        break;
-      case DIFF_TYPE.INSERT:
-        newCursor += length;
-        break;
-      case DIFF_TYPE.DELETE:
-        if (oldCursor + length > currentCursor) {
-          // Cursor was inside the deleted text
-          // Return known newCursor (start of deletion)
-          return newCursor;
-        }
-        oldCursor += length;
-        break;
-    }
+  let suffix = 0;
+  while (
+    suffix < minLength - prefix &&
+    currentContent[currentContent.length - 1 - suffix] === newContent[newContent.length - 1 - suffix]
+  ) {
+    suffix += 1;
   }
 
-  return newCursor;
+  const oldChangeEnd = currentContent.length - suffix;
+  const newChangeEnd = newContent.length - suffix;
+
+  if (currentCursor <= prefix) return currentCursor;
+  if (currentCursor >= oldChangeEnd) return currentCursor + (newContent.length - currentContent.length);
+  return Math.min(currentCursor, newChangeEnd);
 };
