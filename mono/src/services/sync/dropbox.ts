@@ -184,7 +184,7 @@ export const getFileMetadata = async (path: string): Promise<DropboxFile | null>
         ".tag": string;
         metadata?: unknown;
       };
-      const actualEntry = entry.metadata || entry; // Handle RelocationResult or direct metadata
+      const actualEntry = (entry.metadata || entry) as typeof entry;
 
       return {
         id: actualEntry.id,

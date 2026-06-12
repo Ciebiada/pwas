@@ -1440,8 +1440,8 @@ export class EpubRenderer {
     try {
       return await Promise.race([
         promise,
-        new Promise<void>((resolve) => {
-          timeout = setTimeout(resolve, timeoutMs);
+        new Promise<undefined>((resolve) => {
+          timeout = setTimeout(() => resolve(undefined), timeoutMs);
         }),
       ]);
     } finally {

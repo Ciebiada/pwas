@@ -52,17 +52,17 @@ export const usePrettyCaret = (
     };
 
     const clearSelectionFrame = () => {
-      cancelAnimationFrame(selectionFrame);
+      if (selectionFrame !== undefined) cancelAnimationFrame(selectionFrame);
       selectionFrame = undefined;
     };
 
     const clearFocusSettleFrame = () => {
-      cancelAnimationFrame(focusSettleFrame);
+      if (focusSettleFrame !== undefined) cancelAnimationFrame(focusSettleFrame);
       focusSettleFrame = undefined;
     };
 
     const clearShowFrame = () => {
-      cancelAnimationFrame(showFrame);
+      if (showFrame !== undefined) cancelAnimationFrame(showFrame);
       showFrame = undefined;
     };
 
@@ -227,12 +227,13 @@ export const usePrettyCaret = (
       scheduleSelectionChange();
     };
 
+    const handleResize = () => updateCaretPosition();
     const handleBlur = () => requestAnimationFrame(hideCaret);
     const handleVisibilityChange = () => (document.hidden ? hideCaret() : scheduleSelectionChange());
 
     document.addEventListener("selectionchange", scheduleSelectionChange);
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("resize", updateCaretPosition);
+    window.addEventListener("resize", handleResize);
     editor.addEventListener("blur", handleBlur);
     editor.addEventListener("focus", handleFocus);
     sync = handleSelectionChange;
@@ -246,7 +247,7 @@ export const usePrettyCaret = (
       clearShowFrame();
       document.removeEventListener("selectionchange", scheduleSelectionChange);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("resize", updateCaretPosition);
+      window.removeEventListener("resize", handleResize);
       editor.removeEventListener("blur", handleBlur);
       editor.removeEventListener("focus", handleFocus);
       caret.remove();

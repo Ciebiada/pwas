@@ -5,5 +5,8 @@ declare module "solid-js" {
     interface CustomEvents {
       textInput: InputEvent;
     }
+    interface InputHTMLAttributes<T> {
+      switch?: string;
+    }
   }
 }

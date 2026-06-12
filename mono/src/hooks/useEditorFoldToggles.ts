@@ -32,7 +32,7 @@ export const useEditorFoldToggles = (options: UseEditorFoldTogglesOptions) => {
   let syncFrame: number | undefined;
 
   const syncHandles = () => {
-    cancelAnimationFrame(syncFrame);
+    if (syncFrame !== undefined) cancelAnimationFrame(syncFrame);
     syncFrame = requestAnimationFrame(() => {
       syncFrame = undefined;
       const container = options.getContainer();
@@ -83,7 +83,7 @@ export const useEditorFoldToggles = (options: UseEditorFoldTogglesOptions) => {
   window.addEventListener("resize", syncHandles);
 
   onCleanup(() => {
-    cancelAnimationFrame(syncFrame);
+    if (syncFrame !== undefined) cancelAnimationFrame(syncFrame);
     window.removeEventListener("resize", syncHandles);
   });
 
