@@ -152,6 +152,7 @@ const getGlobalChildrenStates = (sections: FoldSection[]) => {
 export const useEditorFolding = (options: UseEditorFoldingOptions) => {
   const [sectionStates, setSectionStates] = createSignal<FoldSectionStates>(readSectionStates(options.storageKey));
   const foldState = createMemo(() => getMarkdownFoldState(options.content(), sectionStates()));
+  const lineStarts = createMemo(() => getLineStartOffsets(options.content()));
 
   const writeFoldedState = (next: Map<string, FoldSectionVisibility>) => {
     writeSectionStates(options.storageKey, next);
@@ -267,12 +268,11 @@ export const useEditorFolding = (options: UseEditorFoldingOptions) => {
   };
 
   const getSectionIdAtPosition = (position: number) =>
-    getSectionIdAtLineIndex(getLineIndexAtOffset(getLineStartOffsets(options.content()), position));
+    getSectionIdAtLineIndex(getLineIndexAtOffset(lineStarts(), position));
 
   const clampPosition = (position: number) => {
     const currentContent = options.content();
-    const lineStarts = getLineStartOffsets(currentContent);
-    const lineIndex = getLineIndexAtOffset(lineStarts, position);
+    const lineIndex = getLineIndexAtOffset(lineStarts(), position);
     if (foldState().lines[lineIndex]?.isHidden) {
       let containingVisibleSection: FoldSection | undefined;
 
@@ -287,19 +287,19 @@ export const useEditorFolding = (options: UseEditorFoldingOptions) => {
       }
 
       if (containingVisibleSection) {
-        return getLineEndOffset(currentContent, lineStarts, containingVisibleSection.lineIndex);
+        return getLineEndOffset(currentContent, lineStarts(), containingVisibleSection.lineIndex);
       }
     }
 
     for (const section of foldState().sections) {
       if (!section.isFolded) continue;
 
-      const hiddenStart = lineStarts[section.lineIndex + 1];
+      const hiddenStart = lineStarts()[section.lineIndex + 1];
       if (hiddenStart === undefined) continue;
 
-      const hiddenEnd = getLineEndOffset(currentContent, lineStarts, section.endLineIndex);
+      const hiddenEnd = getLineEndOffset(currentContent, lineStarts(), section.endLineIndex);
       if (position >= hiddenStart && position <= hiddenEnd) {
-        return getLineEndOffset(currentContent, lineStarts, section.lineIndex);
+        return getLineEndOffset(currentContent, lineStarts(), section.lineIndex);
       }
     }
 
@@ -315,16 +315,15 @@ export const useEditorFolding = (options: UseEditorFoldingOptions) => {
     if (selection.start !== selection.end) return null;
 
     const currentContent = options.content();
-    const lineStarts = getLineStartOffsets(currentContent);
-    const lineIndex = getLineIndexAtOffset(lineStarts, selection.start);
-    const lineEnd = getLineEndOffset(currentContent, lineStarts, lineIndex);
+    const lineIndex = getLineIndexAtOffset(lineStarts(), selection.start);
+    const lineEnd = getLineEndOffset(currentContent, lineStarts(), lineIndex);
     if (selection.start !== lineEnd) return null;
 
     const sectionId = foldState().lines[lineIndex]?.sectionId;
     const section = sectionId ? foldState().sectionsById.get(sectionId) : undefined;
     if (!section?.isFolded) return null;
 
-    const insertAt = getLineEndOffset(currentContent, lineStarts, section.endLineIndex);
+    const insertAt = getLineEndOffset(currentContent, lineStarts(), section.endLineIndex);
 
     setSectionStates((current) => {
       const next = new Map(current);
