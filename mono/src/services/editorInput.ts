@@ -1,7 +1,84 @@
 import { EDITOR_INPUT_RULES } from "./editorInputRules";
 import { renumberOrderedList } from "./markdown/features/orderedList";
+import { matchInlineCodeAt, matchInlineFormatAt } from "./markdown/inlineFormat";
 import { handleBackspaceAtListStart, handleEnter, handleInput } from "./markdown/input";
+import { tokenizeLines } from "./markdown/tokenize";
 import { INDENT, INDENT_SIZE, type InputResult, insert, type Selection } from "./markdown/utils";
+
+interface InlineFormatTokenSpan {
+  start: number;
+  contentStart: number;
+  contentEnd: number;
+  end: number;
+}
+
+const findAllInlineFormatTokens = (text: string): InlineFormatTokenSpan[] => {
+  const tokens: InlineFormatTokenSpan[] = [];
+  const triggerChars = new Set(["`", "*", "_", "~"]);
+  let pos = 0;
+
+  for (const line of tokenizeLines(text)) {
+    const lineStart = pos;
+    const lineEnd = pos + line.prefix.length + line.content.length;
+    pos = lineEnd + 1;
+    if (line.disableInlineMarkdown) continue;
+
+    for (let i = lineStart; i < lineEnd; i++) {
+      if (!triggerChars.has(text[i])) continue;
+
+      const match = matchInlineCodeAt(text, i) ?? matchInlineFormatAt(text, i);
+      if (!match) continue;
+
+      tokens.push({ start: i, contentStart: match.contentStart, contentEnd: match.contentEnd, end: i + match.raw.length });
+      i += match.raw.length - 1;
+    }
+  }
+
+  return tokens;
+};
+
+const handleSelectionWithFormatCleanup = (
+  content: string,
+  start: number,
+  end: number,
+  insertText = "",
+): { content: string; cursor: number } => {
+  const intersecting = findAllInlineFormatTokens(content).filter(
+    (t) => t.contentStart < end && t.contentEnd > start,
+  );
+  const first = intersecting[0];
+  const last = intersecting[intersecting.length - 1];
+
+  let before = content.slice(0, start);
+  if (first && first.start < start) {
+    before = content.slice(0, first.start) + content.slice(first.contentStart, start);
+  }
+
+  let after = content.slice(end);
+  if (last && last.end > end) {
+    after = content.slice(end, last.contentEnd) + content.slice(last.end);
+  }
+
+  return { content: before + insertText + after, cursor: before.length + insertText.length };
+};
+
+// When a selection exactly covers the text of a line that has a block prefix
+// (`# ` heading, `- `/`* ` list, `1. ` ordered, `- [ ] ` checkbox), deleting it
+// should clear the whole line by also removing the prefix — otherwise selecting
+// the rendered line and pressing backspace leaves a dangling marker behind. The
+// prefix is whatever the per-line tokenizer strips off as `prefix`.
+const expandSelectionOverLinePrefix = (content: string, start: number, end: number): number => {
+  let lineStart = 0;
+  for (const line of tokenizeLines(content)) {
+    const contentStart = lineStart + line.prefix.length;
+    const contentEnd = contentStart + line.content.length;
+    if (line.prefix.length > 0 && start === contentStart && end === contentEnd) {
+      return lineStart;
+    }
+    lineStart = contentEnd + 1;
+  }
+  return start;
+};
 
 const handleBackspaceAtIndent = (content: string, selection: Selection): InputResult | null => {
   const { start, end } = selection;
@@ -21,6 +98,19 @@ export const processBeforeInput = (
   data: { eventData?: string | null; iosReplacementText?: string },
 ): InputResult | null => {
   const { start, end } = selection;
+
+  // Replace the selection with `text`, stripping the delimiters of any inline
+  // format whose content the selection cuts into (e.g. deleting inside **bold**).
+  const replaceSelection = (text: string): InputResult =>
+    end > start
+      ? handleSelectionWithFormatCleanup(content, start, end, text)
+      : { content: insert(content, start, end, text), cursor: start + text.length };
+
+  const deleteSelection = (): InputResult => {
+    const deleteStart = expandSelectionOverLinePrefix(content, start, end);
+    const cleaned = handleSelectionWithFormatCleanup(content, deleteStart, end);
+    return renumberOrderedList(cleaned.content, cleaned.cursor);
+  };
 
   switch (inputType) {
     case "insertText": {
@@ -48,33 +138,23 @@ export const processBeforeInput = (
         if (result) return result;
       }
 
-      return {
-        content: insert(content, start, end, data.eventData),
-        cursor: start + data.eventData.length,
-      };
+      return replaceSelection(data.eventData);
     }
 
     case "insertReplacementText":
       if (!data.iosReplacementText) return null;
-      return {
-        content: insert(content, start, end, data.iosReplacementText),
-        cursor: start + data.iosReplacementText.length,
-      };
+      return replaceSelection(data.iosReplacementText);
 
     case "insertFromPaste":
       if (!data.eventData) return null;
-      return {
-        content: insert(content, start, end, data.eventData),
-        cursor: start + data.eventData.length,
-      };
+      return replaceSelection(data.eventData);
 
     case "insertParagraph":
       return handleEnter(content, selection);
 
     case "deleteByCut": {
       if (end > start) {
-        const afterDelete = insert(content, start, end, "");
-        return renumberOrderedList(afterDelete, start);
+        return deleteSelection();
       } else if (start > 0) {
         const afterDelete = insert(content, start - 1, start, "");
         return renumberOrderedList(afterDelete, start - 1);
@@ -95,8 +175,7 @@ export const processBeforeInput = (
       if (indentResult) return indentResult;
 
       if (end > start) {
-        const afterDelete = insert(content, start, end, "");
-        return renumberOrderedList(afterDelete, start);
+        return deleteSelection();
       } else if (start > 0) {
         const afterDelete = insert(content, start - 1, start, "");
         return renumberOrderedList(afterDelete, start - 1);

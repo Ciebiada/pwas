@@ -76,3 +76,16 @@ export const matchInlineFormatAt = (text: string, index: number) => {
 
   return null;
 };
+
+export const matchInlineCodeAt = (text: string, index: number) => {
+  if (text[index] !== "`") return null;
+  const lineEnd = text.indexOf("\n", index + 1);
+  const searchEnd = lineEnd === -1 ? text.length : lineEnd;
+  const closeIndex = text.indexOf("`", index + 1);
+  if (closeIndex === -1 || closeIndex >= searchEnd || closeIndex === index + 1) return null;
+  return {
+    raw: text.slice(index, closeIndex + 1),
+    contentStart: index + 1,
+    contentEnd: closeIndex,
+  };
+};
