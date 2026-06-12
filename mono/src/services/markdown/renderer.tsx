@@ -267,10 +267,10 @@ const renderBlockContent = (block: BlockToken) => (
   </>
 );
 
-const renderHeader = (block: BlockToken, className: string, content: JSX.Element) => {
+const renderHeader = (block: BlockToken, className: string, content: JSX.Element, sectionId?: string) => {
   const Tag = block.type as "h1" | "h2" | "h3";
   return (
-    <Dynamic component={Tag} class={className}>
+    <Dynamic component={Tag} class={className} data-section-id={sectionId}>
       {content}
     </Dynamic>
   );
@@ -357,7 +357,7 @@ const renderBlock = (
     case "h1":
     case "h2":
     case "h3":
-      return renderHeader(block, className, content);
+      return renderHeader(block, className, content, foldLine?.sectionId);
     case "checkbox":
     case "list":
     case "orderedList":

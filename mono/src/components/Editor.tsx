@@ -506,6 +506,7 @@ export const Editor = (_props: EditorProps) => {
             type="button"
             class="fold-toggle"
             classList={{ "is-folded": handle.isFolded }}
+            data-section-id={handle.sectionId}
             style={{ left: `${handle.left}px`, top: `${handle.top}px` }}
             aria-label={handle.isFolded || handle.isShowingChildren ? "Unfold section" : "Fold section"}
             title={handle.isFolded || handle.isShowingChildren ? "Unfold section" : "Fold section"}

@@ -91,8 +91,16 @@ const getActiveLineText = async (page: Page) =>
     return (line.textContent ?? "").replaceAll("\u200B", "").trim();
   });
 
+// Fold toggles render as an absolutely-positioned overlay sibling (not nested in
+// the heading), associated to the heading by a shared data-section-id.
+const foldToggle = async (heading: Locator): Promise<Locator> => {
+  const sectionId = await heading.getAttribute("data-section-id");
+  if (!sectionId) throw new Error("Expected heading to have a data-section-id");
+  return heading.page().locator(`.fold-toggle[data-section-id="${sectionId}"]`);
+};
+
 const getFoldToggleColor = async (heading: Locator) =>
-  await heading.locator(".fold-toggle").evaluate((element) => getComputedStyle(element).color);
+  await (await foldToggle(heading)).evaluate((element) => getComputedStyle(element).color);
 
 const getFoldStorageValue = async (page: Page, noteId: number) =>
   await page.evaluate((id) => localStorage.getItem(`mono:folded-sections:v1:${id}`), noteId);
@@ -110,7 +118,7 @@ test("folds and unfolds a hierarchical section from the gutter and remembers it 
 
   const foldChevronColor = await getFoldToggleColor(projectHeading);
   await setCaretAtLineEnd(childBodyLine);
-  await projectHeading.locator(".fold-toggle").click();
+  await (await foldToggle(projectHeading)).click();
   await expect.poll(async () => await getFoldToggleColor(projectHeading)).not.toBe(foldChevronColor);
 
   await expect.poll(async () => await getActiveLineText(page)).toBe("# Project");
@@ -127,7 +135,7 @@ test("folds and unfolds a hierarchical section from the gutter and remembers it 
   await expect(childHeading).toBeHidden();
   await expect(nextHeading).toBeVisible();
 
-  await projectHeading.locator(".fold-toggle").click();
+  await (await foldToggle(projectHeading)).click();
   await expect(introLine).toBeVisible();
   await expect(childHeading).toBeVisible();
   await expect(childBodyLine).toBeVisible();
@@ -149,7 +157,7 @@ test("arrow keys move around folded content without entering hidden section line
   const projectHeading = lineWithText(page, "h1.md-h1", "Project");
   const nextHeading = lineWithText(page, "h1.md-h1", "Next");
 
-  await projectHeading.locator(".fold-toggle").click();
+  await (await foldToggle(projectHeading)).click();
   await setCaretAtLineEnd(projectHeading);
 
   await page.keyboard.press("ArrowDown");
@@ -218,7 +226,7 @@ test("Ctrl+I cycles the closest containing section from a body line", async ({ p
   await expect(childBodyLine).toBeHidden();
   await expect(grandchildHeading).toBeHidden();
   await expect(grandBodyLine).toBeHidden();
-  await expect(childHeading.locator(".fold-toggle")).toHaveAttribute("aria-label", "Unfold section");
+  await expect(await foldToggle(childHeading)).toHaveAttribute("aria-label", "Unfold section");
 
   await page.keyboard.press("Control+I");
 
@@ -228,14 +236,14 @@ test("Ctrl+I cycles the closest containing section from a body line", async ({ p
   await expect(childBodyLine).toBeVisible();
   await expect(grandchildHeading).toBeVisible();
   await expect(grandBodyLine).toBeHidden();
-  await expect(childHeading.locator(".fold-toggle")).toHaveAttribute("aria-label", "Unfold section");
+  await expect(await foldToggle(childHeading)).toHaveAttribute("aria-label", "Unfold section");
 
   await page.keyboard.press("Control+I");
 
   await expect(childBodyLine).toBeVisible();
   await expect(grandchildHeading).toBeVisible();
   await expect(grandBodyLine).toBeVisible();
-  await expect(childHeading.locator(".fold-toggle")).toHaveAttribute("aria-label", "Fold section");
+  await expect(await foldToggle(childHeading)).toHaveAttribute("aria-label", "Fold section");
 });
 
 test("Ctrl+I children state shows parent body and direct child headings", async ({ page }) => {
@@ -293,13 +301,13 @@ test("Ctrl+I can open and edit a child section while its parent is showing child
   await page.keyboard.press("Control+I");
 
   await expect(childHeading).toBeVisible();
-  await expect(childHeading.locator(".fold-toggle")).toHaveClass(/is-folded/);
+  await expect(await foldToggle(childHeading)).toHaveClass(/is-folded/);
   await expect(childBodyLine).toBeHidden();
 
   await setCaretAtLineEnd(childHeading);
   await page.keyboard.press("Control+I");
 
-  await expect(childHeading.locator(".fold-toggle")).not.toHaveClass(/is-folded/);
+  await expect(await foldToggle(childHeading)).not.toHaveClass(/is-folded/);
   await expect(childBodyLine).toBeVisible();
 
   await setCaretAtLineEnd(childHeading);
@@ -323,17 +331,17 @@ test("children cycle keeps open parents pointing down and folded child headings 
 
   await setCaretAtLineEnd(grandchildHeading);
   await page.keyboard.press("Control+I");
-  await expect(grandchildHeading.locator(".fold-toggle")).toHaveClass(/is-folded/);
+  await expect(await foldToggle(grandchildHeading)).toHaveClass(/is-folded/);
 
   await setCaretAtLineEnd(childHeading);
   await page.keyboard.press("Control+I");
-  await expect(childHeading.locator(".fold-toggle")).toHaveClass(/is-folded/);
+  await expect(await foldToggle(childHeading)).toHaveClass(/is-folded/);
 
   await page.keyboard.press("Control+I");
 
-  await expect(childHeading.locator(".fold-toggle")).not.toHaveClass(/is-folded/);
+  await expect(await foldToggle(childHeading)).not.toHaveClass(/is-folded/);
   await expect(grandchildHeading).toBeVisible();
-  await expect(grandchildHeading.locator(".fold-toggle")).toHaveClass(/is-folded/);
+  await expect(await foldToggle(grandchildHeading)).toHaveClass(/is-folded/);
 });
 
 test("Ctrl+O cycles folding globally", async ({ page }) => {
@@ -398,7 +406,7 @@ test("leaf heading cycles directly between folded and open", async ({ page }) =>
 
   await page.keyboard.press("Control+I");
   await expect(bodyLine).toBeVisible();
-  await expect(heading.locator(".fold-toggle")).toHaveAttribute("aria-label", "Fold section");
+  await expect(await foldToggle(heading)).toHaveAttribute("aria-label", "Fold section");
 
   await page.keyboard.press("Control+I");
   await expect(bodyLine).toBeHidden();
@@ -444,7 +452,7 @@ test("Enter at the end of a folded heading inserts after its hidden section", as
   const heading = lineWithText(page, "h1.md-h1", "Only");
   const hiddenLine = lineWithText(page, ".md-text", "hidden");
 
-  await heading.locator(".fold-toggle").click();
+  await (await foldToggle(heading)).click();
   await expect(hiddenLine).toBeHidden();
 
   await setCaretAtLineEnd(heading);
@@ -454,7 +462,7 @@ test("Enter at the end of a folded heading inserts after its hidden section", as
   const afterLine = lineWithText(page, ".md-text", "after");
   await expect(hiddenLine).toBeVisible();
   await expect(afterLine).toBeVisible();
-  await expect(heading.locator(".fold-toggle")).toHaveAttribute("aria-label", "Fold section");
+  await expect(await foldToggle(heading)).toHaveAttribute("aria-label", "Fold section");
   await expect.poll(async () => await getActiveLineText(page)).toBe("after");
 
   await expectStoredNotes(page, [
@@ -468,12 +476,12 @@ test("Enter at the end of a folded heading inserts after its hidden section", as
   await expect(page.locator(".editor")).toBeVisible();
   await expect(hiddenLine).toBeVisible();
   await expect(afterLine).toBeVisible();
-  await expect(heading.locator(".fold-toggle")).toHaveAttribute("aria-label", "Fold section");
+  await expect(await foldToggle(heading)).toHaveAttribute("aria-label", "Fold section");
 
-  await heading.locator(".fold-toggle").click();
+  await (await foldToggle(heading)).click();
   await expect(hiddenLine).toBeHidden();
   await expect(afterLine).toBeHidden();
-  await expect(heading.locator(".fold-toggle")).toHaveAttribute("aria-label", "Unfold section");
+  await expect(await foldToggle(heading)).toHaveAttribute("aria-label", "Unfold section");
 });
 
 test("note actions can fold and unfold all sections without changing content", async ({ page }) => {
@@ -599,7 +607,7 @@ test("note actions unfold persisted folded sections on the first click", async (
   const childHeading = lineWithText(page, "h2.md-h2", "Child");
   const childBodyLine = lineWithText(page, ".md-text", "child body");
 
-  await projectHeading.locator(".fold-toggle").click();
+  await (await foldToggle(projectHeading)).click();
   await expect(introLine).toBeHidden();
 
   await page.reload();
@@ -666,7 +674,7 @@ test("note actions wait for click before unfolding persisted sections", async ({
   const heading = lineWithText(page, "h1.md-h1", "Heading");
   const bodyLine = lineWithText(page, ".md-text", "Body");
 
-  await heading.locator(".fold-toggle").click();
+  await (await foldToggle(heading)).click();
   await expect(bodyLine).toBeHidden();
 
   await page.reload();
@@ -700,7 +708,7 @@ test("note actions unfold a single persisted folded section on the first click",
   const heading = lineWithText(page, "h1.md-h1", "Heading");
   const bodyLine = lineWithText(page, ".md-text", "Body");
 
-  await heading.locator(".fold-toggle").click();
+  await (await foldToggle(heading)).click();
   await expect(bodyLine).toBeHidden();
 
   await page.reload();
@@ -722,7 +730,7 @@ test("note actions unfold persisted folded sections after reopening a note", asy
   const introLine = lineWithText(page, ".md-text", "intro");
   const childHeading = lineWithText(page, "h2.md-h2", "Child");
 
-  await projectHeading.locator(".fold-toggle").click();
+  await (await foldToggle(projectHeading)).click();
   await expect(introLine).toBeHidden();
 
   await page.locator(".header-button").first().click();

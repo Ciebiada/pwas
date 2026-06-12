@@ -1,5 +1,13 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 import { createStoredNote } from "./noteStorage";
+
+// Fold toggles render as an absolutely-positioned overlay sibling (not nested in
+// the heading), associated to the heading by a shared data-section-id.
+const foldToggleFor = async (heading: Locator): Promise<Locator> => {
+  const sectionId = await heading.getAttribute("data-section-id");
+  if (!sectionId) throw new Error("Expected heading to have a data-section-id");
+  return heading.page().locator(`.fold-toggle[data-section-id="${sectionId}"]`);
+};
 
 const isEditorFocused = async (page: Page) =>
   await page.evaluate(() => document.activeElement === document.querySelector(".editor"));
@@ -19,7 +27,7 @@ test("tapping a fold chevron does not focus an unfocused editor on iOS", async (
 
   const editor = page.locator(".editor");
   const heading = page.locator("h1.md-h1").filter({ hasText: "Heading" });
-  const foldToggle = heading.locator(".fold-toggle");
+  const foldToggle = await foldToggleFor(heading);
   const bodyLine = page.locator(".md-text").filter({ hasText: "Body" });
 
   await expect(editor).toBeVisible();
@@ -45,7 +53,7 @@ test("unfold all works on the first tap for persisted folds on iOS", async ({ pa
   await page.goto(`/note/${noteId}`);
 
   const heading = page.locator("h1.md-h1").filter({ hasText: "Heading" });
-  const foldToggle = heading.locator(".fold-toggle");
+  const foldToggle = await foldToggleFor(heading);
   const bodyLine = page.locator(".md-text").filter({ hasText: "Body" });
 
   await expect(foldToggle).toBeVisible();
