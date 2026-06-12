@@ -263,11 +263,12 @@ export const Editor = (_props: EditorProps) => {
 
   const applyFoldingChange = (change: () => void) => {
     const selection = getCurrentSelection();
+    const wasFocused = document.activeElement === editor;
 
     change();
 
     requestAnimationFrame(() => {
-      if (document.activeElement !== editor) return;
+      if (!wasFocused) return;
 
       applySelection(selection);
       syncSelectionPresentation();
@@ -426,41 +427,27 @@ export const Editor = (_props: EditorProps) => {
     emitChange();
   };
 
-  const toggleFoldSection = (sectionId: string) => {
-    const selection = getCurrentSelection();
-    const wasFocused = document.activeElement === editor;
-
-    folding.toggleSection(sectionId);
-
-    requestAnimationFrame(() => {
-      if (!wasFocused) return;
-
-      applySelection(selection);
-      syncSelectionPresentation();
-    });
-  };
-
   const cycleFoldSection = (sectionId: string) => {
     applyFoldingChange(() => folding.cycleSection(sectionId));
   };
 
+  const copySelectionToClipboard = (event: ClipboardEvent): EditorSelection | null => {
+    const selection = getSelection(editor);
+    if (selection.start === selection.end) return null;
+
+    event.clipboardData?.setData("text/plain", content().slice(selection.start, selection.end));
+    return selection;
+  };
+
   const handleCopy = (event: ClipboardEvent) => {
     event.preventDefault();
-    const { start, end } = getSelection(editor);
-    if (start === end) return;
-
-    const selectedText = content().slice(start, end);
-    event.clipboardData?.setData("text/plain", selectedText);
+    copySelectionToClipboard(event);
   };
 
   const handleCut = (event: ClipboardEvent) => {
     event.preventDefault();
-    const selection = getSelection(editor);
-    const { start, end } = selection;
-    if (start === end) return;
-
-    const selectedText = content().slice(start, end);
-    event.clipboardData?.setData("text/plain", selectedText);
+    const selection = copySelectionToClipboard(event);
+    if (!selection) return;
 
     const result = processBeforeInput("deleteByCut", content(), selection, {});
     if (result) {
@@ -517,7 +504,7 @@ export const Editor = (_props: EditorProps) => {
               event.preventDefault();
               event.stopPropagation();
               triggerHaptic();
-              toggleFoldSection(handle.sectionId);
+              applyFoldingChange(() => folding.toggleSection(handle.sectionId));
             }}
           >
             <ChevronRightIcon />
