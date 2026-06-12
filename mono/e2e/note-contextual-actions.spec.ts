@@ -416,3 +416,24 @@ test("shows Remove Checked Tasks inside a task list and removes checked items fr
     content: "- [ ] keep\nParagraph",
   });
 });
+
+test("places the cursor in the next item's text after removing the checked task under it", async ({ page }) => {
+  const note = {
+    name: "Tasks",
+    content: "- [ ] one\n- [x] two\n- [ ] three",
+    // Caret inside the checked middle item (the one being removed).
+    cursor: bodyOffset("Tasks", "- [ ] one\n- [x] tw".length),
+  };
+  await openStoredNote(page, note);
+  await openNoteActions(page);
+  await page.getByRole("button", { name: "Remove Checked Tasks" }).click();
+  await waitForEditorFocus(page);
+
+  // Typing must land in the surviving item's text, not inside its "[ ]" marker.
+  await page.keyboard.type("X");
+
+  await expectSingleStoredNote(page, {
+    name: "Tasks",
+    content: "- [ ] one\n- [ ] Xthree",
+  });
+});
