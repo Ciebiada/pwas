@@ -1,3 +1,5 @@
+import { getLineHeading, type LineHeading, tokenizeLines } from "./tokenize";
+
 export type FoldHeadingLevel = 1 | 2 | 3;
 
 export type FoldSectionVisibility = "folded" | "children";
@@ -30,8 +32,6 @@ export type MarkdownFoldState = {
   sectionsById: Map<string, FoldSection>;
 };
 
-const CODE_FENCE = "```";
-
 const normalizeHeadingText = (text: string) =>
   text
     .trim()
@@ -41,62 +41,21 @@ const normalizeHeadingText = (text: string) =>
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "") || "heading";
 
-const getHeading = (line: string, lineIndex: number): { level: FoldHeadingLevel; text: string } | null => {
-  if (lineIndex === 0) return null;
-
-  const match = line.match(/^(#{1,3}) (.*)$/);
-  if (!match) return null;
-
-  return {
-    level: match[1].length as FoldHeadingLevel,
-    text: match[2],
-  };
-};
-
-const findClosingCodeFence = (lines: string[], startIndex: number) => {
-  for (let index = startIndex + 1; index < lines.length; index += 1) {
-    if (lines[index].trim() === CODE_FENCE) return index;
-  }
-  return -1;
-};
-
-const getHeadingByLine = (lines: string[]) => {
-  const headings = new Map<number, { level: FoldHeadingLevel; text: string }>();
-  let activeCodeBlockClosingIndex = -1;
-
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index];
-
-    if (activeCodeBlockClosingIndex !== -1) {
-      if (index === activeCodeBlockClosingIndex) activeCodeBlockClosingIndex = -1;
-      continue;
-    }
-
-    if (index > 0 && line.startsWith(CODE_FENCE)) {
-      const closingFenceIndex = findClosingCodeFence(lines, index);
-      if (closingFenceIndex !== -1) {
-        activeCodeBlockClosingIndex = closingFenceIndex;
-        continue;
-      }
-    }
-
-    const heading = getHeading(line, index);
-    if (heading) headings.set(index, heading);
-  }
-
-  return headings;
-};
-
 export const getMarkdownFoldState = (markdown: string, sectionStates: FoldSectionStates): MarkdownFoldState => {
-  const lines = markdown.split("\n");
-  const headingByLine = getHeadingByLine(lines);
-  const lineStates: FoldLineState[] = Array.from({ length: lines.length }, () => ({}));
+  const tokens = tokenizeLines(markdown);
+  const lineCount = tokens.length;
+  const headingByLine = new Map<number, LineHeading>();
+  tokens.forEach((token, index) => {
+    const heading = getLineHeading(token);
+    if (heading) headingByLine.set(index, heading);
+  });
+  const lineStates: FoldLineState[] = Array.from({ length: lineCount }, () => ({}));
   const sections: FoldSection[] = [];
   const sectionsById = new Map<string, FoldSection>();
   const headingStack: string[] = [];
   const siblingCounts = new Map<string, number>();
 
-  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+  for (let lineIndex = 0; lineIndex < lineCount; lineIndex += 1) {
     const heading = headingByLine.get(lineIndex);
     if (!heading) continue;
 
@@ -112,9 +71,9 @@ export const getMarkdownFoldState = (markdown: string, sectionStates: FoldSectio
     const id = parentId ? `${parentId}/${segment}` : segment;
     headingStack[heading.level - 1] = segment;
 
-    let endLineIndex = lines.length - 1;
+    let endLineIndex = lineCount - 1;
     let firstChildLineIndex: number | undefined;
-    for (let nextLineIndex = lineIndex + 1; nextLineIndex < lines.length; nextLineIndex += 1) {
+    for (let nextLineIndex = lineIndex + 1; nextLineIndex < lineCount; nextLineIndex += 1) {
       const nextHeading = headingByLine.get(nextLineIndex);
       if (nextHeading?.level === heading.level + 1 && firstChildLineIndex === undefined) {
         firstChildLineIndex = nextLineIndex;
@@ -153,7 +112,7 @@ export const getMarkdownFoldState = (markdown: string, sectionStates: FoldSectio
 
   const activeFoldedSections: FoldSection[] = [];
 
-  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+  for (let lineIndex = 0; lineIndex < lineCount; lineIndex += 1) {
     while (
       activeFoldedSections.length > 0 &&
       lineIndex > activeFoldedSections[activeFoldedSections.length - 1].endLineIndex

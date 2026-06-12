@@ -3,19 +3,9 @@ import { Dynamic } from "solid-js/web";
 import { triggerHaptic } from "../../hooks/useHaptic";
 import type { MarkdownFoldState } from "./folding";
 import { matchInlineFormatAt } from "./inlineFormat";
+import { CODE_FENCE, type LineToken, tokenizeLines } from "./tokenize";
 
 type InlineTokenType = "text" | "strong" | "emphasis" | "strikethrough" | "link" | "code";
-type BlockType =
-  | "h1"
-  | "h2"
-  | "h3"
-  | "paragraph"
-  | "checkbox"
-  | "list"
-  | "orderedList"
-  | "table"
-  | "codeFence"
-  | "codeContent";
 
 type InlineToken = {
   type: InlineTokenType;
@@ -25,14 +15,7 @@ type InlineToken = {
   raw?: string;
 };
 
-type BlockToken = {
-  type: BlockType;
-  prefix: string;
-  content: string;
-  disableInlineMarkdown?: boolean;
-  codeBlockId?: string;
-  codeFenceKind?: "open" | "close";
-};
+type BlockToken = LineToken;
 
 type InlinePattern = {
   type: Exclude<InlineTokenType, "text">;
@@ -78,16 +61,6 @@ const INLINE_PATTERNS: InlinePattern[] = [
       raw: match[0],
     }),
   },
-];
-
-const BLOCK_PATTERNS = [
-  { type: "table" as const, regex: /^()(\|.*)$/ },
-  { type: "h3" as const, regex: /^(### )(.*)/ },
-  { type: "h2" as const, regex: /^(## )(.*)/ },
-  { type: "h1" as const, regex: /^(# )(.*)/ },
-  { type: "checkbox" as const, regex: /^(\s*[-*] \[(?:x| )\] )(.*)/ },
-  { type: "orderedList" as const, regex: /^(\s*\d+\. )(.*)/ },
-  { type: "list" as const, regex: /^(\s*[-*] )(.*)/ },
 ];
 
 const tryMatchPattern = (text: string, index: number): InlineToken | null => {
@@ -185,91 +158,6 @@ const renderInlineToken = (token: InlineToken) => {
 };
 
 const renderInlineMarkdown = (text: string) => parseInlineMarkdown(text).map(renderInlineToken);
-
-const CODE_FENCE = "```";
-
-const isOpeningCodeFence = (line: string) => line.startsWith(CODE_FENCE);
-
-const isClosingCodeFence = (line: string) => line.trim() === CODE_FENCE;
-
-const findClosingCodeFence = (lines: string[], startIndex: number) => {
-  for (let index = startIndex + 1; index < lines.length; index++) {
-    if (isClosingCodeFence(lines[index])) return index;
-  }
-  return -1;
-};
-
-const parseBlockLine = (line: string, index: number): BlockToken => {
-  if (index === 0) return { type: "paragraph", prefix: "", content: line, disableInlineMarkdown: true };
-
-  for (const pattern of BLOCK_PATTERNS) {
-    const match = line.match(pattern.regex);
-    if (match) return { type: pattern.type, prefix: match[1], content: match[2] };
-  }
-  return { type: "paragraph", prefix: "", content: line };
-};
-
-const parseBlocks = (markdown: string): BlockToken[] => {
-  const blocks: BlockToken[] = [];
-  const lines = markdown.split("\n");
-  let activeCodeBlockId: string | null = null;
-  let codeBlockCount = 0;
-  let activeCodeBlockClosingIndex = -1;
-
-  for (const [index, line] of lines.entries()) {
-    if (index === 0) {
-      blocks.push(parseBlockLine(line, index));
-      continue;
-    }
-
-    if (activeCodeBlockId) {
-      if (index === activeCodeBlockClosingIndex) {
-        blocks.push({
-          type: "codeFence",
-          prefix: "",
-          content: line,
-          codeBlockId: activeCodeBlockId,
-          codeFenceKind: "close",
-        });
-        activeCodeBlockId = null;
-        activeCodeBlockClosingIndex = -1;
-        continue;
-      }
-
-      blocks.push({
-        type: "codeContent",
-        prefix: "",
-        content: line,
-        disableInlineMarkdown: true,
-        codeBlockId: activeCodeBlockId,
-      });
-      continue;
-    }
-
-    if (isOpeningCodeFence(line)) {
-      const closingFenceIndex = findClosingCodeFence(lines, index);
-      if (closingFenceIndex === -1) {
-        blocks.push(parseBlockLine(line, index));
-        continue;
-      }
-
-      activeCodeBlockId = `code-block-${codeBlockCount++}`;
-      activeCodeBlockClosingIndex = closingFenceIndex;
-      blocks.push({
-        type: "codeFence",
-        prefix: "",
-        content: line,
-        codeBlockId: activeCodeBlockId,
-        codeFenceKind: "open",
-      });
-      continue;
-    }
-
-    blocks.push(parseBlockLine(line, index));
-  }
-
-  return blocks;
-};
 
 const renderBlockContent = (block: BlockToken) => (
   <>
@@ -480,7 +368,7 @@ type EditorContentProps = {
 // signature, so a single-line edit (or a fold class change) only touches that
 // line's DOM instead of rebuilding the whole document on every keystroke.
 export const EditorContent = (props: EditorContentProps): JSX.Element => {
-  const segments = createMemo(() => buildSegments(parseBlocks(props.content()), props.foldState()));
+  const segments = createMemo(() => buildSegments(tokenizeLines(props.content()), props.foldState()));
 
   return (
     <Index each={segments()}>
