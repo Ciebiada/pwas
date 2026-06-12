@@ -92,6 +92,7 @@ export const Editor = (_props: EditorProps) => {
   let syncFoldToggleHandles = () => {};
   let syncPrettyCaret = () => {};
   let isLineReordering = () => false;
+  let lastActiveLineMayShiftToggles = false;
 
   if (isPrettyCaretEnabled()) {
     const prettyCaret = usePrettyCaret(
@@ -105,6 +106,25 @@ export const Editor = (_props: EditorProps) => {
     usePrettyCheckboxes(() => editor);
   }
 
+  // Fold-toggle positions are layout-derived, and plain cursor movement does not
+  // change layout — with two exceptions, both confined to the caret's line:
+  // moving onto a heading reveals its "# " prefix (shifting the heading's width),
+  // and moving onto inline formatting reveals its delimiters (which can change a
+  // line's wrapped height and push the toggles below it down). So re-measure the
+  // toggles only when the caret is on, or just left, such a line — not on every
+  // arrow-key press through plain text.
+  const activeLineMayShiftToggles = () => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return false;
+
+    const node = selection.getRangeAt(0).startContainer;
+    const element = node.nodeType === Node.TEXT_NODE ? node.parentElement : node instanceof Element ? node : null;
+    const line = element?.closest<HTMLElement>(".md-line");
+    if (!line || !editor.contains(line)) return false;
+
+    return line.matches(".md-h1, .md-h2, .md-h3") || line.querySelector(".md-inline-format") !== null;
+  };
+
   const selectionPresentation = useEditorSelectionPresentation({
     getEditor: () => editor,
     isIOS,
@@ -112,7 +132,10 @@ export const Editor = (_props: EditorProps) => {
       lastSelection = selection;
       props.onCursorChange?.(selection.start);
       syncLineReorderHandle();
-      syncFoldToggleHandles();
+
+      const mayShiftToggles = activeLineMayShiftToggles();
+      if (mayShiftToggles || lastActiveLineMayShiftToggles) syncFoldToggleHandles();
+      lastActiveLineMayShiftToggles = mayShiftToggles;
     },
   });
 
