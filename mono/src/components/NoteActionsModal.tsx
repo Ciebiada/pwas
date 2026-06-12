@@ -154,8 +154,17 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   };
 
   const focusSearchOnOpen = () => {
-    restoreEditorFocusOnClose = props.getEditorApi?.()?.isFocused() ?? false;
+    const editorWasFocused = props.getEditorApi?.()?.isFocused() ?? false;
+    restoreEditorFocusOnClose = editorWasFocused;
     setSearchKeyboardOpen();
+    // Move focus off the editor within the originating tap gesture. While the
+    // editor is natively focused, iOS routes taps landing over its text (which
+    // sits under the modal sheet) to text interaction instead of the modal
+    // buttons, so buttons over editor text don't react. Focusing the off-screen
+    // proxy blurs the editor (removing that native layer) while keeping the
+    // software keyboard up; the editor is refocused with its selection restored
+    // on close (restoreEditorFocusOnClose).
+    if (editorWasFocused) focusProxyRef?.focus({ preventScroll: true });
     if (props.open()) {
       focusSearchInputSoon();
     }
