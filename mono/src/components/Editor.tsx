@@ -19,7 +19,7 @@ import {
 import { processBeforeInput } from "../services/editorInput";
 import { toggleCheckbox } from "../services/markdown/features/todoList";
 import { handleTab } from "../services/markdown/input";
-import { renderMarkdown } from "../services/markdown/renderer";
+import { EditorContent } from "../services/markdown/renderer";
 import { splitNote } from "../services/note";
 import { isMonospaceEnabled, isPrettyCaretEnabled, isPrettyCheckboxesEnabled } from "../services/preferences";
 import { TouchHint } from "./TouchHint";
@@ -496,9 +496,7 @@ export const Editor = (_props: EditorProps) => {
         onCopy={handleCopy}
         onCut={handleCut}
       >
-        {renderMarkdown(content(), handleCheckboxToggle, {
-          foldState: folding.foldState(),
-        })}
+        <EditorContent content={content} foldState={folding.foldState} onCheckboxToggle={handleCheckboxToggle} />
       </div>
       <For each={foldToggles.handles()}>
         {(handle) => (

@@ -1,4 +1,4 @@
-import type { JSX } from "solid-js";
+import { createMemo, Index, type JSX, on } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { triggerHaptic } from "../../hooks/useHaptic";
 import type { MarkdownFoldState } from "./folding";
@@ -41,9 +41,20 @@ type InlinePattern = {
   createToken?: (match: RegExpMatchArray) => InlineToken;
 };
 
-type RenderMarkdownOptions = {
-  foldState?: MarkdownFoldState;
+type RenderLineOptions = {
+  isHidden?: boolean;
+  sectionId?: string;
 };
+
+type TableRow = {
+  index: number;
+  token: BlockToken;
+  isHidden: boolean;
+};
+
+type RenderSegment =
+  | { kind: "line"; index: number; token: BlockToken; isHidden: boolean; sectionId?: string }
+  | { kind: "table"; rows: TableRow[] };
 
 const INLINE_PATTERNS: InlinePattern[] = [
   { type: "code", regex: /^`([^`]+)`/, delimiter: "`" },
@@ -345,11 +356,10 @@ const renderBlock = (
   block: BlockToken,
   index: number,
   onCheckboxToggle?: (lineIndex: number) => void,
-  options: RenderMarkdownOptions = {},
+  options: RenderLineOptions = {},
 ) => {
-  const foldLine = options.foldState?.lines[index];
   const blockClassName = block.type === "paragraph" ? "text" : block.type;
-  const className = `md-line md-${blockClassName}${foldLine?.isHidden ? " is-fold-hidden" : ""}`;
+  const className = `md-line md-${blockClassName}${options.isHidden ? " is-fold-hidden" : ""}`;
   const content = renderBlockContent(block);
   const codeBlockProps = block.codeBlockId ? { "data-code-block-id": block.codeBlockId } : {};
 
@@ -357,7 +367,7 @@ const renderBlock = (
     case "h1":
     case "h2":
     case "h3":
-      return renderHeader(block, className, content, foldLine?.sectionId);
+      return renderHeader(block, className, content, options.sectionId);
     case "checkbox":
     case "list":
     case "orderedList":
@@ -389,41 +399,96 @@ const renderBlock = (
   }
 };
 
-const renderTableGroup = (blocks: BlockToken[], startIndex: number, options: RenderMarkdownOptions = {}) => (
+const renderTableGroup = (rows: TableRow[]) => (
   <div class="md-table-scroll">
     <div class="md-table-group">
-      {blocks.map((block, index) => {
-        const foldLine = options.foldState?.lines[startIndex + index];
-        const className = `md-line md-table${foldLine?.isHidden ? " is-fold-hidden" : ""}`;
-        return <div class={className}>{renderBlockContent(block)}</div>;
-      })}
+      {rows.map((row) => (
+        <div class={`md-line md-table${row.isHidden ? " is-fold-hidden" : ""}`}>{renderBlockContent(row.token)}</div>
+      ))}
     </div>
   </div>
 );
 
-export const renderMarkdown = (
-  markdown: string,
-  onCheckboxToggle?: (lineIndex: number) => void,
-  options: RenderMarkdownOptions = {},
-) => {
-  const blocks = parseBlocks(markdown);
-  const rendered: JSX.Element[] = [];
+// Group the per-line block tokens into render segments: a single line, or a run
+// of consecutive table lines collapsed into one segment (so they share a
+// horizontal scroll container — see `.md-table-scroll`/`.md-table-group`).
+const buildSegments = (tokens: BlockToken[], foldState?: MarkdownFoldState): RenderSegment[] => {
+  const lines = foldState?.lines;
+  const segments: RenderSegment[] = [];
 
-  for (let index = 0; index < blocks.length; index++) {
-    const block = blocks[index];
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    const isHidden = !!lines?.[index]?.isHidden;
 
-    if (block.type !== "table") {
-      rendered.push(renderBlock(block, index, onCheckboxToggle, options));
+    if (token.type === "table") {
+      const rows: TableRow[] = [{ index, token, isHidden }];
+      while (index + 1 < tokens.length && tokens[index + 1].type === "table") {
+        index += 1;
+        rows.push({ index, token: tokens[index], isHidden: !!lines?.[index]?.isHidden });
+      }
+      segments.push({ kind: "table", rows });
       continue;
     }
 
-    const startIndex = index;
-    const tableBlocks = [block];
-    while (index + 1 < blocks.length && blocks[index + 1].type === "table") {
-      tableBlocks.push(blocks[++index]);
-    }
-    rendered.push(renderTableGroup(tableBlocks, startIndex, options));
+    segments.push({ kind: "line", index, token, isHidden, sectionId: lines?.[index]?.sectionId });
   }
 
-  return rendered;
+  return segments;
+};
+
+const SIGNATURE_SEP = " ";
+
+// A per-segment key over everything that affects how the segment renders. Two
+// segments with equal signatures produce identical DOM, so the rendered node can
+// be reused unchanged across edits.
+const segmentSignature = (segment: RenderSegment): string => {
+  if (segment.kind === "table") {
+    return `T${segment.rows
+      .map((row) => `${row.index}${SIGNATURE_SEP}${row.isHidden ? 1 : 0}${SIGNATURE_SEP}${row.token.content}`)
+      .join("")}`;
+  }
+
+  const { token } = segment;
+  return [
+    "L",
+    segment.index,
+    token.type,
+    segment.isHidden ? 1 : 0,
+    token.prefix,
+    token.content,
+    token.codeBlockId ?? "",
+    token.codeFenceKind ?? "",
+    segment.sectionId ?? "",
+  ].join(SIGNATURE_SEP);
+};
+
+const renderSegment = (segment: RenderSegment, onCheckboxToggle?: (lineIndex: number) => void): JSX.Element => {
+  if (segment.kind === "table") return renderTableGroup(segment.rows);
+  return renderBlock(segment.token, segment.index, onCheckboxToggle, {
+    isHidden: segment.isHidden,
+    sectionId: segment.sectionId,
+  });
+};
+
+type EditorContentProps = {
+  content: () => string;
+  foldState: () => MarkdownFoldState;
+  onCheckboxToggle?: (lineIndex: number) => void;
+};
+
+// Per-line rendering: each segment memoizes its rendered DOM node keyed on its
+// signature, so a single-line edit (or a fold class change) only touches that
+// line's DOM instead of rebuilding the whole document on every keystroke.
+export const EditorContent = (props: EditorContentProps): JSX.Element => {
+  const segments = createMemo(() => buildSegments(parseBlocks(props.content()), props.foldState()));
+
+  return (
+    <Index each={segments()}>
+      {(segment) => {
+        const signature = createMemo(() => segmentSignature(segment()));
+        const node = createMemo(on(signature, () => renderSegment(segment(), props.onCheckboxToggle)));
+        return <>{node()}</>;
+      }}
+    </Index>
+  );
 };
