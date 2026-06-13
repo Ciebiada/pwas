@@ -99,7 +99,6 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   let focusSearchInputTimer: number | undefined;
   let hasObservedKeyboardOpen = false;
   let restoreEditorFocusOnClose = false;
-  let restoreEditorFocusAfterClose = false;
 
   const clearFocusSearchInputTimer = () => {
     if (focusSearchInputTimer !== undefined) {
@@ -245,8 +244,6 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
       });
     } else {
       untrack(() => {
-        restoreEditorFocusAfterClose = restoreEditorFocusOnClose;
-        restoreEditorFocusOnClose = false;
         setFrozenActionContext(null);
         setCanUndo(false);
         setCanRedo(false);
@@ -372,13 +369,13 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
     await props.onDelete?.();
   };
 
-  const handleModalClose = () => {
-    if (restoreEditorFocusAfterClose) {
-      restoreEditorFocusAfterClose = false;
-      props.getEditorApi?.()?.focus();
-    }
-
-    props.onClose?.();
+  // Restore editor focus synchronously while the close gesture is still active
+  // so iOS keeps the keyboard up. Running this after the close animation (in
+  // onClose) leaves the caret visible but the keyboard dismissed.
+  const handleModalCloseStart = () => {
+    if (!restoreEditorFocusOnClose) return;
+    restoreEditorFocusOnClose = false;
+    props.getEditorApi?.()?.focus();
   };
 
   const ActionRows = () => {
@@ -477,7 +474,8 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
             />
           </label>
         }
-        onClose={handleModalClose}
+        onCloseStart={handleModalCloseStart}
+        onClose={props.onClose}
       >
         <ModalPage id="root">
           <Show when={hasVisibleActions()} fallback={<div class="note-actions-empty">No actions found</div>}>

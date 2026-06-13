@@ -34,6 +34,11 @@ type ModalProps = {
   setOpen: Setter<boolean>;
   children: JSX.Element;
   onClose?: () => void;
+  // Fired synchronously at the start of the close, while the triggering user
+  // gesture is still active. iOS only keeps the software keyboard up for an
+  // in-gesture focus, so focus restoration must happen here, not in onClose
+  // (which fires after the close animation).
+  onCloseStart?: () => void;
   title?: string;
   header?: JSX.Element;
   restingHeightRatio?: number;
@@ -47,6 +52,8 @@ export const Modal = (props: ModalProps) => {
 
   const closeWithAnimation = async (fast?: boolean) => {
     if (isClosing() || !isVisible()) return;
+
+    props.onCloseStart?.();
 
     const duration = fast ? MODAL_FAST_ANIMATION_DURATION : SHEET_ANIMATION_DURATION;
     setIsClosing(true);
