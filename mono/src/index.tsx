@@ -17,7 +17,7 @@ import "ui/typography.css";
 import { useLocation } from "@solidjs/router";
 import { getScrollPosition, setIsScrolled } from "ui/scrollState";
 import "./pwa";
-import { UpdateToast } from "./components/UpdateToast";
+import { SearchBar } from "./components/SearchBar";
 
 const root = document.getElementById("root");
 
@@ -31,7 +31,16 @@ const App = (props: ParentProps) => {
   const location = useLocation();
   const saved = getScrollPosition(location.pathname);
   setIsScrolled(saved !== undefined ? saved > 10 : false);
-  return props.children;
+  // SearchBar lives here (the persistent router root), not inside NotesList, so
+  // it never remounts across navigations — the page view transition morphs it by
+  // its view-transition-name. Hoisted here (unlike the header) so a remount can't
+  // leave a stale WebKit snapshot that breaks the transition.
+  return (
+    <>
+      {props.children}
+      <SearchBar />
+    </>
+  );
 };
 
 render(() => {
@@ -45,7 +54,6 @@ render(() => {
         <Route path="/dropbox-callback" component={DropboxCallback} />
         <Route path="/google-callback" component={GoogleDriveCallback} />
       </Router>
-      <UpdateToast />
     </>
   );
 }, root!);

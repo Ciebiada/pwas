@@ -83,3 +83,12 @@
   height: 18px;
   opacity: 0.5;
 }
+
+.notes-list-content {
+  padding-bottom: calc(76px + env(safe-area-inset-bottom));
+}
+
+.notes-list-sentinel {
+  height: 1px;
+  width: 100%;
+}

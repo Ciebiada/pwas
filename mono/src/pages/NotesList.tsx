@@ -1,27 +1,50 @@
-import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
+import { createEffect, createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { Header, HeaderButton } from "ui/Header";
 import { triggerHaptic } from "ui/haptic";
 import { AddIcon, ChevronRightIcon, MoreIcon } from "ui/Icons";
+import { Page } from "ui/Page";
+import { useActivatable } from "ui/useActivatable";
 import { NoteActionsModal } from "../components/NoteActionsModal";
+import { SettingsModal } from "../components/SettingsModal";
 import { useNavigate } from "../hooks/useNavigate";
 import { timeFromNow } from "../services/date";
 import { db } from "../services/db";
+import { searchMatches } from "../services/search";
+import { searchQuery } from "../services/searchStore";
 import { createDexieArrayQuery } from "../services/solid-dexie";
-import "./NotesList.css";
-import { Page } from "ui/Page";
-import { useActivatable } from "ui/useActivatable";
-import { SettingsModal } from "../components/SettingsModal";
 import { sync } from "../services/sync";
+import "./NotesList.css";
+
+const PAGE_SIZE = 30;
 
 export const NotesList = () => {
   const navigate = useNavigate();
   const [settingsModalOpen, setSettingsModalOpen] = createSignal(false);
   const [noteActionsOpen, setNoteActionsOpen] = createSignal(false);
   const [selectedNoteId, setSelectedNoteId] = createSignal<number | null>(null);
+  const [limit, setLimit] = createSignal(PAGE_SIZE);
 
-  const notes = createDexieArrayQuery(
-    async () => await db.notes.where("status").notEqual("pending-delete").reverse().sortBy("lastModified"),
-  );
+  const notes = createDexieArrayQuery(async () => {
+    const q = searchQuery().trim();
+    const base = db.notes
+      .orderBy("lastModified")
+      .reverse()
+      .filter((n) => n.status !== "pending-delete");
+
+    if (q) {
+      return base
+        .filter((n) => searchMatches(`${n.name} ${n.content}`, q))
+        .limit(limit())
+        .toArray();
+    }
+
+    return base.limit(limit()).toArray();
+  });
+
+  createEffect(() => {
+    searchQuery();
+    setLimit(PAGE_SIZE);
+  });
 
   onMount(() => {
     sync();
@@ -31,6 +54,26 @@ export const NotesList = () => {
   onCleanup(() => {
     window.removeEventListener("focus", sync);
   });
+
+  const hasMore = () => notes.data.length >= limit();
+
+  // Infinite scroll: load the next page when the sentinel nears the viewport.
+  // The observer is created once; the sentinel only renders while hasMore(), so
+  // its ref callback observes/unobserves it as it mounts/unmounts.
+  const loadMoreObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((entry) => entry.isIntersecting) && hasMore()) {
+        setLimit((n) => n + PAGE_SIZE);
+      }
+    },
+    { root: null, rootMargin: "200px" },
+  );
+  onCleanup(() => loadMoreObserver.disconnect());
+
+  const observeSentinel = (el: HTMLDivElement) => {
+    loadMoreObserver.observe(el);
+    onCleanup(() => loadMoreObserver.unobserve(el));
+  };
 
   const getPreview = (content: string) => {
     if (!content) return "Empty note";
@@ -62,57 +105,71 @@ export const NotesList = () => {
         </HeaderButton>
       </Header>
       <Page>
-        <Show when={notes.loaded()}>
-          <For
-            each={notes.data}
-            fallback={
-              <div class="page-content">
-                <p>
-                  Tap{" "}
-                  <button class="inline-icon-button" onClick={() => navigate("/new")}>
-                    <AddIcon />
-                  </button>{" "}
-                  to create a note.
-                </p>
-                <p>
-                  Read{" "}
-                  <a
-                    href="/about"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      navigate("/about");
-                    }}
-                  >
-                    about Mono
-                  </a>
-                </p>
-              </div>
-            }
-          >
-            {(note) => {
-              const activatable = useActivatable({
-                onHold: () => {
-                  setSelectedNoteId(note.id);
-                  setNoteActionsOpen(true);
-                  triggerHaptic();
-                },
-                onTap: () => navigate(`/note/${note.id}`),
-              });
-              return (
-                <button ref={activatable} class="note-item" onContextMenu={(e) => e.preventDefault()}>
-                  <div class="note-item-content">
-                    <div class="note-item-name">{note.name}</div>
-                    <div class="note-item-preview">{getPreview(note.content)}</div>
+        <div class="notes-list-content">
+          <Show when={notes.loaded()}>
+            <For
+              each={notes.data}
+              fallback={
+                <Show
+                  when={searchQuery().trim()}
+                  fallback={
+                    <div class="page-content">
+                      <p>
+                        Tap{" "}
+                        <button class="inline-icon-button" onClick={() => navigate("/new")}>
+                          <AddIcon />
+                        </button>{" "}
+                        to create a note.
+                      </p>
+                      <p>
+                        Read{" "}
+                        <a
+                          href="/about"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            navigate("/about");
+                          }}
+                        >
+                          about Mono
+                        </a>
+                      </p>
+                    </div>
+                  }
+                >
+                  <div class="page-content">
+                    <p>No notes match your search.</p>
                   </div>
-                  <div class="note-item-date">
-                    {timeFromNow(note.lastModified)}
-                    <ChevronRightIcon />
-                  </div>
-                </button>
-              );
-            }}
-          </For>
-        </Show>
+                </Show>
+              }
+            >
+              {(note) => {
+                const activatable = useActivatable({
+                  onHold: () => {
+                    setSelectedNoteId(note.id);
+                    setNoteActionsOpen(true);
+                    triggerHaptic();
+                  },
+                  onTap: () => navigate(`/note/${note.id}`),
+                });
+                return (
+                  <button ref={activatable} class="note-item" onContextMenu={(e) => e.preventDefault()}>
+                    <div class="note-item-content">
+                      <div class="note-item-name">{note.name}</div>
+                      <div class="note-item-preview">{getPreview(note.content)}</div>
+                    </div>
+                    <div class="note-item-date">
+                      {timeFromNow(note.lastModified)}
+                      <ChevronRightIcon />
+                    </div>
+                  </button>
+                );
+              }}
+            </For>
+            <Show when={hasMore()}>
+              <div ref={observeSentinel} class="notes-list-sentinel" aria-hidden="true" />
+            </Show>
+          </Show>
+        </div>
       </Page>
       <SettingsModal open={settingsModalOpen} setOpen={setSettingsModalOpen} />
       <Show when={selectedNoteId()}>

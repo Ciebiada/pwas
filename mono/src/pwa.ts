@@ -1,7 +1,5 @@
 import { registerSW } from "virtual:pwa-register";
-import { createSignal } from "solid-js";
 
-export const [updateAvailable, setUpdateAvailable] = createSignal(false);
 let updateSW: (() => Promise<void>) | null = null;
 let registration: ServiceWorkerRegistration | undefined;
 let updateIntervalId: number | null = null;
@@ -19,7 +17,7 @@ const init = () => {
   updateSW = registerSW({
     immediate: true,
     onNeedRefresh() {
-      setUpdateAvailable(true);
+      updateSW?.();
     },
     onRegisteredSW(_, r) {
       registration = r;
@@ -40,10 +38,3 @@ const init = () => {
 };
 
 init();
-
-export const triggerUpdate = () => {
-  updateSW?.();
-};
-
-// @ts-expect-error - temporary debug helper
-window.showUpdateModal = () => setUpdateAvailable(true);

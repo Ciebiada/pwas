@@ -201,7 +201,7 @@ export const Modal = (props: ModalProps) => {
                 height: `calc(100% - ${sheet.modalPosition() + sheet.dragOffsetY()}px)`,
                 transition: sheet.isDragging()
                   ? "none"
-                  : `height ${sheet.animationDuration()}ms cubic-bezier(0.36, 0.66, 0.04, 1)`,
+                  : `height ${sheet.animationDuration()}ms var(--ease-spring-forward)`,
               }}
               onClick={(e) => e.stopPropagation()}
             >

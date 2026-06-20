@@ -18,12 +18,19 @@ body.modal-open {
   overscroll-behavior: none;
 }
 
+.modal-overlay,
+.modal-content {
+  --ease-spring-forward: cubic-bezier(0.36, 0.66, 0.04, 1);
+  --ease-spring-backward: cubic-bezier(0.32, 0.72, 0, 1);
+  --animation-duration: 400ms;
+}
+
 .modal-overlay[data-expanded] {
-  animation: overlay-fade-in var(--animation-duration) cubic-bezier(0.36, 0.66, 0.04, 1) forwards;
+  animation: overlay-fade-in var(--animation-duration) var(--ease-spring-forward) forwards;
 }
 
 .modal-overlay[data-closed] {
-  animation: overlay-fade-out var(--animation-duration) cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  animation: overlay-fade-out var(--animation-duration) var(--ease-spring-backward) forwards;
 }
 
 @keyframes overlay-fade-in {
@@ -155,6 +162,14 @@ body.modal-open {
   pointer-events: none;
 }
 
+.modal-button,
+.modal-toggle {
+  margin: 8px 16px;
+  padding: 12px 16px;
+  border-radius: 32px;
+  background-color: var(--element-background-color);
+}
+
 .modal-button {
   all: unset;
   display: flex;
@@ -165,11 +180,7 @@ body.modal-open {
   font-weight: 500;
   color: var(--text-strong-color);
   cursor: pointer;
-  background-color: var(--element-background-color);
   flex-shrink: 0;
-  margin: 8px 16px;
-  padding: 12px 16px;
-  border-radius: 32px;
   position: relative;
   overflow: hidden;
   transition: background-color 0.1s ease;
@@ -200,10 +211,6 @@ body.modal-open {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: var(--element-background-color);
-  margin: 8px 16px;
-  padding: 12px 16px;
-  border-radius: 32px;
 }
 
 .modal-toggle-label {
@@ -289,19 +296,19 @@ body.modal-open {
 }
 
 .modal-page[data-animate="forward"] {
-  animation: page-slide-in-forward var(--animation-duration) cubic-bezier(0.36, 0.66, 0.04, 1);
+  animation: page-slide-in-forward var(--animation-duration) var(--ease-spring-forward);
 }
 
 .modal-page[data-animate="backward"] {
-  animation: page-slide-in-backward var(--animation-duration) cubic-bezier(0.36, 0.66, 0.04, 1);
+  animation: page-slide-in-backward var(--animation-duration) var(--ease-spring-forward);
 }
 
 .modal-header-transition-item[data-animate="forward"] {
-  animation: header-item-slide-in-forward var(--animation-duration) cubic-bezier(0.36, 0.66, 0.04, 1);
+  animation: header-item-slide-in-forward var(--animation-duration) var(--ease-spring-forward);
 }
 
 .modal-header-transition-item[data-animate="backward"] {
-  animation: header-item-slide-in-backward var(--animation-duration) cubic-bezier(0.36, 0.66, 0.04, 1);
+  animation: header-item-slide-in-backward var(--animation-duration) var(--ease-spring-forward);
 }
 
 .modal-content p {

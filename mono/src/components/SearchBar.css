@@ -1,0 +1,161 @@
+@property --visual-bottom-gap {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+.notes-search-focus-proxy {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  font-size: 16px;
+}
+
+.notes-search-wrapper {
+  position: fixed;
+  bottom: env(safe-area-inset-bottom);
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px 10px;
+  z-index: 10;
+  /* Close (keyboard down): class removed -> this slower transition runs. */
+  transition: bottom 0.55s cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: none;
+}
+
+.notes-search-wrapper.keyboard-active {
+  /* While the input holds focus, follow the visual viewport so the bar sits
+     just above the iOS keyboard. --visual-bottom-gap is set late by iOS, so
+     the down-animation is instead driven by removing this class on blur. */
+  bottom: calc(var(--visual-bottom-gap, 0px) + env(safe-area-inset-bottom));
+  /* Open (keyboard up): faster bottom transition to keep up with the keyboard. */
+  transition: bottom 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.notes-search {
+  pointer-events: auto;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: var(--cw, 112px);
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 22px;
+  backdrop-filter: blur(8px);
+  background-color: color-mix(in srgb, var(--text-color), transparent 90%);
+  color: var(--text-color);
+  contain: layout;
+  /* Down (off-screen) by default; raised on the list. The page view transition
+     morphs between these two positions (continuous named element = a slide),
+     the same way the header morphs. No custom ::view-transition keyframes. */
+  transform: translateY(calc(100% + 40px));
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  view-transition-name: notes-search;
+}
+
+.notes-search.animate {
+  transition:
+    max-width 0.4s cubic-bezier(0, 0, 0.2, 1),
+    transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.notes-search-wrapper.up .notes-search {
+  transform: translateY(0);
+}
+
+.notes-search.expanded {
+  max-width: 100%;
+}
+
+.notes-search-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: color-mix(in srgb, var(--text-color), transparent 25%);
+}
+
+.notes-search-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.notes-search-input {
+  all: unset;
+  padding: 0;
+  flex: none;
+  field-sizing: content;
+  width: auto;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: transparent;
+  line-height: 1.2;
+  caret-color: transparent;
+}
+
+.notes-search.expanded .notes-search-input {
+  flex: 1;
+  width: 100%;
+  color: var(--text-strong-color);
+  caret-color: var(--main-color);
+}
+
+.notes-search.dirty .notes-search-input {
+  color: var(--text-strong-color);
+}
+
+.notes-search-clear {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: color-mix(in srgb, var(--text-color), transparent 70%);
+  color: var(--bg-color);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.notes-search-clear::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  right: -12px;
+  top: -12px;
+  bottom: -12px;
+}
+
+.notes-search-clear svg {
+  width: 10px;
+  height: 10px;
+}
+
+.notes-search-clear:active {
+  background: color-mix(in srgb, var(--text-color), transparent 60%);
+}
+
+.notes-search-input::placeholder {
+  color: color-mix(in srgb, var(--text-color), transparent 35%);
+  opacity: 1;
+}
+
+.notes-search-input::-webkit-search-cancel-button {
+  display: none;
+}

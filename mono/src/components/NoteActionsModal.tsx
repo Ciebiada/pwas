@@ -13,10 +13,12 @@ import {
 import { ActionList, ActionListItem } from "ui/ActionList";
 import { SearchIcon } from "ui/Icons";
 import { Modal, ModalPage, useModal } from "ui/Modal";
+import { useIOSKeyboardFocus } from "ui/useIOSKeyboardFocus";
 import { getApplicableNoteActions } from "../noteActions";
 import type { NoteActionContext, ResolvedNoteAction } from "../noteActions/types";
 import { incrementNoteActionUsage } from "../noteActions/usage";
 import { db } from "../services/db";
+import { searchMatches } from "../services/search";
 import { syncNote, wasSynced } from "../services/sync";
 import type { EditorAPI } from "./Editor";
 import "./NoteActionsModal.css";
@@ -37,19 +39,6 @@ export type NoteActionsModalAPI = {
 };
 
 const KEYBOARD_OFFSET_THRESHOLD = 80;
-const normalizeSearchText = (value: string) => value.trim().toLowerCase();
-
-const searchMatches = (value: string, query: string) => {
-  const tokens = normalizeSearchText(query).split(/\s+/).filter(Boolean);
-  if (tokens.length === 0) return true;
-
-  const normalizedValue = normalizeSearchText(value);
-  const valueTokens = normalizedValue.split(/[^a-z0-9#]+/).filter(Boolean);
-
-  return tokens.every(
-    (token) => normalizedValue.includes(token) || valueTokens.some((value) => value.startsWith(token)),
-  );
-};
 
 const getActionSubtitle = (actionId: string) => {
   switch (actionId) {
@@ -95,17 +84,8 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   const [searchQuery, setSearchQuery] = createSignal("");
   const [searchKeyboardRequested, setSearchKeyboardRequested] = createSignal(false);
   let searchInputRef: HTMLInputElement | undefined;
-  let focusProxyRef: HTMLInputElement | undefined;
-  let focusSearchInputTimer: number | undefined;
   let hasObservedKeyboardOpen = false;
   let restoreEditorFocusOnClose = false;
-
-  const clearFocusSearchInputTimer = () => {
-    if (focusSearchInputTimer !== undefined) {
-      window.clearTimeout(focusSearchInputTimer);
-      focusSearchInputTimer = undefined;
-    }
-  };
 
   const getKeyboardOffset = () => {
     const viewport = window.visualViewport;
@@ -121,42 +101,28 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
 
   const setSearchKeyboardClosed = () => {
     hasObservedKeyboardOpen = false;
-    clearFocusSearchInputTimer();
+    keyboard.clearTimer();
     setSearchKeyboardRequested(false);
   };
 
+  const keyboard = useIOSKeyboardFocus({
+    getTargetInput: () => searchInputRef,
+    shouldFocus: () => props.open(),
+    onFocus: setSearchKeyboardOpen,
+  });
+
   const closeSearchKeyboardIfBlurred = () => {
     if (!props.open()) return;
-    if (document.activeElement === searchInputRef || document.activeElement === focusProxyRef) return;
+    if (keyboard.isEitherFocused()) return;
 
     setSearchKeyboardClosed();
-  };
-
-  const focusSearchInput = () => {
-    setSearchKeyboardOpen();
-    searchInputRef?.focus({ preventScroll: true });
-  };
-
-  const focusSearchInputSoon = () => {
-    clearFocusSearchInputTimer();
-
-    requestAnimationFrame(() => {
-      if (!props.open()) return;
-
-      focusSearchInputTimer = window.setTimeout(() => {
-        focusSearchInputTimer = undefined;
-        if (!props.open()) return;
-
-        focusSearchInput();
-      }, 0);
-    });
   };
 
   const focusSearchOnOpen = () => {
     restoreEditorFocusOnClose = props.getEditorApi?.()?.isFocused() ?? false;
     setSearchKeyboardOpen();
     if (props.open()) {
-      focusSearchInputSoon();
+      keyboard.focusInputSoon();
     }
   };
 
@@ -164,9 +130,8 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
     if (!props.open()) {
       setSearchKeyboardOpen();
     }
-    clearFocusSearchInputTimer();
-    focusProxyRef?.focus({ preventScroll: true });
-    focusSearchInputSoon();
+    keyboard.focusProxy();
+    keyboard.focusInputSoon();
   };
 
   const handleViewportChange = () => {
@@ -190,7 +155,6 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   });
 
   onCleanup(() => {
-    clearFocusSearchInputTimer();
     window.visualViewport?.removeEventListener("resize", handleViewportChange);
   });
 
@@ -239,7 +203,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
         setCanFoldAllSections(editorApi?.canFoldAllSections() ?? false);
         setCanUnfoldAllSections(editorApi?.canUnfoldAllSections() ?? false);
         if (searchKeyboardRequested()) {
-          focusSearchInputSoon();
+          keyboard.focusInputSoon();
         }
       });
     } else {
@@ -438,7 +402,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   return (
     <>
       <input
-        ref={focusProxyRef}
+        ref={keyboard.proxyRef}
         class="note-actions-search-focus-proxy"
         type="search"
         aria-hidden="true"

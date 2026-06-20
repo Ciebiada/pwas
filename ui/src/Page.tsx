@@ -29,9 +29,23 @@ export const Page = (props: PageProps) => {
 
     const handleVisualViewportChange = () => {
       if (!scrollRef || !window.visualViewport) return;
-      const offset = window.innerHeight - window.visualViewport.height;
+      const viewport = window.visualViewport;
+      const offset = window.innerHeight - viewport.height;
       const padding = 64; // adding just the keybord height as a bottom padding is enough to be able to scroll to the bottom
-      if (isIOS) scrollRef.style.setProperty("--keyboard-offset", `${offset + padding}px`);
+      const keyboardValue = `${offset + padding}px`;
+      // Distance from layout viewport bottom to visual viewport bottom. When iOS
+      // scrolls the page on input focus, the layout viewport bottom falls below
+      // the visible area; fixed-positioned bars that use `bottom: 0` follow the
+      // layout viewport and end up off-screen. Anchoring to this gap keeps bars
+      // pinned to the actual visual bottom (just above the keyboard when up).
+      const visualBottomGap = `${Math.max(0, offset - viewport.offsetTop)}px`;
+      const [keyboard, gap] = isIOS ? [keyboardValue, visualBottomGap] : ["0px", "0px"];
+      // --keyboard-offset is read only inside a Page (Editor's bottom padding),
+      // so it stays local on the scroll container. --visual-bottom-gap is read by
+      // the root-level SearchBar (outside any Page), so it goes on :root and
+      // inherits down via @property(inherits:true) in SearchBar.css.
+      scrollRef.style.setProperty("--keyboard-offset", keyboard);
+      document.documentElement.style.setProperty("--visual-bottom-gap", gap);
     };
 
     if (window.visualViewport) {

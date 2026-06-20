@@ -40,16 +40,6 @@ npm run preview        # readium only: preview production build
 - Formatting/linting is enforced by Biome (`biome.json`): spaces, 120-column lines, double quotes, organized imports. Run `npm run check` before committing.
 - Components use `PascalCase` (e.g., `Header.tsx`), hooks use `useX` (e.g., `useModalStack.ts`).
 
-## Testing Guidelines
-- No automated test framework is configured today. If you add tests, co-locate them under `src/` and use a clear naming pattern like `*.test.ts(x)` or `*.spec.ts(x)`, then document the new test command in `package.json`.
-
-## Commit & Pull Request Guidelines
-- Commit messages are short and imperative; sentence case is common. Conventional prefixes like `fix:` or `style:` appear in history but are optional.
-- PRs should explain what/why, link relevant issues, and include screenshots for UI changes. Note any manual testing (e.g., `mono` on `http://localhost:3000`, `readium` on `http://localhost:3001`).
-
-## Configuration & Secrets
-- `mono/.env.example` documents required Google OAuth vars (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`). Keep secrets out of git.
-
 ## Agent-Specific Instructions
 - Do not start dev servers; assume they are already running.
 - Dev servers run on `http://localhost:3000` for `mono` and `http://localhost:3001` for `readium`.

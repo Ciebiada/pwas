@@ -94,3 +94,11 @@ db.version(9)
       }
     }
   });
+
+// Drop unused indexes: only `lastModified` is queried (orderBy in NotesList).
+// Every other field is read/written by value only, so indexing them just bloats
+// storage and slows writes. Dexie drops the unused indexes automatically on this
+// version bump; no data migration is needed.
+db.version(10).stores({
+  notes: "++id, lastModified",
+});

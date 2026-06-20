@@ -29,7 +29,12 @@ const findAllInlineFormatTokens = (text: string): InlineFormatTokenSpan[] => {
       const match = matchInlineCodeAt(text, i) ?? matchInlineFormatAt(text, i);
       if (!match) continue;
 
-      tokens.push({ start: i, contentStart: match.contentStart, contentEnd: match.contentEnd, end: i + match.raw.length });
+      tokens.push({
+        start: i,
+        contentStart: match.contentStart,
+        contentEnd: match.contentEnd,
+        end: i + match.raw.length,
+      });
       i += match.raw.length - 1;
     }
   }
@@ -43,9 +48,7 @@ const handleSelectionWithFormatCleanup = (
   end: number,
   insertText = "",
 ): { content: string; cursor: number } => {
-  const intersecting = findAllInlineFormatTokens(content).filter(
-    (t) => t.contentStart < end && t.contentEnd > start,
-  );
+  const intersecting = findAllInlineFormatTokens(content).filter((t) => t.contentStart < end && t.contentEnd > start);
   const first = intersecting[0];
   const last = intersecting[intersecting.length - 1];
 
