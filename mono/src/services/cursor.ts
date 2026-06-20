@@ -208,6 +208,23 @@ export const scrollCursorIntoView = (selection: Selection, behavior: ScrollBehav
   }
 };
 
+// Scroll the caret's scroll parent by an explicit delta (positive = content up).
+// Used to keep the caret at a consistent distance from the keyboard when the
+// keyboard height changes mid-focus (e.g. text ↔ emoji switch), in both
+// directions — unlike scrollCursorIntoView, which only corrects when the caret
+// is outside the visible band.
+export const scrollByDelta = (selection: Selection, delta: number, behavior: ScrollBehavior) => {
+  if (selection.rangeCount === 0 || delta === 0) return;
+  const range = selection.getRangeAt(0);
+  const container = range.commonAncestorContainer;
+  const element = container.nodeType === Node.TEXT_NODE ? container.parentElement : (container as HTMLElement);
+  if (!element) return;
+  const scrollParent = getScrollParent(element);
+  if (scrollParent) {
+    scrollParent.scrollTo({ top: scrollParent.scrollTop + Math.ceil(delta), behavior });
+  }
+};
+
 export const scrollWhenViewportStable = (run: () => void, maxWaitMs = 1000) => {
   const viewport = window.visualViewport;
   requestAnimationFrame(run);

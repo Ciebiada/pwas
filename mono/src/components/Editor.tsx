@@ -8,6 +8,7 @@ import { useEditorLineReorder } from "../hooks/useEditorLineReorder";
 import { useEditorSelectionPresentation } from "../hooks/useEditorSelectionPresentation";
 import { triggerHaptic } from "../hooks/useHaptic";
 import { useIOSKeyboardDismiss } from "../hooks/useIOSKeyboardDismiss";
+import { useIOSKeyboardHeightScroll } from "../hooks/useIOSKeyboardHeightScroll";
 import { usePrettyCaret } from "../hooks/usePrettyCaret";
 import { usePrettyCheckboxes } from "../hooks/usePrettyCheckboxes";
 import {
@@ -130,6 +131,8 @@ export const Editor = (_props: EditorProps) => {
       syncSelectionPresentation();
     },
   });
+
+  const { recordBaseline: recordKeyboardBaseline } = useIOSKeyboardHeightScroll(() => editor);
 
   const handleEditorBlur = () => {
     syncSelectionPresentation();
@@ -431,7 +434,10 @@ export const Editor = (_props: EditorProps) => {
           }
           editor.focus({ preventScroll: true });
           syncSelectionPresentation();
-          scrollWhenViewportStable(() => scrollCursorIntoView(window.getSelection()!, "smooth"));
+          scrollWhenViewportStable(() => {
+            scrollCursorIntoView(window.getSelection()!, "smooth");
+            recordKeyboardBaseline();
+          });
         }}
         onBlur={handleEditorBlur}
         onBeforeInput={handleBeforeInput}

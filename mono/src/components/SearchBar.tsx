@@ -73,6 +73,7 @@ export const SearchBar = () => {
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
       e.preventDefault();
       setAnimate(true);
+      setSearchKeyboardActive(true);
       keyboard.focusInput();
     };
     document.addEventListener("keydown", handler);
@@ -83,8 +84,10 @@ export const SearchBar = () => {
   // iOS summons the keyboard in response to the user's tap, then immediately
   // re-focus the real input. The visible bar is what the user tapped, so the
   // browser doesn't try to scroll the layout to bring the input into view.
-  // setSearchKeyboardActive(true) is called here (not only in onFocus) so the
-  // bar begins expanding on first tap, before focus actually lands.
+  // setSearchKeyboardActive(true) is set here (and in handleClear and the "/"
+  // shortcut) rather than in onFocus, so iOS's PWA focus restoration after an
+  // app switch — which re-focuses the input without opening the keyboard —
+  // doesn't expand the bar.
   const handleSearchPress = (event: MouseEvent | TouchEvent | PointerEvent) => {
     event.stopPropagation();
     setAnimate(true);
@@ -134,6 +137,21 @@ export const SearchBar = () => {
     }
   });
 
+  // iOS can close the keyboard without firing onBlur (app switch → return, or
+  // the keyboard's own dismiss key). Without this, searchKeyboardActive stays
+  // true while --visual-bottom-gap drops to 0, leaving the bar pinned at the
+  // bottom edge and fully expanded. Page.tsx tracks the real keyboard state via
+  // visualViewport and dispatches "keyboard-closed" on open→closed transitions;
+  // we listen and reset. The app-switch case is handled by Page.tsx blurring the
+  // active element on visibilitychange(hidden), which fires onBlur directly.
+  onMount(() => {
+    const onKeyboardClosed = () => {
+      if (searchKeyboardActive()) handleSearchBlur();
+    };
+    document.addEventListener("keyboard-closed", onKeyboardClosed);
+    onCleanup(() => document.removeEventListener("keyboard-closed", onKeyboardClosed));
+  });
+
   const labelStyle = createMemo(() => {
     const style: Record<string, string> = {
       "--cw": collapsedWidth() ?? "",
@@ -177,8 +195,15 @@ export const SearchBar = () => {
             aria-label="Search notes"
             autocorrect="off"
             autocapitalize="off"
-            onFocus={() => setSearchKeyboardActive(true)}
-            onBlur={handleSearchBlur}
+            onBlur={() => {
+              // Skip spurious blurs from the proxy→input focus transition: if the
+              // input or proxy still has focus, the blur didn't come from the user
+              // leaving the field. Without this guard, searchKeyboardActive is set
+              // to false prematurely, and the later keyboard-closed event (from
+              // app switch) finds active already false and skips the reset.
+              if (keyboard.isEitherFocused()) return;
+              handleSearchBlur();
+            }}
             onKeyDown={(e) => {
               if (e.key === "Escape") {
                 e.preventDefault();
