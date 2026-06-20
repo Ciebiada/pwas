@@ -22,6 +22,7 @@ export const useActivatable = (options?: ActivatableOptions) => {
   let holdTimer: ReturnType<typeof setTimeout> | null = null;
   let isScrollHandled = false;
   let holdTriggered = false;
+  let touchInProgress = false;
 
   const deactivationDuration = options?.fastRelease ? 10 : TAP_ACTIVE_STATE_DURATION;
   const holdDelay = options?.holdDelay ?? HOLD_DELAY;
@@ -76,6 +77,7 @@ export const useActivatable = (options?: ActivatableOptions) => {
     const touch = e.touches[0];
     if (!touch) return;
 
+    touchInProgress = true;
     startX = touch.clientX;
     startY = touch.clientY;
     isScrollHandled = false;
@@ -129,6 +131,7 @@ export const useActivatable = (options?: ActivatableOptions) => {
   };
 
   const handleClick = (e: MouseEvent) => {
+    touchInProgress = false;
     if (isScrollHandled || holdTriggered) {
       holdTriggered = false;
       e.preventDefault();
@@ -143,6 +146,14 @@ export const useActivatable = (options?: ActivatableOptions) => {
 
   const handleMouseDown = (e: MouseEvent) => {
     if (e.button !== 0) return;
+
+    // On touch devices, iOS fires a synthetic mousedown after touchend.
+    // Don't reset gesture state — isScrollHandled from the touch sequence
+    // must survive so handleClick can cancel the tap after a slide-out.
+    if (touchInProgress) {
+      touchInProgress = false;
+      return;
+    }
 
     startX = e.clientX;
     startY = e.clientY;

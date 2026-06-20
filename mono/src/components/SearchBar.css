@@ -56,26 +56,36 @@
   background-color: color-mix(in srgb, var(--text-color), transparent 90%);
   color: var(--text-color);
   contain: layout;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  scale: 1;
   /* Down (off-screen) by default; raised on the list. The page view transition
      morphs between these two positions (continuous named element = a slide),
      the same way the header morphs. No custom ::view-transition keyframes. */
   --search-ease: cubic-bezier(0.32, 0.72, 0, 1);
   --search-dur: 0.3s;
   transform: translateY(calc(100% + 40px));
-  transition: transform var(--search-dur) var(--search-ease);
+  transition:
+    transform var(--search-dur) var(--search-ease),
+    scale 0.12s ease;
   view-transition-name: notes-search;
 }
 
 .notes-search.animate {
   transition:
     max-width 0.4s cubic-bezier(0, 0, 0.2, 1),
-    transform var(--search-dur) var(--search-ease);
+    transform var(--search-dur) var(--search-ease),
+    scale 0.12s ease;
 }
 
 .notes-search-wrapper.up .notes-search {
   --search-ease: cubic-bezier(0.36, 0.66, 0.04, 1);
   --search-dur: 0.45s;
   transform: translateY(0);
+}
+
+.notes-search.activated {
+  scale: 1.03;
 }
 
 .notes-search.expanded {
@@ -107,6 +117,7 @@
   color: transparent;
   line-height: 1.2;
   caret-color: transparent;
+  pointer-events: none;
 }
 
 .notes-search.expanded .notes-search-input {
@@ -114,6 +125,7 @@
   width: 100%;
   color: var(--text-strong-color);
   caret-color: var(--main-color);
+  pointer-events: auto;
 }
 
 .notes-search.dirty .notes-search-input {

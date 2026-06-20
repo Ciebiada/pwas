@@ -1,6 +1,7 @@
 import { useLocation } from "@solidjs/router";
 import { createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { SearchIcon } from "ui/Icons";
+import { useActivatable } from "ui/useActivatable";
 import { useIOSKeyboardFocus } from "ui/useIOSKeyboardFocus";
 import { searchQuery, setSearchQuery } from "../services/searchStore";
 import "./SearchBar.css";
@@ -88,18 +89,22 @@ export const SearchBar = () => {
   // shortcut) rather than in onFocus, so iOS's PWA focus restoration after an
   // app switch — which re-focuses the input without opening the keyboard —
   // doesn't expand the bar.
-  const handleSearchPress = (event: MouseEvent | TouchEvent | PointerEvent) => {
-    event.stopPropagation();
-    setAnimate(true);
-    setSearchKeyboardActive(true);
-    if (document.activeElement === searchInputRef) {
-      keyboard.focusInput();
-      return;
-    }
-    event.preventDefault();
-    keyboard.focusProxy();
-    keyboard.focusInputSoon();
-  };
+  const activatable = useActivatable({
+    fastRelease: true,
+    onTap: (e) => {
+      const target = e.target as HTMLElement;
+      if (target.closest(".notes-search-clear")) return;
+      e.preventDefault();
+      setAnimate(true);
+      setSearchKeyboardActive(true);
+      if (document.activeElement === searchInputRef) {
+        keyboard.focusInput();
+        return;
+      }
+      keyboard.focusProxy();
+      keyboard.focusInputSoon();
+    },
+  });
 
   const handleSearchBlur = () => {
     // The collapsed pill width (labelStyle's max-width) is only applied once the
@@ -176,12 +181,13 @@ export const SearchBar = () => {
       />
       <div class="notes-search-wrapper" classList={{ "keyboard-active": searchKeyboardActive(), up: onList() }}>
         <label
-          ref={searchLabelRef}
+          ref={(el) => {
+            searchLabelRef = el;
+            activatable(el);
+          }}
           class="notes-search"
           classList={{ expanded: searchKeyboardActive(), animate: animate(), dirty: hasText() }}
           style={labelStyle()}
-          onMouseDown={handleSearchPress}
-          onTouchStart={handleSearchPress}
         >
           <span class="notes-search-icon" aria-hidden="true">
             <SearchIcon />
