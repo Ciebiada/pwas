@@ -36,7 +36,7 @@
   /* While the input holds focus, follow the visual viewport so the bar sits
      just above the iOS keyboard. --visual-bottom-gap is set late by iOS, so
      the down-animation is instead driven by removing this class on blur. */
-  bottom: calc(var(--visual-bottom-gap, 0px) + env(safe-area-inset-bottom));
+  bottom: var(--visual-bottom-gap, 0px);
   /* Open (keyboard up): faster bottom transition to keep up with the keyboard. */
   transition: bottom 0.35s cubic-bezier(0.32, 0.72, 0, 1);
 }
@@ -59,18 +59,22 @@
   /* Down (off-screen) by default; raised on the list. The page view transition
      morphs between these two positions (continuous named element = a slide),
      the same way the header morphs. No custom ::view-transition keyframes. */
+  --search-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --search-dur: 0.3s;
   transform: translateY(calc(100% + 40px));
-  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform var(--search-dur) var(--search-ease);
   view-transition-name: notes-search;
 }
 
 .notes-search.animate {
   transition:
     max-width 0.4s cubic-bezier(0, 0, 0.2, 1),
-    transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    transform var(--search-dur) var(--search-ease);
 }
 
 .notes-search-wrapper.up .notes-search {
+  --search-ease: cubic-bezier(0.36, 0.66, 0.04, 1);
+  --search-dur: 0.45s;
   transform: translateY(0);
 }
 

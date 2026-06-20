@@ -162,14 +162,6 @@ body.modal-open {
   pointer-events: none;
 }
 
-.modal-button,
-.modal-toggle {
-  margin: 8px 16px;
-  padding: 12px 16px;
-  border-radius: 32px;
-  background-color: var(--element-background-color);
-}
-
 .modal-button {
   all: unset;
   display: flex;
@@ -180,7 +172,11 @@ body.modal-open {
   font-weight: 500;
   color: var(--text-strong-color);
   cursor: pointer;
+  background-color: var(--element-background-color);
   flex-shrink: 0;
+  margin: 8px 16px;
+  padding: 12px 16px;
+  border-radius: 32px;
   position: relative;
   overflow: hidden;
   transition: background-color 0.1s ease;
@@ -211,6 +207,10 @@ body.modal-open {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background-color: var(--element-background-color);
+  margin: 8px 16px;
+  padding: 12px 16px;
+  border-radius: 32px;
 }
 
 .modal-toggle-label {

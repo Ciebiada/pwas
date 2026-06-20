@@ -92,3 +92,7 @@
   height: 1px;
   width: 100%;
 }
+
+.notes-list-empty {
+  margin-top: 16px;
+}

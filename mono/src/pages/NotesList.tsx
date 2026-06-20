@@ -11,7 +11,7 @@ import { timeFromNow } from "../services/date";
 import { db } from "../services/db";
 import { searchMatches } from "../services/search";
 import { searchQuery } from "../services/searchStore";
-import { createDexieArrayQuery } from "../services/solid-dexie";
+import { createDexieArrayQuery, createDexieSignalQuery } from "../services/solid-dexie";
 import { sync } from "../services/sync";
 import "./NotesList.css";
 
@@ -40,6 +40,8 @@ export const NotesList = () => {
 
     return base.limit(limit()).toArray();
   });
+
+  const totalCount = createDexieSignalQuery(() => db.notes.filter((n) => n.status !== "pending-delete").count());
 
   createEffect(() => {
     searchQuery();
@@ -113,30 +115,32 @@ export const NotesList = () => {
                 <Show
                   when={searchQuery().trim()}
                   fallback={
-                    <div class="page-content">
-                      <p>
-                        Tap{" "}
-                        <button class="inline-icon-button" onClick={() => navigate("/new")}>
-                          <AddIcon />
-                        </button>{" "}
-                        to create a note.
-                      </p>
-                      <p>
-                        Read{" "}
-                        <a
-                          href="/about"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            navigate("/about");
-                          }}
-                        >
-                          about Mono
-                        </a>
-                      </p>
-                    </div>
+                    <Show when={totalCount() === 0}>
+                      <div class="page-content notes-list-empty">
+                        <p>
+                          Tap{" "}
+                          <button class="inline-icon-button" onClick={() => navigate("/new")}>
+                            <AddIcon />
+                          </button>{" "}
+                          to create a note.
+                        </p>
+                        <p>
+                          Read{" "}
+                          <a
+                            href="/about"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              navigate("/about");
+                            }}
+                          >
+                            about Mono
+                          </a>
+                        </p>
+                      </div>
+                    </Show>
                   }
                 >
-                  <div class="page-content">
+                  <div class="page-content notes-list-empty">
                     <p>No notes match your search.</p>
                   </div>
                 </Show>
