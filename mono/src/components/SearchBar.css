@@ -53,7 +53,7 @@
   padding: 0 14px;
   border-radius: 22px;
   backdrop-filter: blur(8px);
-  background-color: color-mix(in srgb, var(--text-color), transparent 90%);
+  background-color: color-mix(in srgb, var(--text-color), transparent 85%);
   color: var(--text-color);
   contain: layout;
   -webkit-tap-highlight-color: transparent;
