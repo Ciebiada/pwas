@@ -67,7 +67,8 @@
   transform: translateY(calc(100% + 40px));
   transition:
     transform var(--search-dur) var(--search-ease),
-    scale 0.12s ease;
+    scale 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   view-transition-name: notes-search;
 }
 
@@ -75,7 +76,8 @@
   transition:
     max-width 0.4s cubic-bezier(0, 0, 0.2, 1),
     transform var(--search-dur) var(--search-ease),
-    scale 0.12s ease;
+    scale 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .notes-search-wrapper.up .notes-search {
@@ -85,7 +87,8 @@
 }
 
 .notes-search.activated {
-  scale: 1.03;
+  scale: 1.08;
+  filter: brightness(1.25);
 }
 
 .notes-search.expanded {
@@ -147,6 +150,9 @@
   color: var(--bg-color);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .notes-search-clear::before {
@@ -163,8 +169,9 @@
   height: 10px;
 }
 
-.notes-search-clear:active {
-  background: color-mix(in srgb, var(--text-color), transparent 60%);
+.notes-search-clear.activated {
+  transform: scale(1.32);
+  filter: brightness(5);
 }
 
 .notes-search-input::placeholder {

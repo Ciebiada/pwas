@@ -133,9 +133,47 @@ export const SearchBar = () => {
 
   const hasText = () => searchQuery().trim().length > 0;
 
-  const handleClear = (e: MouseEvent | TouchEvent) => {
+  // Manual press-and-hold state for the X clear button. We can't reuse the
+  // shared useActivatable hook here because the X button lives inside the
+  // search bar label, which already has its own activatable. Stopping the
+  // touchstart event from bubbling to the label's activatable also breaks
+  // iOS's synthetic mouse/click event chain, so a direct handler with
+  // manual scroll-cancel tracking is the reliable approach.
+  let clearStartX = 0;
+  let clearStartY = 0;
+  let clearCancelled = false;
+  let clearButtonRef: HTMLButtonElement | undefined;
+
+  const handleClearPressStart = (e: MouseEvent | TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    clearCancelled = false;
+    const point = "touches" in e ? e.touches[0] : e;
+    if (point) {
+      clearStartX = point.clientX;
+      clearStartY = point.clientY;
+    }
+    clearButtonRef?.classList.add("activated");
+  };
+
+  const handleClearMove = (e: MouseEvent | TouchEvent) => {
+    if (clearCancelled) return;
+    const point = "touches" in e ? e.touches[0] : e;
+    if (!point) return;
+    if (Math.abs(point.clientX - clearStartX) > 5 || Math.abs(point.clientY - clearStartY) > 5) {
+      clearCancelled = true;
+    }
+  };
+
+  const handleClearPressEnd = (e: MouseEvent | TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    clearButtonRef?.classList.remove("activated");
+  };
+
+  const handleClearRelease = (e: MouseEvent | TouchEvent) => {
+    handleClearPressEnd(e);
+    if (clearCancelled) return;
     setSearchQuery("");
     setSearchKeyboardActive(true);
     keyboard.focusInput();
@@ -226,11 +264,20 @@ export const SearchBar = () => {
           />
           {searchKeyboardActive() && hasText() && (
             <button
+              ref={(el) => {
+                clearButtonRef = el;
+              }}
               type="button"
               class="notes-search-clear"
               aria-label="Clear search"
-              onMouseDown={handleClear}
-              onTouchStart={handleClear}
+              onMouseDown={handleClearPressStart}
+              onMouseMove={handleClearMove}
+              onMouseUp={handleClearRelease}
+              onMouseLeave={handleClearPressEnd}
+              onTouchStart={handleClearPressStart}
+              onTouchMove={handleClearMove}
+              onTouchEnd={handleClearRelease}
+              onTouchCancel={handleClearPressEnd}
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
                 <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />

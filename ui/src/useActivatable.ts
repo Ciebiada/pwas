@@ -113,7 +113,7 @@ export const useActivatable = (options?: ActivatableOptions) => {
 
     if (deltaX > SCROLL_THRESHOLD || deltaY > SCROLL_THRESHOLD) {
       isScrollHandled = true;
-      deactivate();
+      clearTimers();
     }
   };
 
