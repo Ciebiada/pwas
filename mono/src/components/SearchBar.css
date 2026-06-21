@@ -19,13 +19,13 @@
 
 .notes-search-wrapper {
   position: fixed;
-  bottom: env(safe-area-inset-bottom);
+  bottom: calc(env(safe-area-inset-bottom) + 16px);
   left: 0;
   right: 0;
   box-sizing: border-box;
   display: flex;
   justify-content: center;
-  padding: 0 16px 10px;
+  padding: 0 16px;
   z-index: 10;
   /* Close (keyboard down): class removed -> this slower transition runs. */
   transition: bottom 0.55s cubic-bezier(0.32, 0.72, 0, 1);
@@ -36,7 +36,7 @@
   /* While the input holds focus, follow the visual viewport so the bar sits
      just above the iOS keyboard. --visual-bottom-gap is set late by iOS, so
      the down-animation is instead driven by removing this class on blur. */
-  bottom: var(--visual-bottom-gap, 0px);
+  bottom: calc(var(--visual-bottom-gap, 0px) + var(--keyboard-active-padding, 16px));
   /* Open (keyboard up): faster bottom transition to keep up with the keyboard. */
   transition: bottom 0.35s cubic-bezier(0.32, 0.72, 0, 1);
 }

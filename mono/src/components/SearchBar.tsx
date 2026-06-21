@@ -1,6 +1,7 @@
 import { useLocation } from "@solidjs/router";
 import { createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { SearchIcon } from "ui/Icons";
+import { isIOS } from "ui/platform";
 import { useActivatable } from "ui/useActivatable";
 import { useIOSKeyboardFocus } from "ui/useIOSKeyboardFocus";
 import { searchQuery, setSearchQuery } from "../services/searchStore";
@@ -34,6 +35,11 @@ export const SearchBar = () => {
   const [animate, setAnimate] = createSignal(false);
   const [dirtyContentWidth, setDirtyContentWidth] = createSignal(0);
   let measureSpan: HTMLSpanElement | undefined;
+
+  if (isIOS) {
+    const standalone = !!(navigator as { standalone?: boolean }).standalone;
+    document.documentElement.style.setProperty("--keyboard-active-padding", standalone ? "0px" : "10px");
+  }
 
   onMount(() => {
     requestAnimationFrame(() => {
