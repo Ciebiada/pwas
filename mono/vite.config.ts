@@ -11,6 +11,7 @@ export default defineConfig({
     VitePWA({
       registerType: "prompt",
       injectRegister: null,
+      includeAssets: ["pwa-64x64.png"],
       manifest: {
         name: "Mono",
         short_name: "Mono",
