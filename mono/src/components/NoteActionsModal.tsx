@@ -295,7 +295,9 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
     if (!editorApi) return;
     if (!editorApi.canFoldAllSections() && !editorApi.canUnfoldAllSections()) return;
 
-    editorApi.focus();
+    // No focus(): folding doesn't edit text, and focusing would pop the iOS
+    // keyboard even when the editor was unfocused. An already-focused editor
+    // stays focused on its own (the modal doesn't steal focus on open).
     editorApi.cycleFoldSections();
     await close(true);
   };
@@ -304,7 +306,6 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
     const editorApi = props.getEditorApi?.();
     if (!editorApi?.canFoldAllSections()) return;
 
-    editorApi.focus();
     editorApi.foldAllSections();
     await close(true);
   };
@@ -313,7 +314,6 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
     const editorApi = props.getEditorApi?.();
     if (!editorApi?.canUnfoldAllSections()) return;
 
-    editorApi.focus();
     editorApi.unfoldAllSections();
     await close(true);
   };
