@@ -474,24 +474,28 @@ export const Editor = (_props: EditorProps) => {
           </button>
         )}
       </Show>
-      {lineReorder.handle() && (
-        <button
-          type="button"
-          class="line-reorder-handle"
-          style={{ top: `${lineReorder.handle()!.top}px` }}
-          aria-label="Reorder line"
-          title="Reorder line"
-          onPointerDown={lineReorder.onHandlePointerDown}
-        />
-      )}
-      {lineReorder.indicator() && (
-        <div
-          class="line-reorder-drop-indicator"
-          classList={{ "is-move": lineReorder.indicator()!.isMove }}
-          style={{ top: `${lineReorder.indicator()!.top}px` }}
-          contentEditable={false}
-        />
-      )}
+      <Show when={lineReorder.handle()}>
+        {(handle) => (
+          <button
+            type="button"
+            class="line-reorder-handle"
+            style={{ top: `${handle().top}px` }}
+            aria-label="Reorder line"
+            title="Reorder line"
+            onPointerDown={lineReorder.onHandlePointerDown}
+          />
+        )}
+      </Show>
+      <Show when={lineReorder.indicator()}>
+        {(indicator) => (
+          <div
+            class="line-reorder-drop-indicator"
+            classList={{ "is-move": indicator().isMove }}
+            style={{ top: `${indicator().top}px` }}
+            contentEditable={false}
+          />
+        )}
+      </Show>
       <TouchHint isVisible={isEmpty()} />
     </div>
   );
