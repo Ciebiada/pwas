@@ -1,4 +1,4 @@
-import { createMemo, createSignal, For, mergeProps, onMount } from "solid-js";
+import { createMemo, createSignal, mergeProps, onMount, Show } from "solid-js";
 import { ChevronRightIcon } from "ui/Icons";
 import { isIOS } from "ui/platform";
 import { useEditorFolding } from "../hooks/useEditorFolding";
@@ -227,7 +227,7 @@ export const Editor = (_props: EditorProps) => {
     getContainer: () => container,
     getEditor: () => editor,
   });
-  syncFoldToggleHandles = foldToggles.syncHandles;
+  syncFoldToggleHandles = foldToggles.syncHandle;
 
   const applyFoldingChange = (change: () => void) => {
     const selection = getCurrentSelection();
@@ -448,16 +448,16 @@ export const Editor = (_props: EditorProps) => {
       >
         <EditorContent content={content} foldState={folding.foldState} onCheckboxToggle={handleCheckboxToggle} />
       </div>
-      <For each={foldToggles.handles()}>
+      <Show when={foldToggles.handle()}>
         {(handle) => (
           <button
             type="button"
             class="fold-toggle"
-            classList={{ "is-folded": handle.isFolded }}
-            data-section-id={handle.sectionId}
-            style={{ left: `${handle.left}px`, top: `${handle.top}px` }}
-            aria-label={handle.isFolded || handle.isShowingChildren ? "Unfold section" : "Fold section"}
-            title={handle.isFolded || handle.isShowingChildren ? "Unfold section" : "Fold section"}
+            classList={{ "is-folded": handle().isFolded }}
+            data-section-id={handle().sectionId}
+            style={{ top: `${handle().top}px` }}
+            aria-label={handle().isFolded || handle().isShowingChildren ? "Unfold section" : "Fold section"}
+            title={handle().isFolded || handle().isShowingChildren ? "Unfold section" : "Fold section"}
             tabIndex={-1}
             onPointerDown={(event) => {
               event.preventDefault();
@@ -467,13 +467,13 @@ export const Editor = (_props: EditorProps) => {
               event.preventDefault();
               event.stopPropagation();
               triggerHaptic();
-              applyFoldingChange(() => folding.toggleSection(handle.sectionId));
+              applyFoldingChange(() => folding.toggleSection(handle().sectionId));
             }}
           >
             <ChevronRightIcon />
           </button>
         )}
-      </For>
+      </Show>
       {lineReorder.handle() && (
         <button
           type="button"

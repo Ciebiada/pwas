@@ -1,22 +1,9 @@
 import { type Accessor, createEffect, createSignal, onCleanup } from "solid-js";
 import type { MarkdownFoldState } from "../services/markdown/folding";
 
-let FOLD_TOGGLE_BASELINE_OFFSET_EM = 0.13;
-const FOLD_TOGGLE_TEXT_GAP_PX = 4;
-
-// Adjust baseline offset for iOS to prevent the fold toggle from sitting too low
-if (typeof navigator !== "undefined") {
-  const ua = navigator.userAgent;
-  const isIOS = /iPhone|iPad|iPod/i.test(ua) || (ua.includes("Mac") && "ontouchend" in document);
-  if (isIOS) {
-    FOLD_TOGGLE_BASELINE_OFFSET_EM = 0.08;
-  }
-}
-
 export type EditorFoldToggleHandle = {
   isFolded: boolean;
   isShowingChildren: boolean;
-  left: number;
   sectionId: string;
   top: number;
 };
@@ -28,67 +15,58 @@ type UseEditorFoldTogglesOptions = {
 };
 
 export const useEditorFoldToggles = (options: UseEditorFoldTogglesOptions) => {
-  const [handles, setHandles] = createSignal<EditorFoldToggleHandle[]>([]);
+  const [handle, setHandle] = createSignal<EditorFoldToggleHandle | null>(null);
   let syncFrame: number | undefined;
 
-  const syncHandles = () => {
+  const syncHandle = () => {
     if (syncFrame !== undefined) cancelAnimationFrame(syncFrame);
     syncFrame = requestAnimationFrame(() => {
       syncFrame = undefined;
       const container = options.getContainer();
       const editor = options.getEditor();
       if (!container || !editor) {
-        setHandles([]);
+        setHandle(null);
+        return;
+      }
+
+      const activeLine = editor.querySelector<HTMLElement>(".md-line.is-active-line");
+      const sectionId = activeLine?.getAttribute("data-section-id") ?? null;
+      const section = sectionId ? options.foldState().sections.find((s) => s.id === sectionId) : undefined;
+      if (!activeLine || !section) {
+        setHandle(null);
         return;
       }
 
       const containerRect = container.getBoundingClientRect();
-      const lines = Array.from(editor.querySelectorAll<HTMLElement>(".md-line"));
-      const nextHandles = options.foldState().sections.flatMap((section): EditorFoldToggleHandle[] => {
-        const line = lines[section.lineIndex];
-        if (!line) return [];
+      const rect = activeLine.getBoundingClientRect();
+      if (rect.height === 0) {
+        setHandle(null);
+        return;
+      }
 
-        const lineRect = line.getBoundingClientRect();
-        if (lineRect.height === 0) return [];
-
-        const range = document.createRange();
-        range.selectNodeContents(line);
-        const textRects = Array.from(range.getClientRects()).filter((rect) => rect.height > 0);
-        range.detach();
-
-        const textRect = textRects[textRects.length - 1];
-        if (!textRect) return [];
-
-        const fontSize = Number.parseFloat(getComputedStyle(line).fontSize) || 0;
-        return [
-          {
-            isFolded: section.isFolded,
-            isShowingChildren: section.isShowingChildren,
-            left: textRect.right - containerRect.left + FOLD_TOGGLE_TEXT_GAP_PX,
-            sectionId: section.id,
-            top: textRect.top - containerRect.top + textRect.height / 2 + fontSize * FOLD_TOGGLE_BASELINE_OFFSET_EM,
-          },
-        ];
+      setHandle({
+        isFolded: section.isFolded,
+        isShowingChildren: section.isShowingChildren,
+        sectionId: section.id,
+        top: rect.top - containerRect.top + rect.height / 2,
       });
-
-      setHandles(nextHandles);
     });
   };
 
   createEffect(() => {
     options.foldState();
-    syncHandles();
+    syncHandle();
   });
 
-  window.addEventListener("resize", syncHandles);
+  window.addEventListener("resize", syncHandle);
 
   onCleanup(() => {
     if (syncFrame !== undefined) cancelAnimationFrame(syncFrame);
-    window.removeEventListener("resize", syncHandles);
+    window.removeEventListener("resize", syncHandle);
   });
 
   return {
-    handles,
-    syncHandles,
+    handle,
+    syncHandle,
   };
 };
