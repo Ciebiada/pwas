@@ -7,7 +7,6 @@ import { Editor, type EditorAPI } from "../components/Editor";
 import { NoteActionsModal, type NoteActionsModalAPI } from "../components/NoteActionsModal";
 import { useNavigate } from "../hooks/useNavigate";
 import { db } from "../services/db";
-
 import { debounce } from "../services/debounce";
 import { createDexieSignalQuery } from "../services/solid-dexie";
 import { syncNote } from "../services/sync";

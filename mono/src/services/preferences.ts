@@ -3,6 +3,7 @@ import { createSignal } from "solid-js";
 const PRETTY_CARET_KEY = "custom_caret_enabled";
 const PRETTY_CHECKBOXES_KEY = "pretty_checkbox_enabled";
 const MONOSPACE_KEY = "monospace_enabled";
+const NOTE_BACKGROUND_KEY = "note_background";
 
 export const isPrettyCaretEnabled = (): boolean => {
   const stored = localStorage.getItem(PRETTY_CARET_KEY);
@@ -31,4 +32,17 @@ export const isMonospaceEnabled = () => monospaceMode();
 export const setMonospaceEnabled = (enabled: boolean) => {
   setMonospaceMode(enabled);
   localStorage.setItem(MONOSPACE_KEY, enabled.toString());
+};
+
+export type NoteBackground = "none" | "dot-grid";
+
+const [noteBackgroundMode, setNoteBackgroundMode] = createSignal<NoteBackground>(
+  localStorage.getItem(NOTE_BACKGROUND_KEY) === "dot-grid" ? "dot-grid" : "none",
+);
+
+export const getNoteBackground = () => noteBackgroundMode();
+
+export const setNoteBackground = (value: NoteBackground) => {
+  setNoteBackgroundMode(value);
+  localStorage.setItem(NOTE_BACKGROUND_KEY, value);
 };

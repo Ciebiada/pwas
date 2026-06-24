@@ -1,12 +1,14 @@
 import { type Accessor, createSignal, type Setter, Show } from "solid-js";
 import { CheckIcon, ChevronRightIcon } from "ui/Icons";
-import { Modal, ModalButton, ModalPage, ModalToggle, useModal } from "ui/Modal";
+import { Modal, ModalButton, ModalPage, ModalSelect, ModalToggle, useModal } from "ui/Modal";
 import { useNavigate } from "../hooks/useNavigate";
 import {
+  getNoteBackground,
   isMonospaceEnabled,
   isPrettyCaretEnabled,
   isPrettyCheckboxesEnabled,
   setMonospaceEnabled,
+  setNoteBackground,
   setPrettyCaretEnabled,
   setPrettyCheckboxesEnabled,
 } from "../services/preferences";
@@ -30,6 +32,7 @@ const SettingsModalContent = () => {
   const [prettyCaretEnabled, setPrettyCaretEnabledSignal] = createSignal(isPrettyCaretEnabled());
   const [prettyCheckboxesEnabled, setPrettyCheckboxesEnabledSignal] = createSignal(isPrettyCheckboxesEnabled());
   const [monospaceEnabled, setMonospaceEnabledSignal] = createSignal(isMonospaceEnabled());
+  const [noteBackground, setNoteBackgroundSignal] = createSignal(getNoteBackground());
 
   const handlePrettyCaretChange = (enabled: boolean) => {
     setPrettyCaretEnabled(enabled);
@@ -44,6 +47,12 @@ const SettingsModalContent = () => {
   const handleMonospaceChange = (enabled: boolean) => {
     setMonospaceEnabled(enabled);
     setMonospaceEnabledSignal(enabled);
+  };
+
+  const handleNoteBackgroundChange = (value: string) => {
+    const background = value === "dot-grid" ? "dot-grid" : "none";
+    setNoteBackground(background);
+    setNoteBackgroundSignal(background);
   };
 
   const handleDropboxConnect = async () => {
@@ -169,6 +178,10 @@ const SettingsModalContent = () => {
           onChange={handlePrettyCheckboxesChange}
         />
         <ModalToggle label="Monospace Font" checked={monospaceEnabled} onChange={handleMonospaceChange} />
+        <ModalSelect label="Background" value={noteBackground()} onChange={handleNoteBackgroundChange}>
+          <option value="none">None</option>
+          <option value="dot-grid">Dot Grid</option>
+        </ModalSelect>
       </ModalPage>
     </>
   );

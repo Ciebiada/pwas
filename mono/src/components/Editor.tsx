@@ -23,7 +23,12 @@ import { toggleCheckbox } from "../services/markdown/features/todoList";
 import { handleTab } from "../services/markdown/input";
 import { EditorContent } from "../services/markdown/renderer";
 import { splitNote } from "../services/note";
-import { isMonospaceEnabled, isPrettyCaretEnabled, isPrettyCheckboxesEnabled } from "../services/preferences";
+import {
+  getNoteBackground,
+  isMonospaceEnabled,
+  isPrettyCaretEnabled,
+  isPrettyCheckboxesEnabled,
+} from "../services/preferences";
 import { TouchHint } from "./TouchHint";
 import "./Editor.css";
 
@@ -424,6 +429,7 @@ export const Editor = (_props: EditorProps) => {
           "is-line-reordering": lineReorder.indicator() !== null,
           monospace: isMonospaceEnabled(),
           "pretty-checkboxes": isPrettyCheckboxesEnabled(),
+          "dot-grid": getNoteBackground() === "dot-grid",
         }}
         contentEditable={true}
         spellcheck={false}

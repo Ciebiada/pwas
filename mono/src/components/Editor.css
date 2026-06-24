@@ -22,6 +22,26 @@
   padding-bottom: calc(var(--keyboard-offset, 0px) + 24px);
 }
 
+.editor.dot-grid {
+  position: relative;
+  z-index: 0;
+}
+
+.editor.dot-grid::before {
+  content: "";
+  position: absolute;
+  top: calc(-76px - env(safe-area-inset-top));
+  left: calc(-1 * var(--safe-area-inline-left) - 16px);
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(circle, var(--border-color) 1px, transparent 1.5px);
+  background-position: calc(var(--safe-area-inline-left) + 14px - var(--line-pitch) / 2)
+    calc(env(safe-area-inset-top) + 76px - var(--line-pitch) / 2);
+  background-size: var(--line-pitch) var(--line-pitch);
+  pointer-events: none;
+  z-index: -1;
+}
+
 .markdown-delimiter,
 .markdown-prefix {
   display: none;
@@ -40,6 +60,15 @@
 .md-line {
   position: relative;
   white-space: pre-wrap;
+}
+
+.editor .md-line {
+  line-height: var(--line-pitch);
+}
+
+.editor .md-line.md-h1,
+.editor .md-line.md-h2 {
+  line-height: calc(var(--line-pitch) * 2);
 }
 
 .md-line.is-fold-hidden {
@@ -160,6 +189,7 @@
 .editor[contenteditable="true"] > .md-line:first-child {
   font-size: 2.058rem;
   font-weight: 500;
+  line-height: calc(var(--line-pitch) * 2);
   color: var(--text-strong-color);
 
   &.empty::after {
