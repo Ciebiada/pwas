@@ -34,7 +34,7 @@
   left: calc(-1 * var(--safe-area-inline-left) - 16px);
   right: 0;
   bottom: 0;
-  background-image: radial-gradient(circle, var(--border-color) 1px, transparent 1.5px);
+  background-image: radial-gradient(circle, var(--dot-grid-color) 1px, transparent 1.5px);
   background-position: calc(var(--safe-area-inline-left) + 14px - var(--line-pitch) / 2)
     calc(env(safe-area-inset-top) + 76px - var(--line-pitch) / 2);
   background-size: var(--line-pitch) var(--line-pitch);
