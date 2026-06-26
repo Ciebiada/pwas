@@ -197,6 +197,9 @@ export const processBeforeInput = (
     }
 
     case "deleteWordBackward": {
+      const listResult = handleBackspaceAtListStart(content, selection);
+      if (listResult) return listResult;
+
       const beforeCursor = content.slice(0, start);
       const wordMatch = beforeCursor.match(/\S+\s*$/);
       if (wordMatch) {
