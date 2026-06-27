@@ -4,6 +4,7 @@ import { SearchIcon } from "ui/Icons";
 import { isIOS } from "ui/platform";
 import { useActivatable } from "ui/useActivatable";
 import { useIOSKeyboardFocus } from "ui/useIOSKeyboardFocus";
+import { useNavigate } from "../hooks/useNavigate";
 import { searchQuery, setSearchQuery } from "../services/searchStore";
 import "./SearchBar.css";
 
@@ -25,6 +26,7 @@ const SEARCH_BAR_CHROME = SEARCH_ICON_WIDTH + 2 * (SEARCH_FLEX_GAP + SEARCH_BAR_
 // hoisted to the root to avoid ever remounting.
 export const SearchBar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchKeyboardActive, setSearchKeyboardActive] = createSignal(false);
 
   const onList = () => location.pathname === "/";
@@ -82,6 +84,21 @@ export const SearchBar = () => {
       setAnimate(true);
       setSearchKeyboardActive(true);
       keyboard.focusInput();
+    };
+    document.addEventListener("keydown", handler);
+    onCleanup(() => document.removeEventListener("keydown", handler));
+  });
+
+  // Ctrl+F jumps to the list and focuses the search bar from any route.
+  createEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "f") return;
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      if (!onList()) navigate("/");
+      setAnimate(true);
+      setSearchKeyboardActive(true);
+      keyboard.focusInputSoon();
     };
     document.addEventListener("keydown", handler);
     onCleanup(() => document.removeEventListener("keydown", handler));
