@@ -307,6 +307,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   // Clamp the focused key: if the current focus is missing from the visible
   // list (filter changed, modal just opened), snap to the first item.
   createEffect(() => {
+    if (isIOS) return;
     const keys = visibleActionKeys();
     const key = focusedActionKey();
     if (key === null) {
