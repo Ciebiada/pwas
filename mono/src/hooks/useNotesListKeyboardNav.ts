@@ -1,7 +1,11 @@
 import { useLocation } from "@solidjs/router";
 import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
 
-export const useNotesListKeyboardNav = (items: () => { id: number }[], onOpen: (item: { id: number }) => void) => {
+export const useNotesListKeyboardNav = (
+  items: () => { id: number }[],
+  onOpen: (item: { id: number }) => void,
+  onActions: (item: { id: number }) => void,
+) => {
   const location = useLocation();
   const [selectedId, setSelectedId] = createSignal<number | null>(null);
 
@@ -20,6 +24,14 @@ export const useNotesListKeyboardNav = (items: () => { id: number }[], onOpen: (
 
   onMount(() => {
     const handler = (e: KeyboardEvent) => {
+      // Ctrl+P: open actions for the selected note. Runs before the input
+      // bail so it works from the editor's contenteditable too.
+      if (e.ctrlKey && e.key === "p") {
+        e.preventDefault();
+        const item = items().find((item) => item.id === selectedId());
+        if (item) onActions(item);
+        return;
+      }
       if (location.pathname !== "/") return;
       const target = e.target as HTMLElement | null;
       if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) return;

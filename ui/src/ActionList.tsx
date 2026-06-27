@@ -13,6 +13,7 @@ type ActionListItemProps = {
   tone?: "default" | "blue" | "orange" | "pink" | "danger";
   danger?: boolean;
   class?: string;
+  focused?: boolean;
   onClick?: () => void | Promise<void>;
   onPressStart?: () => void;
 };
@@ -50,6 +51,7 @@ export const ActionListItem = (props: ActionListItemProps) => {
       classList={{
         "action-list-item-with-icon": props.icon !== undefined && props.icon !== null,
         "action-list-item-danger": props.danger,
+        "action-list-item-focused": props.focused,
         [props.class!]: !!props.class,
       }}
       aria-label={props.title}

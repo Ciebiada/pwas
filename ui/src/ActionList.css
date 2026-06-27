@@ -59,6 +59,10 @@
   background-color: transparent;
 }
 
+.action-list-item.action-list-item-focused {
+  background-color: var(--action-list-active-background);
+}
+
 .action-list-icon {
   display: inline-flex;
   align-items: center;

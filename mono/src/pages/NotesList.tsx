@@ -4,7 +4,7 @@ import { triggerHaptic } from "ui/haptic";
 import { AddIcon, ChevronRightIcon, MoreIcon } from "ui/Icons";
 import { Page } from "ui/Page";
 import { useActivatable } from "ui/useActivatable";
-import { NoteActionsModal } from "../components/NoteActionsModal";
+import { NoteActionsModal, type NoteActionsModalAPI } from "../components/NoteActionsModal";
 import { SettingsModal } from "../components/SettingsModal";
 import { useNavigate } from "../hooks/useNavigate";
 import { useNotesListKeyboardNav } from "../hooks/useNotesListKeyboardNav";
@@ -24,6 +24,7 @@ export const NotesList = () => {
   const [noteActionsOpen, setNoteActionsOpen] = createSignal(false);
   const [selectedNoteId, setSelectedNoteId] = createSignal<number | null>(null);
   const [limit, setLimit] = createSignal(PAGE_SIZE);
+  let noteActionsModalApi: NoteActionsModalAPI | undefined;
 
   const notes = createDexieArrayQuery(async () => {
     const q = searchQuery().trim();
@@ -44,9 +45,16 @@ export const NotesList = () => {
 
   const totalCount = createDexieSignalQuery(() => db.notes.filter((n) => n.status !== "pending-delete").count());
 
+  const openNoteActions = (noteId: number) => {
+    setSelectedNoteId(noteId);
+    noteActionsModalApi?.focusSearchOnOpen();
+    setNoteActionsOpen(true);
+  };
+
   const keyboardSelectedId = useNotesListKeyboardNav(
     () => notes.data,
     (note) => navigate(`/note/${note.id}`),
+    (note) => openNoteActions(note.id),
   );
 
   createEffect(() => {
@@ -188,19 +196,13 @@ export const NotesList = () => {
         </div>
       </Page>
       <SettingsModal open={settingsModalOpen} setOpen={setSettingsModalOpen} />
-      <Show when={selectedNoteId()}>
-        {(noteId) => {
-          const currentNoteId = noteId();
-          return (
-            <NoteActionsModal
-              noteId={currentNoteId}
-              open={noteActionsOpen}
-              setOpen={setNoteActionsOpen}
-              onClose={() => setSelectedNoteId(null)}
-            />
-          );
-        }}
-      </Show>
+      <NoteActionsModal
+        noteId={selectedNoteId()}
+        open={noteActionsOpen}
+        setOpen={setNoteActionsOpen}
+        onReady={(api) => (noteActionsModalApi = api)}
+        onClose={() => setSelectedNoteId(null)}
+      />
     </>
   );
 };

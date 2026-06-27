@@ -90,6 +90,17 @@ export const EditNote = () => {
     setModalOpen(true);
   };
 
+  onMount(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === "p") {
+        e.preventDefault();
+        handleOpenNoteActions();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    onCleanup(() => document.removeEventListener("keydown", handler));
+  });
+
   return (
     <>
       <Header>

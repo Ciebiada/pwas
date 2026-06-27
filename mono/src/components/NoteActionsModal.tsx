@@ -24,7 +24,7 @@ import type { EditorAPI } from "./Editor";
 import "./NoteActionsModal.css";
 
 type NoteActionsModalProps = {
-  noteId: number;
+  noteId: number | null;
   open: Accessor<boolean>;
   setOpen: Setter<boolean>;
   getEditorApi?: () => EditorAPI | undefined;
@@ -83,6 +83,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   const [canUnfoldAllSections, setCanUnfoldAllSections] = createSignal(false);
   const [searchQuery, setSearchQuery] = createSignal("");
   const [searchKeyboardRequested, setSearchKeyboardRequested] = createSignal(false);
+  const [focusedActionKey, setFocusedActionKey] = createSignal<string | null>(null);
   let searchInputRef: HTMLInputElement | undefined;
   let hasObservedKeyboardOpen = false;
   let restoreEditorFocusOnClose = false;
@@ -152,6 +153,34 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   onMount(() => {
     props.onReady?.({ focusSearchOnOpen, openKeyboardForSearch });
     window.visualViewport?.addEventListener("resize", handleViewportChange);
+
+    const handler = (e: KeyboardEvent) => {
+      if (!props.open()) return;
+      const keys = visibleActionKeys();
+      if (keys.length === 0) return;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const currentKey = focusedActionKey();
+        const currentIdx = currentKey ? keys.indexOf(currentKey) : -1;
+        const nextIdx =
+          e.key === "ArrowDown"
+            ? currentIdx < 0
+              ? 0
+              : Math.min(currentIdx + 1, keys.length - 1)
+            : currentIdx < 0
+              ? keys.length - 1
+              : Math.max(currentIdx - 1, 0);
+        setFocusedActionKey(keys[nextIdx]);
+      } else if (e.key === "Enter") {
+        const focused = document.querySelector<HTMLButtonElement>(".action-list-item.action-list-item-focused");
+        if (focused) {
+          e.preventDefault();
+          focused.click();
+        }
+      }
+    };
+    document.addEventListener("keydown", handler);
+    onCleanup(() => document.removeEventListener("keydown", handler));
   });
 
   onCleanup(() => {
@@ -180,6 +209,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   const readCurrentActionContext = () => {
     const editorApi = props.getEditorApi?.();
     if (!editorApi) return null;
+    if (props.noteId === null) return null;
 
     const state = editorApi.getState();
     return {
@@ -205,6 +235,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
         if (searchKeyboardRequested()) {
           keyboard.focusInputSoon();
         }
+        setFocusedActionKey(null);
       });
     } else {
       untrack(() => {
@@ -248,6 +279,42 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
       filteredActionItems().length > 0 ||
       showDelete(),
   );
+
+  // Ordered keys for keyboard navigation. Matches the render order in ActionRows
+  // so the visual order and the Up/Down cursor agree.
+  const visibleActionKeys = createMemo(() => {
+    const keys: string[] = [];
+    if (showUndo()) keys.push("undo");
+    if (showRedo()) keys.push("redo");
+    if (showToggleFold()) keys.push("toggle-fold");
+    if (showFoldAllSections()) keys.push("fold-all-sections");
+    if (showUnfoldAllSections()) keys.push("unfold-all-sections");
+    for (const item of filteredActionItems()) keys.push(item.action.id);
+    if (showDelete()) keys.push("delete");
+    return keys;
+  });
+
+  // Clamp the focused key: if the current focus is missing from the visible
+  // list (filter changed, modal just opened), snap to the first item.
+  createEffect(() => {
+    const keys = visibleActionKeys();
+    const key = focusedActionKey();
+    if (key === null) {
+      if (keys.length > 0) setFocusedActionKey(keys[0]);
+      return;
+    }
+    if (!keys.includes(key) && keys.length > 0) setFocusedActionKey(keys[0]);
+  });
+
+  // Scroll the focused action into view as the cursor moves.
+  createEffect(() => {
+    const key = focusedActionKey();
+    if (key === null) return;
+    queueMicrotask(() => {
+      const el = document.querySelector<HTMLElement>(`.action-list-item.${CSS.escape(`note-action-${key}`)}`);
+      el?.scrollIntoView({ block: "nearest" });
+    });
+  });
 
   const handleAction =
     ({ action, context }: ResolvedNoteAction) =>
@@ -319,15 +386,17 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   };
 
   const handleDelete = async (close: () => Promise<void>) => {
+    const noteId = props.noteId;
+    if (noteId === null) return;
     await close();
-    const note = await db.notes.get(props.noteId);
+    const note = await db.notes.get(noteId);
     if (!note) return;
 
     if (wasSynced(note)) {
-      await db.notes.update(props.noteId, { status: "pending-delete" });
-      syncNote(props.noteId);
+      await db.notes.update(noteId, { status: "pending-delete" });
+      syncNote(noteId);
     } else {
-      await db.notes.delete(props.noteId);
+      await db.notes.delete(noteId);
     }
 
     await props.onDelete?.();
@@ -348,16 +417,29 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
     return (
       <ActionList>
         <Show when={showUndo()}>
-          <ActionListItem title="Undo" subtitle="Revert the last edit" onClick={() => void handleUndo(close)} />
+          <ActionListItem
+            title="Undo"
+            subtitle="Revert the last edit"
+            class="note-action-undo"
+            focused={focusedActionKey() === "undo"}
+            onClick={() => void handleUndo(close)}
+          />
         </Show>
         <Show when={showRedo()}>
-          <ActionListItem title="Redo" subtitle="Reapply the last edit" onClick={() => void handleRedo(close)} />
+          <ActionListItem
+            title="Redo"
+            subtitle="Reapply the last edit"
+            class="note-action-redo"
+            focused={focusedActionKey() === "redo"}
+            onClick={() => void handleRedo(close)}
+          />
         </Show>
         <Show when={showToggleFold()}>
           <ActionListItem
             title="Toggle Fold"
             subtitle={getActionSubtitle("toggle-fold")}
             class="note-action-toggle-fold"
+            focused={focusedActionKey() === "toggle-fold"}
             onClick={() => void handleToggleFold(close)}
           />
         </Show>
@@ -366,6 +448,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
             title="Fold All Sections"
             subtitle={getActionSubtitle("fold-all-sections")}
             class="note-action-fold-all-sections"
+            focused={focusedActionKey() === "fold-all-sections"}
             onClick={() => void handleFoldAllSections(close)}
           />
         </Show>
@@ -374,6 +457,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
             title="Unfold All Sections"
             subtitle={getActionSubtitle("unfold-all-sections")}
             class="note-action-unfold-all-sections"
+            focused={focusedActionKey() === "unfold-all-sections"}
             onClick={() => void handleUnfoldAllSections(close)}
           />
         </Show>
@@ -383,6 +467,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
               title={item.label}
               subtitle={getActionSubtitle(item.action.id)}
               class={`note-action-${item.action.id}`}
+              focused={focusedActionKey() === item.action.id}
               onClick={() => void handleAction(item)(close)}
             />
           )}
@@ -391,7 +476,9 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
           <ActionListItem
             title="Delete Note"
             subtitle="Remove this note"
+            class="note-action-delete"
             danger
+            focused={focusedActionKey() === "delete"}
             onClick={() => void handleDelete(close)}
           />
         </Show>
@@ -434,7 +521,10 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
               autocapitalize="on"
               onFocus={setSearchKeyboardOpen}
               onBlur={handleSearchBlur}
-              onInput={(e) => setSearchQuery(e.currentTarget.value)}
+              onInput={(e) => {
+                setSearchQuery(e.currentTarget.value);
+                setFocusedActionKey(null);
+              }}
             />
           </label>
         }
