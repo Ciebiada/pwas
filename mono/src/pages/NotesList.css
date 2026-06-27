@@ -52,6 +52,11 @@
   background-color: var(--bg-secondary-color);
 }
 
+.note-item.keyboard-selected {
+  background-color: var(--bg-secondary-color);
+  box-shadow: inset 3px 0 0 var(--main-color);
+}
+
 .note-item-name {
   font-weight: 500;
   font-size: 1rem;

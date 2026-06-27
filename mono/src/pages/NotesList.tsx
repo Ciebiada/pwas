@@ -7,6 +7,7 @@ import { useActivatable } from "ui/useActivatable";
 import { NoteActionsModal } from "../components/NoteActionsModal";
 import { SettingsModal } from "../components/SettingsModal";
 import { useNavigate } from "../hooks/useNavigate";
+import { useNotesListKeyboardNav } from "../hooks/useNotesListKeyboardNav";
 import { timeFromNow } from "../services/date";
 import { db } from "../services/db";
 import { searchMatches } from "../services/search";
@@ -42,6 +43,11 @@ export const NotesList = () => {
   });
 
   const totalCount = createDexieSignalQuery(() => db.notes.filter((n) => n.status !== "pending-delete").count());
+
+  const keyboardSelectedId = useNotesListKeyboardNav(
+    () => notes.data,
+    (note) => navigate(`/note/${note.id}`),
+  );
 
   createEffect(() => {
     searchQuery();
@@ -156,7 +162,13 @@ export const NotesList = () => {
                   onTap: () => navigate(`/note/${note.id}`),
                 });
                 return (
-                  <button ref={activatable} class="note-item" onContextMenu={(e) => e.preventDefault()}>
+                  <button
+                    ref={activatable}
+                    class="note-item"
+                    classList={{ "keyboard-selected": keyboardSelectedId() === note.id }}
+                    data-note-id={note.id}
+                    onContextMenu={(e) => e.preventDefault()}
+                  >
                     <div class="note-item-content">
                       <div class="note-item-name">{note.name}</div>
                       <div class="note-item-preview">{getPreview(note.content)}</div>

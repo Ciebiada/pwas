@@ -255,7 +255,7 @@ export const SearchBar = () => {
               handleSearchBlur();
             }}
             onKeyDown={(e) => {
-              if (e.key === "Escape") {
+              if (e.key === "Escape" || e.key === "Enter") {
                 e.preventDefault();
                 searchInputRef?.blur();
               }
