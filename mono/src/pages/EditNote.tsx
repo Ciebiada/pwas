@@ -3,6 +3,7 @@ import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { Header, HeaderButton } from "ui/Header";
 import { BackIcon, MoreIcon } from "ui/Icons";
 import { Page } from "ui/Page";
+import { isIOS } from "ui/platform";
 import { Editor, type EditorAPI } from "../components/Editor";
 import { NoteActionsModal, type NoteActionsModalAPI } from "../components/NoteActionsModal";
 import { useNavigate } from "../hooks/useNavigate";
@@ -92,6 +93,7 @@ export const EditNote = () => {
 
   onMount(() => {
     const handler = (e: KeyboardEvent) => {
+      if (isIOS) return;
       if (e.ctrlKey && e.key === "p") {
         e.preventDefault();
         handleOpenNoteActions();

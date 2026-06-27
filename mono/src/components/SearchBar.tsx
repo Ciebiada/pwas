@@ -75,6 +75,7 @@ export const SearchBar = () => {
 
   // `/` focuses the search bar when on the list and no input is active.
   createEffect(() => {
+    if (isIOS) return;
     if (!onList()) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key !== "/") return;
@@ -91,6 +92,7 @@ export const SearchBar = () => {
 
   // Ctrl+F jumps to the list and focuses the search bar from any route.
   createEffect(() => {
+    if (isIOS) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() !== "f") return;
       if (!e.ctrlKey) return;

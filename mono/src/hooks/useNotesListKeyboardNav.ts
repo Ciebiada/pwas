@@ -1,5 +1,6 @@
 import { useLocation } from "@solidjs/router";
 import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { isIOS } from "ui/platform";
 
 export const useNotesListKeyboardNav = (
   items: () => { id: number }[],
@@ -24,6 +25,7 @@ export const useNotesListKeyboardNav = (
 
   onMount(() => {
     const handler = (e: KeyboardEvent) => {
+      if (isIOS) return;
       // Ctrl+P: open actions for the selected note. Runs before the input
       // bail so it works from the editor's contenteditable too.
       if (e.ctrlKey && e.key === "p") {

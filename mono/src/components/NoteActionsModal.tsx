@@ -13,6 +13,7 @@ import {
 import { ActionList, ActionListItem } from "ui/ActionList";
 import { SearchIcon } from "ui/Icons";
 import { Modal, ModalPage, useModal } from "ui/Modal";
+import { isIOS } from "ui/platform";
 import { useIOSKeyboardFocus } from "ui/useIOSKeyboardFocus";
 import { getApplicableNoteActions } from "../noteActions";
 import type { NoteActionContext, ResolvedNoteAction } from "../noteActions/types";
@@ -155,6 +156,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
     window.visualViewport?.addEventListener("resize", handleViewportChange);
 
     const handler = (e: KeyboardEvent) => {
+      if (isIOS) return;
       if (!props.open()) return;
       const keys = visibleActionKeys();
       if (keys.length === 0) return;
