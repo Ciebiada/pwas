@@ -15,6 +15,7 @@ import { SearchIcon } from "ui/Icons";
 import { Modal, ModalPage, useModal } from "ui/Modal";
 import { isIOS } from "ui/platform";
 import { useIOSKeyboardFocus } from "ui/useIOSKeyboardFocus";
+import { SHEET_ANIMATION_DURATION } from "ui/useSheetDrag";
 import { getApplicableNoteActions } from "../noteActions";
 import type { NoteActionContext, ResolvedNoteAction } from "../noteActions/types";
 import { incrementNoteActionUsage } from "../noteActions/usage";
@@ -85,6 +86,8 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   const [searchQuery, setSearchQuery] = createSignal("");
   const [searchKeyboardRequested, setSearchKeyboardRequested] = createSignal(false);
   const [focusedActionKey, setFocusedActionKey] = createSignal<string | null>(null);
+  const [settled, setSettled] = createSignal(false);
+  let settledTimer: ReturnType<typeof setTimeout> | undefined;
   let searchInputRef: HTMLInputElement | undefined;
   let hasObservedKeyboardOpen = false;
   let restoreEditorFocusOnClose = false;
@@ -238,9 +241,14 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
           keyboard.focusInputSoon();
         }
         setFocusedActionKey(null);
+        setSettled(false);
+        clearTimeout(settledTimer);
+        settledTimer = setTimeout(() => setSettled(true), SHEET_ANIMATION_DURATION);
       });
     } else {
       untrack(() => {
+        clearTimeout(settledTimer);
+        setSettled(false);
         setFrozenActionContext(null);
         setCanUndo(false);
         setCanRedo(false);
@@ -312,6 +320,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   createEffect(() => {
     const key = focusedActionKey();
     if (key === null) return;
+    if (!settled()) return;
     queueMicrotask(() => {
       const el = document.querySelector<HTMLElement>(`.action-list-item.${CSS.escape(`note-action-${key}`)}`);
       el?.scrollIntoView({ block: "nearest" });
@@ -503,7 +512,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
         open={props.open}
         setOpen={props.setOpen}
         title="Note Actions"
-        restingHeightRatio={searchKeyboardRequested() ? 0.75 : 0.5}
+        restingHeightRatio={isIOS && searchKeyboardRequested() ? 0.75 : 0.5}
         header={
           <label class="note-actions-search" onMouseDown={handleSearchPress} onTouchStart={handleSearchPress}>
             <span class="note-actions-search-icon" aria-hidden="true">

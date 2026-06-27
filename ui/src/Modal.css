@@ -289,6 +289,7 @@ body.modal-open {
   box-sizing: border-box;
   padding-top: var(--modal-header-height);
   padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  scroll-padding-top: var(--modal-header-height);
 }
 
 .modal-page-scrollable {
