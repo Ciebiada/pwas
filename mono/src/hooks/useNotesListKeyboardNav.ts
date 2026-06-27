@@ -11,6 +11,7 @@ export const useNotesListKeyboardNav = (
   const [selectedId, setSelectedId] = createSignal<number | null>(null);
 
   createEffect(() => {
+    if (isIOS) return;
     const list = items();
     const id = selectedId();
     if (id === null || !list.some((item) => item.id === id)) {
