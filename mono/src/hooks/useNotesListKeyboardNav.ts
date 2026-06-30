@@ -37,7 +37,16 @@ export const useNotesListKeyboardNav = (
       }
       if (location.pathname !== "/") return;
       const target = e.target as HTMLElement | null;
-      if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
+      const isSearchInput = target?.classList.contains("notes-search-input") ?? false;
+      const isSearchNavKey = e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter";
+      if (
+        target &&
+        !isSearchInput &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+      ) {
+        return;
+      }
+      if (isSearchInput && !isSearchNavKey) return;
       const list = items();
       if (list.length === 0) return;
       const currentId = selectedId();
