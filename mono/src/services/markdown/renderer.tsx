@@ -1,7 +1,6 @@
 import { createMemo, Index, type JSX, on } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { triggerHaptic } from "../../hooks/useHaptic";
-import type { MarkdownFoldState } from "./folding";
 import { matchInlineFormatAt } from "./inlineFormat";
 import { CODE_FENCE, type LineToken, tokenizeLines } from "./tokenize";
 
@@ -24,20 +23,12 @@ type InlinePattern = {
   createToken?: (match: RegExpMatchArray) => InlineToken;
 };
 
-type RenderLineOptions = {
-  isHidden?: boolean;
-  sectionId?: string;
-};
-
 type TableRow = {
   index: number;
   token: BlockToken;
-  isHidden: boolean;
 };
 
-type RenderSegment =
-  | { kind: "line"; index: number; token: BlockToken; isHidden: boolean; sectionId?: string }
-  | { kind: "table"; rows: TableRow[] };
+type RenderSegment = { kind: "line"; index: number; token: BlockToken } | { kind: "table"; rows: TableRow[] };
 
 const INLINE_TRIGGER_CHARS = new Set(["`", "[", "h", "H", "w", "W", "*", "_", "~"]);
 
@@ -169,10 +160,10 @@ const renderBlockContent = (block: BlockToken) => (
   </>
 );
 
-const renderHeader = (block: BlockToken, className: string, content: JSX.Element, sectionId?: string) => {
+const renderHeader = (block: BlockToken, className: string, content: JSX.Element) => {
   const Tag = block.type as "h1" | "h2" | "h3";
   return (
-    <Dynamic component={Tag} class={className} data-section-id={sectionId}>
+    <Dynamic component={Tag} class={className}>
       {content}
     </Dynamic>
   );
@@ -243,14 +234,9 @@ const renderListItem = (
   );
 };
 
-const renderBlock = (
-  block: BlockToken,
-  index: number,
-  onCheckboxToggle?: (lineIndex: number) => void,
-  options: RenderLineOptions = {},
-) => {
+const renderBlock = (block: BlockToken, index: number, onCheckboxToggle?: (lineIndex: number) => void) => {
   const blockClassName = block.type === "paragraph" ? "text" : block.type;
-  const className = `md-line md-${blockClassName}${options.isHidden ? " is-fold-hidden" : ""}`;
+  const className = `md-line md-${blockClassName}`;
   const content = renderBlockContent(block);
   const codeBlockProps = block.codeBlockId ? { "data-code-block-id": block.codeBlockId } : {};
 
@@ -258,7 +244,7 @@ const renderBlock = (
     case "h1":
     case "h2":
     case "h3":
-      return renderHeader(block, className, content, options.sectionId);
+      return renderHeader(block, className, content);
     case "checkbox":
     case "list":
     case "orderedList":
@@ -294,7 +280,7 @@ const renderTableGroup = (rows: TableRow[]) => (
   <div class="md-table-scroll">
     <div class="md-table-group">
       {rows.map((row) => (
-        <div class={`md-line md-table${row.isHidden ? " is-fold-hidden" : ""}`}>{renderBlockContent(row.token)}</div>
+        <div class="md-line md-table">{renderBlockContent(row.token)}</div>
       ))}
     </div>
   </div>
@@ -303,25 +289,23 @@ const renderTableGroup = (rows: TableRow[]) => (
 // Group the per-line block tokens into render segments: a single line, or a run
 // of consecutive table lines collapsed into one segment (so they share a
 // horizontal scroll container — see `.md-table-scroll`/`.md-table-group`).
-const buildSegments = (tokens: BlockToken[], foldState?: MarkdownFoldState): RenderSegment[] => {
-  const lines = foldState?.lines;
+const buildSegments = (tokens: BlockToken[]): RenderSegment[] => {
   const segments: RenderSegment[] = [];
 
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index];
-    const isHidden = !!lines?.[index]?.isHidden;
 
     if (token.type === "table") {
-      const rows: TableRow[] = [{ index, token, isHidden }];
+      const rows: TableRow[] = [{ index, token }];
       while (index + 1 < tokens.length && tokens[index + 1].type === "table") {
         index += 1;
-        rows.push({ index, token: tokens[index], isHidden: !!lines?.[index]?.isHidden });
+        rows.push({ index, token: tokens[index] });
       }
       segments.push({ kind: "table", rows });
       continue;
     }
 
-    segments.push({ kind: "line", index, token, isHidden, sectionId: lines?.[index]?.sectionId });
+    segments.push({ kind: "line", index, token });
   }
 
   return segments;
@@ -334,9 +318,7 @@ const SIGNATURE_SEP = " ";
 // be reused unchanged across edits.
 const segmentSignature = (segment: RenderSegment): string => {
   if (segment.kind === "table") {
-    return `T${segment.rows
-      .map((row) => `${row.index}${SIGNATURE_SEP}${row.isHidden ? 1 : 0}${SIGNATURE_SEP}${row.token.content}`)
-      .join("")}`;
+    return `T${segment.rows.map((row) => `${row.index}${SIGNATURE_SEP}${row.token.content}`).join("")}`;
   }
 
   const { token } = segment;
@@ -344,34 +326,28 @@ const segmentSignature = (segment: RenderSegment): string => {
     "L",
     segment.index,
     token.type,
-    segment.isHidden ? 1 : 0,
     token.prefix,
     token.content,
     token.codeBlockId ?? "",
     token.codeFenceKind ?? "",
-    segment.sectionId ?? "",
   ].join(SIGNATURE_SEP);
 };
 
 const renderSegment = (segment: RenderSegment, onCheckboxToggle?: (lineIndex: number) => void): JSX.Element => {
   if (segment.kind === "table") return renderTableGroup(segment.rows);
-  return renderBlock(segment.token, segment.index, onCheckboxToggle, {
-    isHidden: segment.isHidden,
-    sectionId: segment.sectionId,
-  });
+  return renderBlock(segment.token, segment.index, onCheckboxToggle);
 };
 
 type EditorContentProps = {
   content: () => string;
-  foldState: () => MarkdownFoldState;
   onCheckboxToggle?: (lineIndex: number) => void;
 };
 
 // Per-line rendering: each segment memoizes its rendered DOM node keyed on its
-// signature, so a single-line edit (or a fold class change) only touches that
-// line's DOM instead of rebuilding the whole document on every keystroke.
+// signature, so a single-line edit only touches that line's DOM instead of
+// rebuilding the whole document on every keystroke.
 export const EditorContent = (props: EditorContentProps): JSX.Element => {
-  const segments = createMemo(() => buildSegments(tokenizeLines(props.content()), props.foldState()));
+  const segments = createMemo(() => buildSegments(tokenizeLines(props.content())));
 
   return (
     <Index each={segments()}>

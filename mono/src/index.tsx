@@ -45,15 +45,13 @@ const App = (props: ParentProps) => {
 
 render(() => {
   return (
-    <>
-      <Router explicitLinks root={App}>
-        <Route path="/" component={NotesList} />
-        <Route path="/new" component={NewNote} />
-        <Route path="/note/:id" component={EditNote} />
-        <Route path="/about" component={About} />
-        <Route path="/dropbox-callback" component={DropboxCallback} />
-        <Route path="/google-callback" component={GoogleDriveCallback} />
-      </Router>
-    </>
+    <Router explicitLinks root={App}>
+      <Route path="/" component={NotesList} />
+      <Route path="/new" component={NewNote} />
+      <Route path="/note/:id" component={EditNote} />
+      <Route path="/about" component={About} />
+      <Route path="/dropbox-callback" component={DropboxCallback} />
+      <Route path="/google-callback" component={GoogleDriveCallback} />
+    </Router>
   );
 }, root!);

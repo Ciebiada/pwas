@@ -1,12 +1,8 @@
 import { createMemo, createSignal, mergeProps, onMount, Show } from "solid-js";
-import { ChevronRightIcon } from "ui/Icons";
 import { isIOS } from "ui/platform";
-import { useEditorFolding } from "../hooks/useEditorFolding";
-import { useEditorFoldToggles } from "../hooks/useEditorFoldToggles";
 import { useEditorHistory } from "../hooks/useEditorHistory";
 import { useEditorLineReorder } from "../hooks/useEditorLineReorder";
 import { useEditorSelectionPresentation } from "../hooks/useEditorSelectionPresentation";
-import { triggerHaptic } from "../hooks/useHaptic";
 import { useIOSKeyboardDismiss } from "../hooks/useIOSKeyboardDismiss";
 import { useIOSKeyboardHeightScroll } from "../hooks/useIOSKeyboardHeightScroll";
 import { usePrettyCaret } from "../hooks/usePrettyCaret";
@@ -55,12 +51,7 @@ export type EditorAPI = {
   replaceContent: (name: string, content: string) => void;
   getState: () => EditorState;
   applyEdit: (edit: EditorEdit) => void;
-  canFoldAllSections: () => boolean;
-  canUnfoldAllSections: () => boolean;
-  cycleFoldSections: () => void;
-  foldAllSections: () => void;
   redo: () => void;
-  unfoldAllSections: () => void;
   undo: () => void;
 };
 
@@ -71,16 +62,11 @@ type EditorProps = {
   onReady?: (api: EditorAPI) => void;
   onChange?: (name: string, content: string) => void;
   onCursorChange?: (cursor: number) => void;
-  foldStorageKey?: string;
 };
 
 export const Editor = (_props: EditorProps) => {
   const props = mergeProps({ initialCursor: 0 }, _props);
   const [content, setContent] = createSignal(props.initialContent);
-  const folding = useEditorFolding({
-    content,
-    storageKey: props.foldStorageKey,
-  });
   const isEmpty = createMemo(() => {
     const { name, content: body } = splitNote(content());
     return name.trim().length === 0 && body.trim().length === 0;
@@ -95,7 +81,6 @@ export const Editor = (_props: EditorProps) => {
     end: props.initialCursor,
   };
   let syncLineReorderHandle = () => {};
-  let syncFoldToggleHandles = () => {};
   let syncPrettyCaret = () => {};
   let isLineReordering = () => false;
   if (isPrettyCaretEnabled()) {
@@ -117,14 +102,12 @@ export const Editor = (_props: EditorProps) => {
       lastSelection = selection;
       props.onCursorChange?.(selection.start);
       syncLineReorderHandle();
-      syncFoldToggleHandles();
     },
   });
 
   const syncSelectionPresentation = () => {
     selectionPresentation.sync();
     syncLineReorderHandle();
-    syncFoldToggleHandles();
   };
 
   const { ignoreNextBlurForReorder: ignoreIOSKeyboardBlurForReorder } = useIOSKeyboardDismiss({
@@ -159,9 +142,8 @@ export const Editor = (_props: EditorProps) => {
   };
 
   const applySelection = (selection: EditorSelection) => {
-    const visibleSelection = folding.clampSelection(selection);
-    lastSelection = visibleSelection;
-    const appliedSelection = setSelection(editor, visibleSelection.start, { end: visibleSelection.end });
+    lastSelection = selection;
+    const appliedSelection = setSelection(editor, selection.start, { end: selection.end });
     syncPrettyCaret();
     return appliedSelection;
   };
@@ -219,34 +201,12 @@ export const Editor = (_props: EditorProps) => {
   const lineReorder = useEditorLineReorder({
     applyEdit: applyLineReorderEdit,
     content,
-    foldState: folding.foldState,
     getContainer: () => container,
     getCursor: () => getCurrentSelection().start,
     getEditor: () => editor,
   });
   syncLineReorderHandle = lineReorder.syncHandle;
   isLineReordering = () => lineReorder.indicator() !== null;
-
-  const foldToggles = useEditorFoldToggles({
-    foldState: folding.foldState,
-    getContainer: () => container,
-    getEditor: () => editor,
-  });
-  syncFoldToggleHandles = foldToggles.syncHandle;
-
-  const applyFoldingChange = (change: () => void) => {
-    const selection = getCurrentSelection();
-    const wasFocused = document.activeElement === editor;
-
-    change();
-
-    requestAnimationFrame(() => {
-      if (!wasFocused) return;
-
-      applySelection(selection);
-      syncSelectionPresentation();
-    });
-  };
 
   onMount(() => {
     props.onReady?.({
@@ -267,10 +227,6 @@ export const Editor = (_props: EditorProps) => {
       applyEdit: (edit) => {
         applyEdit(edit.content, edit.selection ?? lastSelection);
       },
-      canFoldAllSections: () => folding.canFoldAll(),
-      canUnfoldAllSections: () => folding.canUnfoldAll(),
-      cycleFoldSections: () => applyFoldingChange(folding.cycleAll),
-      foldAllSections: () => applyFoldingChange(folding.foldAll),
       replaceContent: (name: string, noteContent: string) => {
         const newContent = name + (noteContent ? `\n${noteContent}` : "");
         const { start } = getSelection(editor);
@@ -287,7 +243,6 @@ export const Editor = (_props: EditorProps) => {
         });
       },
       redo: () => history.redo(),
-      unfoldAllSections: () => applyFoldingChange(folding.unfoldAll),
       undo: () => history.undo(),
     });
 
@@ -310,21 +265,6 @@ export const Editor = (_props: EditorProps) => {
   const onTextInput = (event: InputEvent) => (iosReplacementText = event.data || "");
 
   const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "i") {
-      event.preventDefault();
-      const selection = getCurrentSelection();
-      const sectionId = folding.getSectionIdAtPosition(selection.start);
-
-      if (sectionId) cycleFoldSection(sectionId);
-      return;
-    }
-
-    if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "o") {
-      event.preventDefault();
-      applyFoldingChange(folding.cycleAll);
-      return;
-    }
-
     if (event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === "y") {
       event.preventDefault();
       history.redo();
@@ -358,13 +298,6 @@ export const Editor = (_props: EditorProps) => {
     event.preventDefault();
 
     const selection = getSelection(editor);
-    const foldedEnterEdit =
-      event.inputType === "insertParagraph" ? folding.handleEnterAtFoldedHeading(selection) : null;
-    if (foldedEnterEdit) {
-      applyEdit(foldedEnterEdit.content, foldedEnterEdit.selection, event.inputType);
-      return;
-    }
-
     const result = processBeforeInput(event.inputType, content(), selection, {
       eventData: event.inputType === "insertFromPaste" ? event.dataTransfer?.getData("text/plain") : event.data,
       iosReplacementText,
@@ -390,10 +323,6 @@ export const Editor = (_props: EditorProps) => {
       syncSelectionPresentation();
     }
     emitChange();
-  };
-
-  const cycleFoldSection = (sectionId: string) => {
-    applyFoldingChange(() => folding.cycleSection(sectionId));
   };
 
   const copySelectionToClipboard = (event: ClipboardEvent): EditorSelection | null => {
@@ -452,34 +381,8 @@ export const Editor = (_props: EditorProps) => {
         onCopy={handleCopy}
         onCut={handleCut}
       >
-        <EditorContent content={content} foldState={folding.foldState} onCheckboxToggle={handleCheckboxToggle} />
+        <EditorContent content={content} onCheckboxToggle={handleCheckboxToggle} />
       </div>
-      <Show when={foldToggles.handle()}>
-        {(handle) => (
-          <button
-            type="button"
-            class="fold-toggle"
-            classList={{ "is-folded": handle().isFolded }}
-            data-section-id={handle().sectionId}
-            style={{ top: `${handle().top}px` }}
-            aria-label={handle().isFolded || handle().isShowingChildren ? "Unfold section" : "Fold section"}
-            title={handle().isFolded || handle().isShowingChildren ? "Unfold section" : "Fold section"}
-            tabIndex={-1}
-            onPointerDown={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-            }}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              triggerHaptic();
-              applyFoldingChange(() => folding.toggleSection(handle().sectionId));
-            }}
-          >
-            <ChevronRightIcon />
-          </button>
-        )}
-      </Show>
       <Show when={lineReorder.handle()}>
         {(handle) => (
           <button

@@ -1,7 +1,6 @@
 import { type Accessor, createEffect, createSignal, onCleanup } from "solid-js";
 import { getScrollParent } from "../services/editorDom";
 import { isLineDropMove, type LineRange, type LineReorderEdit, moveLineRange } from "../services/editorLineReorder";
-import type { MarkdownFoldState } from "../services/markdown/folding";
 import { triggerHaptic } from "./useHaptic";
 
 const AUTO_SCROLL_BOTTOM_EDGE_PX = 24;
@@ -44,7 +43,6 @@ type LineReorderDrag = LineRange &
 type UseEditorLineReorderOptions = {
   applyEdit: (edit: LineReorderEdit) => void;
   content: Accessor<string>;
-  foldState: Accessor<MarkdownFoldState>;
   getContainer: () => HTMLElement | undefined;
   getCursor: () => number;
   getEditor: () => HTMLElement | undefined;
@@ -61,15 +59,7 @@ export const useEditorLineReorder = (options: UseEditorLineReorderOptions) => {
 
   const canReorderLine = (lineIndex: number) => lineIndex > 0;
 
-  const getLineRange = (lineIndex: number): LineRange => {
-    const foldState = options.foldState();
-    const sectionId = foldState.lines[lineIndex]?.sectionId;
-    const section = sectionId ? foldState.sectionsById.get(sectionId) : undefined;
-
-    return section?.isFolded && section.lineIndex === lineIndex
-      ? { startLineIndex: section.lineIndex, endLineIndex: section.endLineIndex }
-      : { startLineIndex: lineIndex, endLineIndex: lineIndex };
-  };
+  const getLineRange = (lineIndex: number): LineRange => ({ startLineIndex: lineIndex, endLineIndex: lineIndex });
 
   const getVisibleScrollBounds = (scrollParent: HTMLElement) => {
     const rect = scrollParent.getBoundingClientRect();
@@ -286,7 +276,6 @@ export const useEditorLineReorder = (options: UseEditorLineReorderOptions) => {
 
   createEffect(() => {
     options.content();
-    options.foldState();
     queueSyncHandle();
   });
 

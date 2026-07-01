@@ -71,10 +71,6 @@
   line-height: calc(var(--line-pitch) * 2);
 }
 
-.md-line.is-fold-hidden {
-  display: none;
-}
-
 .editor.is-line-reordering {
   cursor: grabbing;
 }
@@ -135,55 +131,6 @@
 
 .line-reorder-drop-indicator.is-move {
   background: var(--main-color);
-}
-
-.fold-toggle {
-  --fold-toggle-hitbox-size: 34px;
-
-  appearance: none;
-  background: transparent;
-  border: 0;
-  border-radius: 4px;
-  color: color-mix(in srgb, var(--text-secondary-color) 65%, transparent);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  height: var(--fold-toggle-hitbox-size);
-  justify-content: center;
-  padding: 0;
-  position: absolute;
-  right: var(--editor-reorder-handle-width);
-  transform: translateY(-50%);
-  width: var(--fold-toggle-hitbox-size);
-  z-index: 3;
-  -webkit-touch-callout: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.fold-toggle svg {
-  height: 18px;
-  transform: rotate(90deg);
-  transition: transform 120ms ease;
-  width: 18px;
-}
-
-.fold-toggle.is-folded svg {
-  transform: rotate(0deg);
-}
-
-.fold-toggle.is-folded {
-  color: var(--text-secondary-color);
-}
-
-@media (hover: hover) {
-  .fold-toggle:hover {
-    color: var(--text-secondary-color);
-  }
-
-  .fold-toggle.is-folded:hover {
-    color: var(--text-color);
-  }
 }
 
 .editor[contenteditable="true"] > .md-line:first-child {

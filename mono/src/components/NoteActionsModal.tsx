@@ -66,12 +66,6 @@ const getActionSubtitle = (actionId: string) => {
       return "Press Shift+Tab on list items";
     case "remove-checked-tasks":
       return "Remove checked - [x] items";
-    case "toggle-fold":
-      return "Cycle all heading sections";
-    case "fold-all-sections":
-      return "Collapse all heading sections";
-    case "unfold-all-sections":
-      return "Expand all heading sections";
     default:
       return undefined;
   }
@@ -81,8 +75,6 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   const [frozenActionContext, setFrozenActionContext] = createSignal<NoteActionContext | null>(null);
   const [canUndo, setCanUndo] = createSignal(false);
   const [canRedo, setCanRedo] = createSignal(false);
-  const [canFoldAllSections, setCanFoldAllSections] = createSignal(false);
-  const [canUnfoldAllSections, setCanUnfoldAllSections] = createSignal(false);
   const [searchQuery, setSearchQuery] = createSignal("");
   const [searchKeyboardRequested, setSearchKeyboardRequested] = createSignal(false);
   const [focusedActionKey, setFocusedActionKey] = createSignal<string | null>(null);
@@ -235,8 +227,6 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
         setFrozenActionContext(readCurrentActionContext());
         setCanUndo(state?.canUndo ?? false);
         setCanRedo(state?.canRedo ?? false);
-        setCanFoldAllSections(editorApi?.canFoldAllSections() ?? false);
-        setCanUnfoldAllSections(editorApi?.canUnfoldAllSections() ?? false);
         if (searchKeyboardRequested()) {
           keyboard.focusInputSoon();
         }
@@ -252,8 +242,6 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
         setFrozenActionContext(null);
         setCanUndo(false);
         setCanRedo(false);
-        setCanFoldAllSections(false);
-        setCanUnfoldAllSections(false);
         setSearchQuery("");
         setSearchKeyboardClosed();
       });
@@ -270,24 +258,12 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
   const matchesSearch = (value: string) => searchMatches(value, searchQuery());
   const showUndo = createMemo(() => canUndo() && matchesSearch("Undo undo"));
   const showRedo = createMemo(() => canRedo() && matchesSearch("Redo redo"));
-  const showToggleFold = createMemo(
-    () => (canFoldAllSections() || canUnfoldAllSections()) && matchesSearch("Toggle Fold fold Ctrl O outline"),
-  );
-  const showFoldAllSections = createMemo(() => canFoldAllSections() && matchesSearch("Fold All Sections fold"));
-  const showUnfoldAllSections = createMemo(() => canUnfoldAllSections() && matchesSearch("Unfold All Sections unfold"));
   const showDelete = createMemo(() => matchesSearch("Delete Note delete"));
   const filteredActionItems = createMemo(() =>
     actionItems().filter((item) => matchesSearch(`${item.label} ${item.action.icon ?? ""}`)),
   );
   const hasVisibleActions = createMemo(
-    () =>
-      showUndo() ||
-      showRedo() ||
-      showToggleFold() ||
-      showFoldAllSections() ||
-      showUnfoldAllSections() ||
-      filteredActionItems().length > 0 ||
-      showDelete(),
+    () => showUndo() || showRedo() || filteredActionItems().length > 0 || showDelete(),
   );
 
   // Ordered keys for keyboard navigation. Matches the render order in ActionRows
@@ -296,9 +272,6 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
     const keys: string[] = [];
     if (showUndo()) keys.push("undo");
     if (showRedo()) keys.push("redo");
-    if (showToggleFold()) keys.push("toggle-fold");
-    if (showFoldAllSections()) keys.push("fold-all-sections");
-    if (showUnfoldAllSections()) keys.push("unfold-all-sections");
     for (const item of filteredActionItems()) keys.push(item.action.id);
     if (showDelete()) keys.push("delete");
     return keys;
@@ -369,34 +342,6 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
     await close(true);
   };
 
-  const handleToggleFold = async (close: (fast?: boolean) => Promise<void>) => {
-    const editorApi = props.getEditorApi?.();
-    if (!editorApi) return;
-    if (!editorApi.canFoldAllSections() && !editorApi.canUnfoldAllSections()) return;
-
-    // No focus(): folding doesn't edit text, and focusing would pop the iOS
-    // keyboard even when the editor was unfocused. An already-focused editor
-    // stays focused on its own (the modal doesn't steal focus on open).
-    editorApi.cycleFoldSections();
-    await close(true);
-  };
-
-  const handleFoldAllSections = async (close: (fast?: boolean) => Promise<void>) => {
-    const editorApi = props.getEditorApi?.();
-    if (!editorApi?.canFoldAllSections()) return;
-
-    editorApi.foldAllSections();
-    await close(true);
-  };
-
-  const handleUnfoldAllSections = async (close: (fast?: boolean) => Promise<void>) => {
-    const editorApi = props.getEditorApi?.();
-    if (!editorApi?.canUnfoldAllSections()) return;
-
-    editorApi.unfoldAllSections();
-    await close(true);
-  };
-
   const handleDelete = async (close: () => Promise<void>) => {
     const noteId = props.noteId;
     if (noteId === null) return;
@@ -444,33 +389,6 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
             class="note-action-redo"
             focused={focusedActionKey() === "redo"}
             onClick={() => void handleRedo(close)}
-          />
-        </Show>
-        <Show when={showToggleFold()}>
-          <ActionListItem
-            title="Toggle Fold"
-            subtitle={getActionSubtitle("toggle-fold")}
-            class="note-action-toggle-fold"
-            focused={focusedActionKey() === "toggle-fold"}
-            onClick={() => void handleToggleFold(close)}
-          />
-        </Show>
-        <Show when={showFoldAllSections()}>
-          <ActionListItem
-            title="Fold All Sections"
-            subtitle={getActionSubtitle("fold-all-sections")}
-            class="note-action-fold-all-sections"
-            focused={focusedActionKey() === "fold-all-sections"}
-            onClick={() => void handleFoldAllSections(close)}
-          />
-        </Show>
-        <Show when={showUnfoldAllSections()}>
-          <ActionListItem
-            title="Unfold All Sections"
-            subtitle={getActionSubtitle("unfold-all-sections")}
-            class="note-action-unfold-all-sections"
-            focused={focusedActionKey() === "unfold-all-sections"}
-            onClick={() => void handleUnfoldAllSections(close)}
           />
         </Show>
         <For each={filteredActionItems()}>

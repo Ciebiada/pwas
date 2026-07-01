@@ -1,7 +1,5 @@
 // Shared per-line tokenizer. A single source of truth for block classification,
-// code-fence tracking, and heading detection — consumed by both the renderer
-// (src/services/markdown/renderer.tsx) and the fold-state builder
-// (src/services/markdown/folding.ts).
+// code-fence tracking, and heading detection.
 
 export type LineTokenType =
   | "h1"
@@ -22,11 +20,6 @@ export type LineToken = {
   disableInlineMarkdown?: boolean;
   codeBlockId?: string;
   codeFenceKind?: "open" | "close";
-};
-
-export type LineHeading = {
-  level: 1 | 2 | 3;
-  text: string;
 };
 
 export const CODE_FENCE = "```";
@@ -122,20 +115,4 @@ export const tokenizeLines = (markdown: string): LineToken[] => {
   }
 
   return tokens;
-};
-
-// A line is a foldable heading when it tokenizes as a heading. Headings inside a
-// code block tokenize as `codeContent`, and the title line (index 0) tokenizes
-// as a paragraph, so both are naturally excluded.
-export const getLineHeading = (token: LineToken): LineHeading | null => {
-  switch (token.type) {
-    case "h1":
-      return { level: 1, text: token.content };
-    case "h2":
-      return { level: 2, text: token.content };
-    case "h3":
-      return { level: 3, text: token.content };
-    default:
-      return null;
-  }
 };
