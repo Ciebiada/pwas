@@ -274,14 +274,17 @@ export const moveFile = async (fromPath: string, toPath: string): Promise<Dropbo
       size?: number;
       server_modified?: string;
       ".tag": string;
+      metadata?: unknown;
     };
+    const actualEntry = (entry.metadata || entry) as typeof entry;
+
     return {
-      id: entry.id,
-      name: entry.name,
-      path: entry.path_display || "",
-      isFolder: entry[".tag"] === "folder",
-      size: entry.size || 0,
-      lastModified: entry.server_modified || "",
+      id: actualEntry.id,
+      name: actualEntry.name,
+      path: actualEntry.path_display || "",
+      isFolder: actualEntry[".tag"] === "folder",
+      size: actualEntry.size || 0,
+      lastModified: actualEntry.server_modified || "",
     };
   });
 };

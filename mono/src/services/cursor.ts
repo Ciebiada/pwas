@@ -137,6 +137,13 @@ const findRangeInChild = (child: Node, offsetInBlock: number): Range | null => {
 
         const targetOffset = offsetInBlock - nodeOffset;
         const actualOffset = findActualOffset(text, targetOffset);
+        const delimiter = node.parentElement?.classList.contains("markdown-delimiter") ? node.parentElement : null;
+        const inlineFormat = delimiter?.closest(".md-inline-format");
+        if (inlineFormat && delimiter === inlineFormat.lastElementChild && actualOffset === text.length) {
+          range.setStartAfter(inlineFormat);
+          range.collapse(true);
+          return range;
+        }
         range.setStart(node, actualOffset);
         range.collapse(true);
         return range;

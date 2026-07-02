@@ -7,6 +7,7 @@ import { useIOSKeyboardDismiss } from "../hooks/useIOSKeyboardDismiss";
 import { useIOSKeyboardHeightScroll } from "../hooks/useIOSKeyboardHeightScroll";
 import { usePrettyCaret } from "../hooks/usePrettyCaret";
 import { usePrettyCheckboxes } from "../hooks/usePrettyCheckboxes";
+import { useWikiLinkCompletion } from "../hooks/useWikiLinkCompletion";
 import {
   calculateCursorPosition,
   getSelection,
@@ -26,6 +27,7 @@ import {
   isPrettyCheckboxesEnabled,
 } from "../services/preferences";
 import { TouchHint } from "./TouchHint";
+import { WikiLinkCompletionMenu } from "./WikiLinkCompletionMenu";
 import "./Editor.css";
 
 export type EditorSelection = {
@@ -62,6 +64,9 @@ type EditorProps = {
   onReady?: (api: EditorAPI) => void;
   onChange?: (name: string, content: string) => void;
   onCursorChange?: (cursor: number) => void;
+  getWikiLinkSuggestions?: (query: string) => string[] | Promise<string[]>;
+  onWikiLinkOpen?: (title: string, href: string) => void;
+  getWikiLinkHref?: (title: string) => string;
 };
 
 export const Editor = (_props: EditorProps) => {
@@ -83,6 +88,8 @@ export const Editor = (_props: EditorProps) => {
   let syncLineReorderHandle = () => {};
   let syncPrettyCaret = () => {};
   let isLineReordering = () => false;
+  let refreshWikiCompletionHandle = (_selection?: EditorSelection) => {};
+  let closeWikiCompletionHandle = () => {};
   if (isPrettyCaretEnabled()) {
     const prettyCaret = usePrettyCaret(
       () => container,
@@ -102,6 +109,7 @@ export const Editor = (_props: EditorProps) => {
       lastSelection = selection;
       props.onCursorChange?.(selection.start);
       syncLineReorderHandle();
+      refreshWikiCompletionHandle(selection);
     },
   });
 
@@ -166,6 +174,7 @@ export const Editor = (_props: EditorProps) => {
     requestAnimationFrame(() => {
       scrollCursorIntoView(window.getSelection()!, "smooth");
     });
+    refreshWikiCompletionHandle(nextSelection);
   };
 
   const history = useEditorHistory({
@@ -181,6 +190,15 @@ export const Editor = (_props: EditorProps) => {
     history.record(newContent, inputType, nextSelection);
     applyContent(newContent, nextSelection);
   };
+
+  const wikiCompletion = useWikiLinkCompletion({
+    applyEdit,
+    content,
+    getEditor: () => editor,
+    getSuggestions: props.getWikiLinkSuggestions,
+  });
+  refreshWikiCompletionHandle = wikiCompletion.refresh;
+  closeWikiCompletionHandle = wikiCompletion.close;
 
   const applyLineReorderEdit = (edit: { content: string; selection: EditorSelection }) => {
     if (isIOS) ignoreIOSKeyboardBlurForReorder();
@@ -234,6 +252,7 @@ export const Editor = (_props: EditorProps) => {
 
         history.reset();
         setContent(newContent);
+        closeWikiCompletionHandle();
         requestAnimationFrame(() => {
           applySelection({
             start: newCursor,
@@ -265,6 +284,8 @@ export const Editor = (_props: EditorProps) => {
   const onTextInput = (event: InputEvent) => (iosReplacementText = event.data || "");
 
   const handleKeyDown = (event: KeyboardEvent) => {
+    if (wikiCompletion.handleKeyDown(event)) return;
+
     if (event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === "y") {
       event.preventDefault();
       history.redo();
@@ -381,8 +402,23 @@ export const Editor = (_props: EditorProps) => {
         onCopy={handleCopy}
         onCut={handleCut}
       >
-        <EditorContent content={content} onCheckboxToggle={handleCheckboxToggle} />
+        <EditorContent
+          content={content}
+          onCheckboxToggle={handleCheckboxToggle}
+          wikiLinkHandlers={{
+            onClick: props.onWikiLinkOpen,
+            getHref: props.getWikiLinkHref,
+          }}
+        />
       </div>
+      <WikiLinkCompletionMenu
+        visible={wikiCompletion.isOpen}
+        options={wikiCompletion.options}
+        selectedIndex={wikiCompletion.selectedIndex}
+        position={wikiCompletion.position}
+        setRef={wikiCompletion.setMenuRef}
+        onSelect={wikiCompletion.accept}
+      />
       <Show when={lineReorder.handle()}>
         {(handle) => (
           <button

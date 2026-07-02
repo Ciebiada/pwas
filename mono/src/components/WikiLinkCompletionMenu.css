@@ -1,0 +1,40 @@
+.wiki-link-completion {
+  background: var(--bg-color);
+  border: 1px solid color-mix(in srgb, var(--text-secondary-color) 22%, transparent);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px color-mix(in srgb, #000 18%, transparent);
+  display: flex;
+  flex-direction: column;
+  max-height: min(240px, 40vh);
+  min-width: min(280px, calc(100vw - 16px));
+  overflow-y: auto;
+  position: fixed;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  z-index: 4;
+}
+
+.wiki-link-completion button {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--text-color);
+  display: flex;
+  font: inherit;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 40px;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.wiki-link-completion button.selected,
+.wiki-link-completion button:hover {
+  background: color-mix(in srgb, var(--main-color) 12%, transparent);
+}
+
+.wiki-link-create-label {
+  color: var(--text-secondary-color);
+  font-size: 0.85em;
+}

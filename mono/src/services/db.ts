@@ -1,5 +1,4 @@
 import Dexie, { type EntityTable } from "dexie";
-
 export type Note = {
   id: number;
   name: string;
@@ -100,5 +99,9 @@ db.version(9)
 // storage and slows writes. Dexie drops the unused indexes automatically on this
 // version bump; no data migration is needed.
 db.version(10).stores({
+  notes: "++id, lastModified",
+});
+
+db.version(11).stores({
   notes: "++id, lastModified",
 });

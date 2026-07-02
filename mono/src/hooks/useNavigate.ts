@@ -9,6 +9,11 @@ const asyncSpinLock = async (predicate: () => boolean) => {
   }
 };
 
+const ignoreSkippedTransition = (error: unknown) => {
+  if (error instanceof DOMException && error.name === "AbortError") return;
+  console.error("Navigation transition failed", error);
+};
+
 export const useNavigate = () => {
   const navigate = _useNavigate();
   const isRouting = useIsRouting();
@@ -38,6 +43,9 @@ export const useNavigate = () => {
       await executeNavigation();
       await asyncSpinLock(isRouting);
     });
+    transition.ready.catch(ignoreSkippedTransition);
+    transition.updateCallbackDone.catch(ignoreSkippedTransition);
+    transition.finished.catch(ignoreSkippedTransition);
 
     if (options?.back) {
       transition.types?.add("back-transition");

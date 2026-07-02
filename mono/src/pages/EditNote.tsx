@@ -1,5 +1,5 @@
 import { useParams } from "@solidjs/router";
-import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { Header, HeaderButton } from "ui/Header";
 import { BackIcon, MoreIcon } from "ui/Icons";
 import { Page } from "ui/Page";
@@ -7,29 +7,39 @@ import { isIOS } from "ui/platform";
 import { Editor, type EditorAPI } from "../components/Editor";
 import { NoteActionsModal, type NoteActionsModalAPI } from "../components/NoteActionsModal";
 import { useNavigate } from "../hooks/useNavigate";
-import { db } from "../services/db";
+import { db, type Note } from "../services/db";
 import { debounce } from "../services/debounce";
-import { createDexieSignalQuery } from "../services/solid-dexie";
+import {
+  allocateUniqueNoteName,
+  findNoteByNameFromNotes,
+  getWikiLinkSuggestionsFromNotes,
+} from "../services/noteNames";
+import { createDexieArrayQuery, createDexieSignalQuery } from "../services/solid-dexie";
 import { syncNote } from "../services/sync";
 
 export const EditNote = () => {
   const navigate = useNavigate();
-  const noteId = parseInt(useParams().id ?? "0", 10);
+  const params = useParams();
+  const noteId = createMemo(() => parseInt(params.id ?? "0", 10));
   const [modalOpen, setModalOpen] = createSignal(false);
-  let editorApi: EditorAPI;
+  let editorApi: EditorAPI | undefined;
   let noteActionsModalApi: NoteActionsModalAPI | undefined;
   let lastSeenSync = 0;
-  let initialized = false;
+  let initializedNoteId: number | undefined;
 
-  const note = createDexieSignalQuery(() => db.notes.get(noteId));
+  const note = createDexieSignalQuery(() => db.notes.get(noteId()));
+  const [editorNote, setEditorNote] = createSignal<Note>();
+  const linkableNotes = createDexieArrayQuery(() =>
+    db.notes.filter((note) => note.status !== "pending-delete" && note.name.trim().length > 0).toArray(),
+  );
 
-  const handleFocusSync = () => syncNote(noteId);
+  const handleFocusSync = () => syncNote(noteId());
 
   onMount(async () => {
-    syncNote(noteId);
+    syncNote(noteId());
     window.addEventListener("focus", handleFocusSync);
 
-    const n = await db.notes.get(noteId);
+    const n = await db.notes.get(noteId());
     if (!n) navigate("/", { replace: true });
   });
 
@@ -41,34 +51,55 @@ export const EditNote = () => {
     const n = note();
     if (!n) return;
 
-    if (!initialized) {
-      initialized = true;
-      db.notes.update(n.id, { lastOpened: Date.now() });
+    if (editorNote()?.id !== n.id) {
+      editorApi = undefined;
+      setEditorNote(n);
       lastSeenSync = n.lastRemoteUpdate || 0;
+    }
+
+    if (initializedNoteId !== n.id) {
+      initializedNoteId = n.id;
+      db.notes.update(n.id, { lastOpened: Date.now() });
       return;
     }
 
     if (n.lastRemoteUpdate && n.lastRemoteUpdate > lastSeenSync) {
       console.log("Remote update detected, refreshing editor content");
       lastSeenSync = n.lastRemoteUpdate;
-      editorApi.replaceContent(n.name, n.content);
+      editorApi?.replaceContent(n.name, n.content);
     }
   });
 
-  const debouncedSync = debounce(() => syncNote(noteId), 500);
+  const debouncedSync = debounce(() => syncNote(noteId()), 500);
 
   const handleNoteChange = async (name: string, content: string) => {
-    await db.notes.update(noteId, {
-      name,
+    const currentNoteId = noteId();
+    const nextName = name.trim() ? await allocateUniqueNoteName(name, currentNoteId) : "";
+    await db.notes.update(currentNoteId, {
+      name: nextName,
       content,
       status: "pending",
       lastModified: Date.now(),
     });
+    if (nextName !== name.trim()) {
+      editorApi?.replaceContent(nextName, content);
+    }
     debouncedSync();
   };
 
+  const getWikiLinkHref = (title: string) => {
+    const displayTitle = title.trim();
+    const linkedNote = findNoteByNameFromNotes(displayTitle, linkableNotes.data);
+    return linkedNote ? `/note/${linkedNote.id}` : `/new?name=${encodeURIComponent(displayTitle)}`;
+  };
+
+  const getWikiLinkSuggestions = (query: string) =>
+    getWikiLinkSuggestionsFromNotes(query, linkableNotes.data, noteId()).map((note) => note.name);
+
+  const handleWikiLinkOpen = (_title: string, href: string) => navigate(href);
+
   const handleCursorChange = async (cursor: number) => {
-    await db.notes.update(noteId, { cursor });
+    await db.notes.update(noteId(), { cursor });
   };
 
   const prepareOpenNoteActions = () => {
@@ -120,23 +151,28 @@ export const EditNote = () => {
       </Header>
       <Page>
         <div class="page-content">
-          <Show when={note()}>
-            <Editor
-              initialContent={`${note()!.name}${note()!.content ? `\n${note()!.content}` : ""}`}
-              initialCursor={note()!.cursor}
-              autoFocus
-              onReady={(api) => (editorApi = api)}
-              onChange={handleNoteChange}
-              onCursorChange={handleCursorChange}
-            />
+          <Show when={editorNote()} keyed>
+            {(currentNote) => (
+              <Editor
+                initialContent={`${currentNote.name}${currentNote.content ? `\n${currentNote.content}` : ""}`}
+                initialCursor={currentNote.cursor}
+                autoFocus
+                onReady={(api) => (editorApi = api)}
+                onChange={handleNoteChange}
+                onCursorChange={handleCursorChange}
+                getWikiLinkSuggestions={getWikiLinkSuggestions}
+                onWikiLinkOpen={handleWikiLinkOpen}
+                getWikiLinkHref={getWikiLinkHref}
+              />
+            )}
           </Show>
         </div>
       </Page>
       <NoteActionsModal
-        noteId={noteId}
+        noteId={noteId()}
         open={modalOpen}
         setOpen={setModalOpen}
-        getEditorApi={() => editorApi}
+        getEditorApi={() => editorApi!}
         onReady={(api) => (noteActionsModalApi = api)}
         onDelete={() => navigate(-1, { back: true })}
       />

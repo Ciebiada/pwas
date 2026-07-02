@@ -1,5 +1,6 @@
 import DiffMatchPatch from "diff-match-patch";
 import { db, type Note } from "./db";
+import { allocateUniqueNoteName } from "./noteNames";
 import { DropboxProvider } from "./sync/dropboxProvider";
 import { GoogleDriveProvider } from "./sync/googleDriveProvider";
 import type { RemoteFile, SyncProvider } from "./sync/syncProvider";
@@ -180,7 +181,7 @@ const handleLocalChanges = async (
   let syncedContent = note.syncedContent;
   const remoteId = getRemoteId(note, provider.name) || remoteMetadata.id; // Should have it by now
 
-  if (!syncedContent && remoteId) {
+  if (syncedContent === undefined && remoteId) {
     console.log(`Backfilling syncedContent from ${provider.name} for: ${note.name}`);
     syncedContent = await provider.downloadFile(remoteId);
     await db.notes.update(note.id, { syncedContent });
@@ -212,7 +213,7 @@ const handleRename = async (note: Note, remoteMetadata: RemoteFile, provider: Sy
 
     if (Number.isNaN(newLastSync) || newLastSync === 0) {
       // Fallback if provider doesn't return full metadata on move
-      const meta = await provider.getFileMetadata(newRemoteId);
+      const meta = await provider.getFileMetadata(movedFile.path || newRemoteId);
       if (meta) {
         newLastSync = new Date(meta.lastModified).getTime();
         newRemoteId = meta.id;
@@ -265,12 +266,13 @@ const handleRemoteChanges = async (
 
     if (localContent === baseContent) {
       console.log(`Fast-forwarding local note to match ${provider.name}: ${currentNote.name}`);
-      const newName = remoteMetadata.name.replace(/\.md$/, "");
+      const remoteName = remoteMetadata.name.replace(/\.md$/, "");
+      const newName = await allocateUniqueNoteName(remoteName, currentNote.id);
 
       await db.notes.update(currentNote.id, {
         name: newName,
         content: remoteContent,
-        status: "synced",
+        status: newName === remoteName ? "synced" : "pending",
         lastSync: remoteModified,
         syncedContent: remoteContent,
         lastModified: remoteModified,
@@ -387,15 +389,14 @@ const importRemoteNotes = async (
   provider: SyncProvider,
 ): Promise<void> => {
   const notesByRemoteId = new Map(localNotes.map((note) => [getRemoteId(note, provider.name), note]));
-  const notesByFilename = new Map(localNotes.map((note) => [`${note.name}.md`, note]));
 
   for (const file of remoteFiles) {
-    const existingNote = notesByRemoteId.get(file.id) || notesByFilename.get(file.name);
+    const existingNote = notesByRemoteId.get(file.id);
 
     if (!existingNote) {
       console.log(`Importing note from ${provider.name}: ${file.name}`);
       const content = await provider.downloadFile(file.id);
-      const name = file.name.replace(/\.md$/, "");
+      const name = await allocateUniqueNoteName(file.name.replace(/\.md$/, ""));
 
       const newNote: Omit<Note, "id"> = {
         name,

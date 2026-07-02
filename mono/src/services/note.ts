@@ -6,3 +6,5 @@ export const splitNote = (s: string) => {
     content: s.slice(i + 1),
   };
 };
+
+export const normalizeNoteName = (name: string) => name.trim().toLocaleLowerCase();

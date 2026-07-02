@@ -4,13 +4,14 @@ import { triggerHaptic } from "../../hooks/useHaptic";
 import { matchInlineFormatAt } from "./inlineFormat";
 import { CODE_FENCE, type LineToken, tokenizeLines } from "./tokenize";
 
-type InlineTokenType = "text" | "strong" | "emphasis" | "strikethrough" | "link" | "code";
+type InlineTokenType = "text" | "strong" | "emphasis" | "strikethrough" | "link" | "wikiLink" | "code";
 
 type InlineToken = {
   type: InlineTokenType;
   content: string;
   delimiter?: string;
   url?: string;
+  title?: string;
   raw?: string;
 };
 
@@ -30,10 +31,25 @@ type TableRow = {
 
 type RenderSegment = { kind: "line"; index: number; token: BlockToken } | { kind: "table"; rows: TableRow[] };
 
+type WikiLinkHandlers = {
+  onClick?: (title: string, href: string) => void;
+  getHref?: (title: string) => string;
+};
+
 const INLINE_TRIGGER_CHARS = new Set(["`", "[", "h", "H", "w", "W", "*", "_", "~"]);
 
 const INLINE_PATTERNS: InlinePattern[] = [
   { type: "code", regex: /^`([^`]+)`/, delimiter: "`" },
+  {
+    type: "wikiLink",
+    regex: /^\[\[([^\]\n]+)\]\]/,
+    createToken: (match) => ({
+      type: "wikiLink",
+      content: match[1],
+      title: match[1],
+      raw: match[0],
+    }),
+  },
   {
     type: "link",
     regex: /^\[([^\]]*)\]\(([^)]*)\)/,
@@ -112,7 +128,30 @@ const wrapWithDelimiters = (content: string, delimiter: string) => (
   </>
 );
 
-const renderInlineToken = (token: InlineToken) => {
+const WikiLink = (props: { title: string; handlers?: WikiLinkHandlers }) => {
+  const href = createMemo(
+    () => props.handlers?.getHref?.(props.title) || `/new?name=${encodeURIComponent(props.title)}`,
+  );
+
+  return (
+    <a
+      href={href()}
+      class="md-link md-wiki-link md-inline-format"
+      style={{ cursor: "pointer" }}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={(e) => {
+        e.preventDefault();
+        props.handlers?.onClick?.(props.title, href());
+      }}
+    >
+      <span class="markdown-delimiter">[[</span>
+      {props.title}
+      <span class="markdown-delimiter">]]</span>
+    </a>
+  );
+};
+
+const renderInlineToken = (token: InlineToken, wikiLinkHandlers?: WikiLinkHandlers) => {
   switch (token.type) {
     case "strong":
       return (
@@ -144,6 +183,8 @@ const renderInlineToken = (token: InlineToken) => {
           {token.raw}
         </a>
       );
+    case "wikiLink":
+      return <WikiLink title={token.title!} handlers={wikiLinkHandlers} />;
     case "code":
       return <code class="md-inline-code md-inline-format">{wrapWithDelimiters(token.content, token.delimiter!)}</code>;
     default:
@@ -151,12 +192,13 @@ const renderInlineToken = (token: InlineToken) => {
   }
 };
 
-const renderInlineMarkdown = (text: string) => parseInlineMarkdown(text).map(renderInlineToken);
+const renderInlineMarkdown = (text: string, wikiLinkHandlers?: WikiLinkHandlers) =>
+  parseInlineMarkdown(text).map((token) => renderInlineToken(token, wikiLinkHandlers));
 
-const renderBlockContent = (block: BlockToken) => (
+const renderBlockContent = (block: BlockToken, wikiLinkHandlers?: WikiLinkHandlers) => (
   <>
     <span class="markdown-prefix">{block.prefix}</span>
-    {block.content ? renderInlineMarkdown(block.content) : "\u200B"}
+    {block.content ? renderInlineMarkdown(block.content, wikiLinkHandlers) : "\u200B"}
   </>
 );
 
@@ -234,10 +276,15 @@ const renderListItem = (
   );
 };
 
-const renderBlock = (block: BlockToken, index: number, onCheckboxToggle?: (lineIndex: number) => void) => {
+const renderBlock = (
+  block: BlockToken,
+  index: number,
+  onCheckboxToggle?: (lineIndex: number) => void,
+  wikiLinkHandlers?: WikiLinkHandlers,
+) => {
   const blockClassName = block.type === "paragraph" ? "text" : block.type;
   const className = `md-line md-${blockClassName}`;
-  const content = renderBlockContent(block);
+  const content = renderBlockContent(block, wikiLinkHandlers);
   const codeBlockProps = block.codeBlockId ? { "data-code-block-id": block.codeBlockId } : {};
 
   switch (block.type) {
@@ -250,7 +297,7 @@ const renderBlock = (block: BlockToken, index: number, onCheckboxToggle?: (lineI
     case "orderedList":
       return renderListItem(block, index, className, content, onCheckboxToggle);
     case "table":
-      return <div class={className}>{renderBlockContent(block)}</div>;
+      return <div class={className}>{renderBlockContent(block, wikiLinkHandlers)}</div>;
     case "codeFence":
       return (
         <div
@@ -269,18 +316,20 @@ const renderBlock = (block: BlockToken, index: number, onCheckboxToggle?: (lineI
       );
     default:
       return block.content ? (
-        <div class={className}>{block.disableInlineMarkdown ? block.content : renderInlineMarkdown(block.content)}</div>
+        <div class={className}>
+          {block.disableInlineMarkdown ? block.content : renderInlineMarkdown(block.content, wikiLinkHandlers)}
+        </div>
       ) : (
         <div class={`${className} empty`}>{"\u200B"}</div>
       );
   }
 };
 
-const renderTableGroup = (rows: TableRow[]) => (
+const renderTableGroup = (rows: TableRow[], wikiLinkHandlers?: WikiLinkHandlers) => (
   <div class="md-table-scroll">
     <div class="md-table-group">
       {rows.map((row) => (
-        <div class="md-line md-table">{renderBlockContent(row.token)}</div>
+        <div class="md-line md-table">{renderBlockContent(row.token, wikiLinkHandlers)}</div>
       ))}
     </div>
   </div>
@@ -333,14 +382,19 @@ const segmentSignature = (segment: RenderSegment): string => {
   ].join(SIGNATURE_SEP);
 };
 
-const renderSegment = (segment: RenderSegment, onCheckboxToggle?: (lineIndex: number) => void): JSX.Element => {
-  if (segment.kind === "table") return renderTableGroup(segment.rows);
-  return renderBlock(segment.token, segment.index, onCheckboxToggle);
+const renderSegment = (
+  segment: RenderSegment,
+  onCheckboxToggle?: (lineIndex: number) => void,
+  wikiLinkHandlers?: WikiLinkHandlers,
+): JSX.Element => {
+  if (segment.kind === "table") return renderTableGroup(segment.rows, wikiLinkHandlers);
+  return renderBlock(segment.token, segment.index, onCheckboxToggle, wikiLinkHandlers);
 };
 
 type EditorContentProps = {
   content: () => string;
   onCheckboxToggle?: (lineIndex: number) => void;
+  wikiLinkHandlers?: WikiLinkHandlers;
 };
 
 // Per-line rendering: each segment memoizes its rendered DOM node keyed on its
@@ -353,7 +407,9 @@ export const EditorContent = (props: EditorContentProps): JSX.Element => {
     <Index each={segments()}>
       {(segment) => {
         const signature = createMemo(() => segmentSignature(segment()));
-        const node = createMemo(on(signature, () => renderSegment(segment(), props.onCheckboxToggle)));
+        const node = createMemo(
+          on(signature, () => renderSegment(segment(), props.onCheckboxToggle, props.wikiLinkHandlers)),
+        );
         return <>{node()}</>;
       }}
     </Index>
