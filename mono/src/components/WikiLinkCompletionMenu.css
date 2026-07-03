@@ -7,11 +7,17 @@
   flex-direction: column;
   max-height: min(240px, 40vh);
   min-width: min(280px, calc(100vw - 16px));
-  overflow-y: auto;
+  overflow-y: scroll;
+  overscroll-behavior-y: contain;
   position: fixed;
+  scrollbar-width: none;
   width: max-content;
   max-width: calc(100vw - 16px);
-  z-index: 4;
+  z-index: 1001;
+}
+
+.wiki-link-completion::-webkit-scrollbar {
+  display: none;
 }
 
 .wiki-link-completion button {

@@ -132,6 +132,7 @@ export const Editor = (_props: EditorProps) => {
 
   const handleEditorBlur = () => {
     syncSelectionPresentation();
+    closeWikiCompletionHandle();
   };
 
   const emitChange = () => {
@@ -164,16 +165,18 @@ export const Editor = (_props: EditorProps) => {
         }
       : selection;
 
-  const applyContent = (newContent: string, selection: number | EditorSelection) => {
+  const applyContent = (newContent: string, selection: number | EditorSelection, scroll = true) => {
     const nextSelection = toSelection(selection);
 
     setContent(newContent);
     applySelection(nextSelection);
     syncSelectionPresentation();
     emitChange();
-    requestAnimationFrame(() => {
-      scrollCursorIntoView(window.getSelection()!, "smooth");
-    });
+    if (scroll) {
+      requestAnimationFrame(() => {
+        scrollCursorIntoView(window.getSelection()!, "smooth");
+      });
+    }
     refreshWikiCompletionHandle(nextSelection);
   };
 
@@ -188,7 +191,7 @@ export const Editor = (_props: EditorProps) => {
   const applyEdit = (newContent: string, selection: number | EditorSelection, inputType?: string) => {
     const nextSelection = toSelection(selection);
     history.record(newContent, inputType, nextSelection);
-    applyContent(newContent, nextSelection);
+    applyContent(newContent, nextSelection, inputType !== "insertWikiLink");
   };
 
   const wikiCompletion = useWikiLinkCompletion({
