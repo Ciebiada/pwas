@@ -137,7 +137,6 @@ const WikiLink = (props: { title: string; handlers?: WikiLinkHandlers }) => {
     <a
       href={href()}
       class="md-link md-wiki-link md-inline-format"
-      style={{ cursor: "pointer" }}
       onMouseDown={(e) => e.preventDefault()}
       onClick={(e) => {
         e.preventDefault();

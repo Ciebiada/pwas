@@ -5,7 +5,6 @@
   box-shadow: 0 8px 24px color-mix(in srgb, #000 18%, transparent);
   display: flex;
   flex-direction: column;
-  max-height: min(240px, 40vh);
   min-width: min(280px, calc(100vw - 16px));
   overflow-y: scroll;
   overscroll-behavior-y: contain;

@@ -9,7 +9,7 @@ export const NewNote = () => {
   const [searchParams] = useSearchParams();
 
   onMount(async () => {
-    const name = searchParams.name ? await allocateUniqueNoteName(searchParams.name) : "";
+    const name = searchParams.name ? await allocateUniqueNoteName(String(searchParams.name)) : "";
     const id = await db.notes.add({
       name,
       content: "",

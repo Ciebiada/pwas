@@ -7,7 +7,7 @@ import { useIOSKeyboardDismiss } from "../hooks/useIOSKeyboardDismiss";
 import { useIOSKeyboardHeightScroll } from "../hooks/useIOSKeyboardHeightScroll";
 import { usePrettyCaret } from "../hooks/usePrettyCaret";
 import { usePrettyCheckboxes } from "../hooks/usePrettyCheckboxes";
-import { useWikiLinkCompletion } from "../hooks/useWikiLinkCompletion";
+import { INSERT_WIKI_LINK_INPUT_TYPE, useWikiLinkCompletion } from "../hooks/useWikiLinkCompletion";
 import {
   calculateCursorPosition,
   getSelection,
@@ -88,7 +88,7 @@ export const Editor = (_props: EditorProps) => {
   let syncLineReorderHandle = () => {};
   let syncPrettyCaret = () => {};
   let isLineReordering = () => false;
-  let refreshWikiCompletionHandle = (_selection?: EditorSelection) => {};
+  let refreshWikiCompletionHandle = (_selection: EditorSelection) => Promise.resolve();
   let closeWikiCompletionHandle = () => {};
   if (isPrettyCaretEnabled()) {
     const prettyCaret = usePrettyCaret(
@@ -191,7 +191,7 @@ export const Editor = (_props: EditorProps) => {
   const applyEdit = (newContent: string, selection: number | EditorSelection, inputType?: string) => {
     const nextSelection = toSelection(selection);
     history.record(newContent, inputType, nextSelection);
-    applyContent(newContent, nextSelection, inputType !== "insertWikiLink");
+    applyContent(newContent, nextSelection, inputType !== INSERT_WIKI_LINK_INPUT_TYPE);
   };
 
   const wikiCompletion = useWikiLinkCompletion({
@@ -202,6 +202,11 @@ export const Editor = (_props: EditorProps) => {
   });
   refreshWikiCompletionHandle = wikiCompletion.refresh;
   closeWikiCompletionHandle = wikiCompletion.close;
+
+  const wikiLinkHandlers = createMemo(() => ({
+    onClick: props.onWikiLinkOpen,
+    getHref: props.getWikiLinkHref,
+  }));
 
   const applyLineReorderEdit = (edit: { content: string; selection: EditorSelection }) => {
     if (isIOS) ignoreIOSKeyboardBlurForReorder();
@@ -408,10 +413,7 @@ export const Editor = (_props: EditorProps) => {
         <EditorContent
           content={content}
           onCheckboxToggle={handleCheckboxToggle}
-          wikiLinkHandlers={{
-            onClick: props.onWikiLinkOpen,
-            getHref: props.getWikiLinkHref,
-          }}
+          wikiLinkHandlers={wikiLinkHandlers()}
         />
       </div>
       <WikiLinkCompletionMenu

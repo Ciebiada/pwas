@@ -3,13 +3,11 @@ import { normalizeNoteName } from "./note";
 
 const NUMBERED_NAME_PATTERN = /^(.*\S)\s+(\d+)$/;
 
-export const normalizeNameForComparison = normalizeNoteName;
-
 export const getDisplayNoteName = (name: string) => name.trim();
 
-const getComparableNoteName = (note: Pick<Note, "name">) => normalizeNameForComparison(note.name);
+const getComparableNoteName = (note: Pick<Note, "name">) => normalizeNoteName(note.name);
 
-const getNumberedParts = (name: string) => {
+const getNumberedBase = (name: string) => {
   const match = name.match(NUMBERED_NAME_PATTERN);
   if (!match) return { base: name.trim() };
 
@@ -24,7 +22,7 @@ export const allocateUniqueNoteNameFromNotes = (
   currentNoteId?: number,
 ) => {
   const displayName = getDisplayNoteName(requestedName);
-  const normalizedName = normalizeNameForComparison(displayName);
+  const normalizedName = normalizeNoteName(displayName);
   if (!normalizedName) return "";
 
   const existingNames = new Set(
@@ -37,10 +35,10 @@ export const allocateUniqueNoteNameFromNotes = (
 
   if (!existingNames.has(normalizedName)) return displayName;
 
-  const { base } = getNumberedParts(displayName);
+  const { base } = getNumberedBase(displayName);
   let nextNumber = 2;
   let nextName = `${base} ${nextNumber}`;
-  while (existingNames.has(normalizeNameForComparison(nextName))) {
+  while (existingNames.has(normalizeNoteName(nextName))) {
     nextNumber += 1;
     nextName = `${base} ${nextNumber}`;
   }
@@ -55,7 +53,7 @@ export const findNoteByNameFromNotes = <T extends Pick<Note, "id" | "name" | "st
   const displayName = getDisplayNoteName(name);
   if (!displayName) return undefined;
 
-  const normalizedName = normalizeNameForComparison(displayName);
+  const normalizedName = normalizeNoteName(displayName);
   return notes.find((note) => note.status !== "pending-delete" && getComparableNoteName(note) === normalizedName);
 };
 
@@ -65,7 +63,7 @@ export const getWikiLinkSuggestionsFromNotes = <T extends Pick<Note, "id" | "nam
   currentNoteId?: number,
   limit = 8,
 ) => {
-  const normalizedQuery = normalizeNameForComparison(query);
+  const normalizedQuery = normalizeNoteName(query);
   const byName = (a: T, b: T) => a.name.localeCompare(b.name);
 
   const rankMatch = (note: T) => {

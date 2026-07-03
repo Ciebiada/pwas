@@ -9,8 +9,9 @@ import { NoteActionsModal, type NoteActionsModalAPI } from "../components/NoteAc
 import { useNavigate } from "../hooks/useNavigate";
 import { db, type Note } from "../services/db";
 import { debounce } from "../services/debounce";
+import { splitNote } from "../services/note";
 import {
-  allocateUniqueNoteName,
+  allocateUniqueNoteNameFromNotes,
   findNoteByNameFromNotes,
   getWikiLinkSuggestionsFromNotes,
 } from "../services/noteNames";
@@ -70,21 +71,22 @@ export const EditNote = () => {
     }
   });
 
-  const debouncedSync = debounce(() => syncNote(noteId()), 500);
-
-  const handleNoteChange = async (name: string, content: string) => {
-    const currentNoteId = noteId();
-    const nextName = name.trim() ? await allocateUniqueNoteName(name, currentNoteId) : "";
-    await db.notes.update(currentNoteId, {
+  const debouncedSave = debounce(async (snapshot: { id: number; content: string }) => {
+    const { name, content: body } = splitNote(snapshot.content);
+    const nextName = name.trim() ? allocateUniqueNoteNameFromNotes(name.trim(), linkableNotes.data, snapshot.id) : "";
+    await db.notes.update(snapshot.id, {
       name: nextName,
-      content,
+      content: body,
       status: "pending",
       lastModified: Date.now(),
     });
-    if (nextName !== name.trim()) {
-      editorApi?.replaceContent(nextName, content);
-    }
-    debouncedSync();
+    syncNote(snapshot.id);
+  }, 500);
+
+  const handleNoteChange = () => {
+    const state = editorApi?.getState();
+    if (!state) return;
+    debouncedSave({ id: noteId(), content: state.content });
   };
 
   const getWikiLinkHref = (title: string) => {

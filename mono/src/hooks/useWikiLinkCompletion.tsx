@@ -1,4 +1,5 @@
 import { type Accessor, createMemo, createSignal, onCleanup, onMount } from "solid-js";
+import { normalizeNoteName } from "../services/note";
 
 type EditorSelection = {
   start: number;
@@ -20,7 +21,7 @@ export type WikiCompletionOption = {
 export type WikiCompletionPosition = {
   left: number;
   top: number;
-  direction: "down-right" | "down-left" | "up-left" | "up-right";
+  maxHeight: number;
 };
 
 type UseWikiLinkCompletionOptions = {
@@ -29,6 +30,8 @@ type UseWikiLinkCompletionOptions = {
   getEditor: () => HTMLDivElement | undefined;
   getSuggestions?: (query: string) => string[] | Promise<string[]>;
 };
+
+export const INSERT_WIKI_LINK_INPUT_TYPE = "insertWikiLink";
 
 const getWikiReplacementEnd = (editorContent: string, cursor: number) => {
   const remaining = editorContent.slice(cursor);
@@ -105,19 +108,21 @@ export const useWikiLinkCompletion = (options: UseWikiLinkCompletionOptions) => 
     const margin = 8;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
-    const spaceBelow = viewportHeight - caret.bottom - margin;
+    const spaceBelow = viewportHeight - caret.bottom - gap - margin;
     const spaceAbove = caret.top - margin;
     const vertical = spaceBelow >= menuRect.height || spaceBelow >= spaceAbove ? "down" : "up";
     const spaceRight = viewportWidth - caret.left - margin;
     const spaceLeft = caret.right - margin;
     const horizontal = spaceRight >= menuRect.width || spaceRight >= spaceLeft ? "right" : "left";
-    const rawLeft = horizontal === "right" ? caret.left : caret.right - menuRect.width;
-    const rawTop = vertical === "down" ? caret.bottom + gap : caret.top - menuRect.height - gap;
+    const left = horizontal === "right" ? caret.left : caret.right - menuRect.width;
+
+    const maxHeight = Math.min(Math.max(vertical === "down" ? spaceBelow : spaceAbove, 60), 240);
+    const effectiveMenuHeight = Math.min(menuRect.height, maxHeight);
 
     setPosition({
-      left: Math.max(margin, Math.min(rawLeft, viewportWidth - menuRect.width - margin)),
-      top: Math.max(margin, Math.min(rawTop, viewportHeight - menuRect.height - margin)),
-      direction: `${vertical}-${horizontal}` as WikiCompletionPosition["direction"],
+      left: Math.max(margin, Math.min(left, viewportWidth - menuRect.width - margin)),
+      top: vertical === "down" ? caret.bottom + gap : caret.top - effectiveMenuHeight - gap,
+      maxHeight,
     });
   };
 
@@ -128,7 +133,8 @@ export const useWikiLinkCompletion = (options: UseWikiLinkCompletionOptions) => 
   const completionOptions = createMemo<WikiCompletionOption[]>(() => {
     const query = trigger()?.query.trim() ?? "";
     const nextOptions = suggestions().map((title) => ({ title }));
-    if (!query || nextOptions.some((option) => option.title === query)) return nextOptions;
+    if (!query || nextOptions.some((option) => normalizeNoteName(option.title) === normalizeNoteName(query)))
+      return nextOptions;
 
     return [...nextOptions, { title: query, create: true }];
   });
@@ -159,7 +165,7 @@ export const useWikiLinkCompletion = (options: UseWikiLinkCompletionOptions) => 
     const replacement = `[[${option.title}]]`;
     const nextContent = `${options.content().slice(0, currentTrigger.start)}${replacement}${options.content().slice(currentTrigger.replaceEnd)}`;
     close();
-    options.applyEdit(nextContent, currentTrigger.start + replacement.length, "insertWikiLink");
+    options.applyEdit(nextContent, currentTrigger.start + replacement.length, INSERT_WIKI_LINK_INPUT_TYPE);
   };
 
   const selectNextOption = (direction: 1 | -1) => {
