@@ -106,10 +106,12 @@ export const useWikiLinkCompletion = (options: UseWikiLinkCompletionOptions) => 
     const menuRect = menu.getBoundingClientRect();
     const gap = 6;
     const margin = 8;
+    const header = document.querySelector<HTMLElement>(".header");
+    const headerBottom = header?.getBoundingClientRect().bottom ?? margin;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
     const spaceBelow = viewportHeight - caret.bottom - gap - margin;
-    const spaceAbove = caret.top - margin;
+    const spaceAbove = caret.top - headerBottom - gap;
     const vertical = spaceBelow >= menuRect.height || spaceBelow >= spaceAbove ? "down" : "up";
     const spaceRight = viewportWidth - caret.left - margin;
     const spaceLeft = caret.right - margin;
@@ -121,7 +123,7 @@ export const useWikiLinkCompletion = (options: UseWikiLinkCompletionOptions) => 
 
     setPosition({
       left: Math.max(margin, Math.min(left, viewportWidth - menuRect.width - margin)),
-      top: vertical === "down" ? caret.bottom + gap : caret.top - effectiveMenuHeight - gap,
+      top: vertical === "down" ? caret.bottom + gap : Math.max(headerBottom, caret.top - effectiveMenuHeight - gap),
       maxHeight,
     });
   };
