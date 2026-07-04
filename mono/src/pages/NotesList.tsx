@@ -29,7 +29,7 @@ export const NotesList = () => {
   const notes = createDexieArrayQuery(async () => {
     const q = searchQuery().trim();
     const base = db.notes
-      .orderBy("lastModified")
+      .orderBy("lastOpened")
       .reverse()
       .filter((n) => n.status !== "pending-delete");
 
@@ -53,7 +53,7 @@ export const NotesList = () => {
 
   const keyboardSelectedId = useNotesListKeyboardNav(
     () => notes.data,
-    (note) => navigate(`/note/${note.id}`),
+    (note) => navigate(`/note/${note.id}?from=list`),
     (note) => openNoteActions(note.id),
   );
 
@@ -167,7 +167,7 @@ export const NotesList = () => {
                     setNoteActionsOpen(true);
                     triggerHaptic();
                   },
-                  onTap: () => navigate(`/note/${note.id}`),
+                  onTap: () => navigate(`/note/${note.id}?from=list`),
                 });
                 return (
                   <button
@@ -182,7 +182,7 @@ export const NotesList = () => {
                       <div class="note-item-preview">{getPreview(note.content)}</div>
                     </div>
                     <div class="note-item-date">
-                      {timeFromNow(note.lastModified)}
+                      {timeFromNow(note.lastOpened)}
                       <ChevronRightIcon />
                     </div>
                   </button>

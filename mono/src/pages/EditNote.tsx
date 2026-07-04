@@ -1,4 +1,4 @@
-import { useParams } from "@solidjs/router";
+import { useParams, useSearchParams } from "@solidjs/router";
 import { createEffect, createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { Header, HeaderButton } from "ui/Header";
 import { BackIcon, MoreIcon } from "ui/Icons";
@@ -22,6 +22,8 @@ export const EditNote = () => {
   const navigate = useNavigate();
   const params = useParams();
   const noteId = createMemo(() => parseInt(params.id ?? "0", 10));
+  const [searchParams] = useSearchParams();
+  const fromList = createMemo(() => searchParams.from === "list");
   const [modalOpen, setModalOpen] = createSignal(false);
   let editorApi: EditorAPI | undefined;
   let noteActionsModalApi: NoteActionsModalAPI | undefined;
@@ -60,7 +62,7 @@ export const EditNote = () => {
 
     if (initializedNoteId !== n.id) {
       initializedNoteId = n.id;
-      db.notes.update(n.id, { lastOpened: Date.now() });
+      if (fromList()) db.notes.update(n.id, { lastOpened: Date.now() });
       return;
     }
 

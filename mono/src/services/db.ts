@@ -105,3 +105,20 @@ db.version(10).stores({
 db.version(11).stores({
   notes: "++id, lastModified",
 });
+
+// Index lastOpened so NotesList can orderBy it. Backfill missing values from
+// lastModified so old notes sort sanely instead of as undefined.
+db.version(12)
+  .stores({
+    notes: "++id, lastModified, lastOpened",
+  })
+  .upgrade(async (tx) => {
+    const notes = await tx.table("notes").toArray();
+    for (const note of notes) {
+      if (!note.lastOpened) {
+        await tx.table("notes").update(note.id, {
+          lastOpened: note.lastModified || Date.now(),
+        });
+      }
+    }
+  });
