@@ -11,7 +11,7 @@ import { useNotesListKeyboardNav } from "../hooks/useNotesListKeyboardNav";
 import { timeFromNow } from "../services/date";
 import { db } from "../services/db";
 import { searchMatches } from "../services/search";
-import { searchQuery } from "../services/searchStore";
+import { searchBarActive, searchQuery } from "../services/searchStore";
 import { createDexieArrayQuery, createDexieSignalQuery } from "../services/solid-dexie";
 import { sync } from "../services/sync";
 import "./NotesList.css";
@@ -51,10 +51,15 @@ export const NotesList = () => {
     setNoteActionsOpen(true);
   };
 
-  const keyboardSelectedId = useNotesListKeyboardNav(
+  const createNoteFromSearch = () => navigate(`/new?name=${encodeURIComponent(searchQuery().trim())}`);
+
+  const { selectedId: keyboardSelectedId, createSelected } = useNotesListKeyboardNav(
     () => notes.data,
+    () => notes.loaded() && !!searchQuery().trim(),
+    searchBarActive,
     (note) => navigate(`/note/${note.id}?from=list`),
     (note) => openNoteActions(note.id),
+    createNoteFromSearch,
   );
 
   createEffect(() => {
@@ -126,36 +131,27 @@ export const NotesList = () => {
             <For
               each={notes.data}
               fallback={
-                <Show
-                  when={searchQuery().trim()}
-                  fallback={
-                    <Show when={totalCount() === 0}>
-                      <div class="page-content notes-list-empty">
-                        <p>
-                          Tap{" "}
-                          <button class="inline-icon-button" onClick={() => navigate("/new")}>
-                            <AddIcon />
-                          </button>{" "}
-                          to create a note.
-                        </p>
-                        <p>
-                          Read{" "}
-                          <a
-                            href="/about"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              navigate("/about");
-                            }}
-                          >
-                            about Mono
-                          </a>
-                        </p>
-                      </div>
-                    </Show>
-                  }
-                >
+                <Show when={!searchQuery().trim() && totalCount() === 0}>
                   <div class="page-content notes-list-empty">
-                    <p>No notes match your search.</p>
+                    <p>
+                      Tap{" "}
+                      <button class="inline-icon-button" onClick={() => navigate("/new")}>
+                        <AddIcon />
+                      </button>{" "}
+                      to create a note.
+                    </p>
+                    <p>
+                      Read{" "}
+                      <a
+                        href="/about"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigate("/about");
+                        }}
+                      >
+                        about Mono
+                      </a>
+                    </p>
                   </div>
                 </Show>
               }
@@ -189,6 +185,19 @@ export const NotesList = () => {
                 );
               }}
             </For>
+            <Show when={searchQuery().trim()}>
+              <button
+                type="button"
+                class="note-item create-note-item"
+                classList={{ "keyboard-selected": createSelected() }}
+                onClick={createNoteFromSearch}
+              >
+                <div class="note-item-content">
+                  <div class="note-item-name">{searchQuery().trim()}</div>
+                </div>
+                <span class="create-note-item-label">Create</span>
+              </button>
+            </Show>
             <Show when={hasMore()}>
               <div ref={observeSentinel} class="notes-list-sentinel" aria-hidden="true" />
             </Show>

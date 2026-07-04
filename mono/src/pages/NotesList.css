@@ -89,6 +89,13 @@
   opacity: 0.5;
 }
 
+.create-note-item-label {
+  color: var(--text-secondary-color);
+  font-size: 0.85em;
+  margin-left: 16px;
+  flex-shrink: 0;
+}
+
 .notes-list-content {
   padding-bottom: calc(76px + env(safe-area-inset-bottom));
 }

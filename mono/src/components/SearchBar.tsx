@@ -5,7 +5,7 @@ import { isIOS } from "ui/platform";
 import { useActivatable } from "ui/useActivatable";
 import { useIOSKeyboardFocus } from "ui/useIOSKeyboardFocus";
 import { useNavigate } from "../hooks/useNavigate";
-import { searchQuery, setSearchQuery } from "../services/searchStore";
+import { searchQuery, setSearchBarActive, setSearchQuery } from "../services/searchStore";
 import "./SearchBar.css";
 
 const SEARCH_ICON_WIDTH = 18;
@@ -71,6 +71,12 @@ export const SearchBar = () => {
   // return (matches the old behavior where the bar unmounted with the page).
   createEffect(() => {
     if (!onList()) setSearchQuery("");
+  });
+
+  // Mirror focus state to the shared store so the notes list can gate the iOS
+  // selection indicator on search-bar focus.
+  createEffect(() => {
+    setSearchBarActive(searchKeyboardActive());
   });
 
   // `/` focuses the search bar when on the list and no input is active.
@@ -274,10 +280,13 @@ export const SearchBar = () => {
               handleSearchBlur();
             }}
             onKeyDown={(e) => {
-              if (e.key === "Escape" || (isIOS && e.key === "Enter")) {
+              if (e.key === "Escape") {
                 e.preventDefault();
                 searchInputRef?.blur();
               }
+              // Enter is handled by the list's keyboard-nav hook, which knows
+              // whether the create row or a note is selected (desktop arrow-nav
+              // selection, or iOS auto-selection during search).
             }}
             onInput={(e) => setSearchQuery(e.currentTarget.value)}
           />

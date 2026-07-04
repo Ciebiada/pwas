@@ -8,3 +8,9 @@ import { createSignal } from "solid-js";
 // leaves a stale WebKit snapshot that makes the transition fire only once, so it
 // is hoisted to the root instead.
 export const [searchQuery, setSearchQuery] = createSignal("");
+
+// Whether the search bar is currently focused (keyboard active). Mirrored from
+// SearchBar's local state so the notes list can gate the iOS selection
+// indicator on focus: on mobile there's no arrow-nav, so the indicator only
+// makes sense while the bar is focused and Enter can confirm.
+export const [searchBarActive, setSearchBarActive] = createSignal(false);
