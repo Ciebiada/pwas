@@ -13,7 +13,7 @@ import { db } from "../services/db";
 import { searchMatches } from "../services/search";
 import { searchBarActive, searchQuery } from "../services/searchStore";
 import { createDexieArrayQuery, createDexieSignalQuery } from "../services/solid-dexie";
-import { sync } from "../services/sync";
+import { importing, sync } from "../services/sync";
 import "./NotesList.css";
 
 const PAGE_SIZE = 30;
@@ -126,6 +126,9 @@ export const NotesList = () => {
         </HeaderButton>
       </Header>
       <Page>
+        <Show when={importing()}>
+          <div class="sync-progress" role="status" aria-live="polite" aria-label="Syncing notes" />
+        </Show>
         <div class="notes-list-content">
           <Show when={notes.loaded()}>
             <For

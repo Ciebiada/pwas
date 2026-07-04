@@ -25,6 +25,8 @@
     transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
     filter 0.2s;
   touch-action: manipulation;
+  scroll-margin-top: 16px;
+  scroll-margin-bottom: 16px;
 }
 
 .note-item:first-child {
@@ -103,6 +105,39 @@
 .notes-list-sentinel {
   height: 1px;
   width: 100%;
+}
+
+@keyframes sync-progress-slide {
+  0% {
+    left: -40%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.sync-progress {
+  position: absolute;
+  top: calc(44px + 16px + 13px + env(safe-area-inset-top));
+  left: var(--safe-area-inline-left);
+  right: var(--safe-area-inline-right);
+  height: 3px;
+  overflow: hidden;
+  z-index: 1;
+  background-color: var(--bg-secondary-color);
+  border-radius: 2px;
+}
+
+.sync-progress::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  background-color: var(--main-color);
+  border-radius: inherit;
+  animation: sync-progress-slide 1s infinite cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .notes-list-empty {

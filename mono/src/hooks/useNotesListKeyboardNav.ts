@@ -15,6 +15,9 @@ export const useNotesListKeyboardNav = (
   // When true, the keyboard cursor sits on the trailing "create" row rather than
   // any note. selectedId is null in that case.
   const [createSelected, setCreateSelected] = createSignal(false);
+  // Tracks the last target we scrolled to, so the list mutating under a stable
+  // selection (e.g. notes streaming in during sync) doesn't fight the scroll.
+  let lastScrolled: number | "create" | null = null;
 
   createEffect(() => {
     const list = items();
@@ -64,16 +67,27 @@ export const useNotesListKeyboardNav = (
       }
       return;
     }
-    if (!create && id !== null) {
-      queueMicrotask(() => {
-        const el = document.querySelector<HTMLElement>(`.note-item[data-note-id="${id}"]`);
-        el?.scrollIntoView({ block: "nearest" });
-      });
-    } else if (create) {
-      queueMicrotask(() => {
+    const target: number | "create" | null = create ? "create" : id;
+    if (target === null || target === lastScrolled) return;
+    lastScrolled = target;
+    queueMicrotask(() => {
+      if (create) {
         document.querySelector<HTMLElement>(".create-note-item")?.scrollIntoView({ block: "nearest" });
-      });
-    }
+        return;
+      }
+      const el = document.querySelector<HTMLElement>(`.note-item[data-note-id="${id}"]`);
+      if (!el) return;
+      const container = el.closest<HTMLElement>(".page");
+      if (!container) {
+        el.scrollIntoView({ block: "nearest" });
+        return;
+      }
+      const idx = list.findIndex((item) => item.id === id);
+      // ponytail: scroll extremes by index so first/last reach the very top/bottom
+      if (idx === 0) container.scrollTop = 0;
+      else if (idx === list.length - 1) container.scrollTop = container.scrollHeight;
+      else el.scrollIntoView({ block: "nearest" });
+    });
   });
 
   onMount(() => {

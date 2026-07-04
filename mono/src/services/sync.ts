@@ -1,4 +1,5 @@
 import DiffMatchPatch from "diff-match-patch";
+import { createSignal } from "solid-js";
 import { db, type Note } from "./db";
 import { allocateUniqueNoteName } from "./noteNames";
 import { DropboxProvider } from "./sync/dropboxProvider";
@@ -305,7 +306,9 @@ const handleRemoteChanges = async (
   });
 };
 
-let isSyncing = false;
+export const [syncing, setSyncing] = createSignal(false);
+// True while new notes are being downloaded from remote (initial login / bulk import).
+export const [importing, setImporting] = createSignal(false);
 
 const runWithConcurrency = async <T>(items: T[], limit: number, fn: (item: T) => Promise<unknown>): Promise<void> => {
   const executing: Promise<unknown>[] = [];
@@ -325,7 +328,7 @@ const runWithConcurrency = async <T>(items: T[], limit: number, fn: (item: T) =>
 };
 
 export const sync = async (): Promise<void> => {
-  if (isSyncing) {
+  if (syncing()) {
     console.log("Sync already in progress, skipping");
     return;
   }
@@ -340,7 +343,7 @@ export const sync = async (): Promise<void> => {
     return;
   }
 
-  isSyncing = true;
+  setSyncing(true);
 
   try {
     console.log(`Starting ${provider.name} sync...`);
@@ -362,7 +365,7 @@ export const sync = async (): Promise<void> => {
   } catch (error) {
     console.error(`Error syncing with ${provider.name}:`, error);
   } finally {
-    isSyncing = false;
+    setSyncing(false);
   }
 };
 
@@ -394,6 +397,7 @@ const importRemoteNotes = async (
     const existingNote = notesByRemoteId.get(file.id);
 
     if (!existingNote) {
+      setImporting(true);
       console.log(`Importing note from ${provider.name}: ${file.name}`);
       const content = await provider.downloadFile(file.id);
       const name = await allocateUniqueNoteName(file.name.replace(/\.md$/, ""));
@@ -425,4 +429,6 @@ const importRemoteNotes = async (
       }
     }
   }
+
+  setImporting(false);
 };
