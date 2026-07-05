@@ -64,9 +64,17 @@ type EditorProps = {
   onReady?: (api: EditorAPI) => void;
   onChange?: (name: string, content: string) => void;
   onCursorChange?: (cursor: number) => void;
-  getWikiLinkSuggestions?: (query: string) => string[] | Promise<string[]>;
+  getWikiLinkSuggestions?: (query: string) => string[];
   onWikiLinkOpen?: (title: string, href: string) => void;
   getWikiLinkHref?: (title: string) => string;
+};
+
+const findWikiLinkAtCursor = (content: string, cursor: number): string | null => {
+  const start = content.lastIndexOf("[[", cursor);
+  if (start < 0) return null;
+  const closeIdx = content.indexOf("]]", start + 2);
+  if (closeIdx < 0 || cursor > closeIdx + 2) return null;
+  return content.slice(start + 2, closeIdx);
 };
 
 export const Editor = (_props: EditorProps) => {
@@ -88,7 +96,7 @@ export const Editor = (_props: EditorProps) => {
   let syncLineReorderHandle = () => {};
   let syncPrettyCaret = () => {};
   let isLineReordering = () => false;
-  let refreshWikiCompletionHandle = (_selection: EditorSelection) => Promise.resolve();
+  let refreshWikiCompletionHandle = (_selection: EditorSelection) => {};
   let closeWikiCompletionHandle = () => {};
   if (isPrettyCaretEnabled()) {
     const prettyCaret = usePrettyCaret(
@@ -109,7 +117,6 @@ export const Editor = (_props: EditorProps) => {
       lastSelection = selection;
       props.onCursorChange?.(selection.start);
       syncLineReorderHandle();
-      refreshWikiCompletionHandle(selection);
     },
   });
 
@@ -293,6 +300,15 @@ export const Editor = (_props: EditorProps) => {
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (wikiCompletion.handleKeyDown(event)) return;
+
+    if (event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === "i") {
+      event.preventDefault();
+      const link = findWikiLinkAtCursor(content(), getCurrentSelection().start);
+      if (link && props.getWikiLinkHref) {
+        props.onWikiLinkOpen?.(link, props.getWikiLinkHref(link));
+      }
+      return;
+    }
 
     if (event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === "y") {
       event.preventDefault();

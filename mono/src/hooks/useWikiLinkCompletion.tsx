@@ -8,7 +8,6 @@ type EditorSelection = {
 
 type WikiCompletionTrigger = {
   start: number;
-  end: number;
   replaceEnd: number;
   query: string;
 };
@@ -28,7 +27,7 @@ type UseWikiLinkCompletionOptions = {
   applyEdit: (content: string, selection: number | EditorSelection, inputType?: string) => void;
   content: Accessor<string>;
   getEditor: () => HTMLDivElement | undefined;
-  getSuggestions?: (query: string) => string[] | Promise<string[]>;
+  getSuggestions?: (query: string) => string[];
 };
 
 export const INSERT_WIKI_LINK_INPUT_TYPE = "insertWikiLink";
@@ -58,7 +57,6 @@ const getWikiTrigger = (editorContent: string, selection: EditorSelection) => {
 
   return {
     start,
-    end: selection.start,
     replaceEnd: getWikiReplacementEnd(editorContent, selection.start),
     query,
   };
@@ -70,7 +68,6 @@ export const useWikiLinkCompletion = (options: UseWikiLinkCompletionOptions) => 
   const [selectedIndex, setSelectedIndex] = createSignal(0);
   const [position, setPosition] = createSignal<WikiCompletionPosition | null>(null);
   let menu: HTMLDivElement | undefined;
-  let request = 0;
 
   const close = () => {
     setTrigger(null);
@@ -141,17 +138,15 @@ export const useWikiLinkCompletion = (options: UseWikiLinkCompletionOptions) => 
     return [...nextOptions, { title: query, create: true }];
   });
 
-  const refresh = async (selection: EditorSelection) => {
+  const refresh = (selection: EditorSelection) => {
     const nextTrigger = getWikiTrigger(options.content(), selection);
-    const requestId = ++request;
+
     if (!nextTrigger || !options.getSuggestions) {
       close();
       return;
     }
 
-    const nextSuggestions = await options.getSuggestions(nextTrigger.query);
-    if (requestId !== request) return;
-
+    const nextSuggestions = options.getSuggestions(nextTrigger.query);
     const isOpening = trigger() === null;
     setTrigger(nextTrigger);
     setSuggestions(nextSuggestions);

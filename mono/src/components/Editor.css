@@ -265,6 +265,7 @@
 .md-link,
 .md-link:hover {
   color: var(--main-color);
+  cursor: pointer;
 }
 
 /* checkbox styles */

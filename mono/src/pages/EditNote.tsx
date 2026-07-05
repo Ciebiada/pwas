@@ -129,6 +129,11 @@ export const EditNote = () => {
   onMount(() => {
     const handler = (e: KeyboardEvent) => {
       if (isIOS) return;
+      if (e.ctrlKey && e.key === "o") {
+        e.preventDefault();
+        navigate(-1, { back: true });
+        return;
+      }
       if (e.ctrlKey && e.key === "p") {
         e.preventDefault();
         handleOpenNoteActions();
