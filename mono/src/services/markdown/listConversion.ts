@@ -13,7 +13,7 @@ type ListConversionResult = {
   selection: Selection;
 };
 
-type ListConversion = "bullet-to-todo" | "todo-to-bullet";
+type ListConversion = "bullet-to-todo" | "todo-to-bullet" | "list-to-regular" | "regular-to-bullet" | "regular-to-todo";
 
 const getLines = (content: string): ContentLine[] => {
   let start = 0;
@@ -66,7 +66,17 @@ const getSelectedConvertibleLineIndexes = (content: string, selection: Selection
 
   return getSelectedLineIndexes(content, lines, selection).filter((index) => {
     const line = lines[index];
-    return line && line.start !== 0 && pattern.test(line.text);
+    if (!line || line.start === 0) return false;
+    if (conversion === "regular-to-bullet" || conversion === "regular-to-todo") {
+      if (line.text.trim() === "") return false;
+      if (line.text.startsWith("#")) return false;
+      if (UNORDERED_LIST_PATTERN.test(line.text)) return false;
+      if (TODO_LIST_PATTERN.test(line.text)) return false;
+      return true;
+    }
+    if (conversion === "list-to-regular")
+      return TODO_LIST_PATTERN.test(line.text) || UNORDERED_LIST_PATTERN.test(line.text);
+    return pattern.test(line.text);
   });
 };
 
@@ -75,6 +85,17 @@ export const canTurnBulletSelectionToTodo = (content: string, selection: Selecti
 
 export const canTurnTodoSelectionToBullet = (content: string, selection: Selection) =>
   getSelectedConvertibleLineIndexes(content, selection, "todo-to-bullet").length > 0;
+
+export const canTurnSelectionToRegular = (content: string, selection: Selection) =>
+  getSelectedConvertibleLineIndexes(content, selection, "list-to-regular").length > 0;
+
+export const canTurnSelectionToBullet = (content: string, selection: Selection) =>
+  canTurnTodoSelectionToBullet(content, selection) ||
+  getSelectedConvertibleLineIndexes(content, selection, "regular-to-bullet").length > 0;
+
+export const canTurnSelectionToTodo = (content: string, selection: Selection) =>
+  canTurnBulletSelectionToTodo(content, selection) ||
+  getSelectedConvertibleLineIndexes(content, selection, "regular-to-todo").length > 0;
 
 export const convertListSelection = (
   content: string,
@@ -89,10 +110,19 @@ export const convertListSelection = (
   const nextLines = lines.map((line, index) => {
     if (!selectedIndexes.has(index)) return line.text;
 
+    if (conversion === "regular-to-bullet") return `- ${line.text}`;
+    if (conversion === "regular-to-todo") return `- [ ] ${line.text}`;
+
     const match =
-      conversion === "bullet-to-todo" ? line.text.match(UNORDERED_LIST_PATTERN) : line.text.match(TODO_LIST_PATTERN);
+      conversion === "bullet-to-todo"
+        ? line.text.match(UNORDERED_LIST_PATTERN)
+        : conversion === "todo-to-bullet"
+          ? line.text.match(TODO_LIST_PATTERN)
+          : (line.text.match(UNORDERED_LIST_PATTERN) ?? line.text.match(TODO_LIST_PATTERN));
 
     if (!match) return line.text;
+
+    if (conversion === "list-to-regular") return line.text.slice(match[0].length);
 
     return conversion === "bullet-to-todo"
       ? `${normalizeBulletPrefix(match[1])}[ ] ${line.text.slice(match[1].length)}`

@@ -3,6 +3,9 @@ import { createStoredNote } from "./noteStorage";
 
 const PAGE_SIZE = 30;
 
+// Excludes the "create note from search" row which also carries .note-item.
+const noteItems = ".note-item:not(.create-note-item)";
+
 test("filters notes by search query in real time", async ({ page }) => {
   await createStoredNote(page, { name: "Apple recipe", content: "Sugar and flour" });
   await createStoredNote(page, { name: "Banana smoothie", content: "Milk and honey" });
@@ -13,17 +16,17 @@ test("filters notes by search query in real time", async ({ page }) => {
   const search = page.getByRole("searchbox", { name: "Search notes" });
   await expect(search).toBeVisible();
 
-  await expect(page.locator(".note-item")).toHaveCount(3);
+  await expect(page.locator(noteItems)).toHaveCount(3);
 
   await search.fill("apple");
-  await expect(page.locator(".note-item")).toHaveCount(2);
+  await expect(page.locator(noteItems)).toHaveCount(2);
 
   await search.fill("banana");
-  await expect(page.locator(".note-item")).toHaveCount(1);
-  await expect(page.locator(".note-item")).toContainText("Banana smoothie");
+  await expect(page.locator(noteItems)).toHaveCount(1);
+  await expect(page.locator(noteItems)).toContainText("Banana smoothie");
 
   await search.fill("");
-  await expect(page.locator(".note-item")).toHaveCount(3);
+  await expect(page.locator(noteItems)).toHaveCount(3);
 });
 
 test("shows no notes found when search has no matches", async ({ page }) => {
@@ -33,11 +36,11 @@ test("shows no notes found when search has no matches", async ({ page }) => {
 
   const search = page.getByRole("searchbox", { name: "Search notes" });
   await search.fill("zzz");
-  await expect(page.locator(".note-item")).toHaveCount(0);
-  await expect(page.getByText("No notes found")).toBeVisible();
+  await expect(page.locator(noteItems)).toHaveCount(0);
+  await expect(page.locator(".create-note-item")).toBeVisible();
 
   await search.fill("");
-  await expect(page.locator(".note-item")).toHaveCount(1);
+  await expect(page.locator(noteItems)).toHaveCount(1);
 });
 
 test("paginates notes with infinite scroll", async ({ page }) => {
@@ -48,12 +51,13 @@ test("paginates notes with infinite scroll", async ({ page }) => {
 
   await page.goto("/");
 
-  await expect(page.locator(".note-item")).toHaveCount(PAGE_SIZE);
+  await expect(page.locator(noteItems)).toHaveCount(PAGE_SIZE);
 
   await page.locator(".notes-list-sentinel").scrollIntoViewIfNeeded();
   await page.evaluate(() => {
-    document.querySelector(".page")?.scrollTo(0, document.body.scrollHeight);
+    const scrollEl = document.querySelector(".page");
+    if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight;
   });
 
-  await expect(page.locator(".note-item")).toHaveCount(total);
+  await expect(page.locator(noteItems)).toHaveCount(total);
 });

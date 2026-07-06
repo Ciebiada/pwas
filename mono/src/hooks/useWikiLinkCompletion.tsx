@@ -21,6 +21,7 @@ export type WikiCompletionPosition = {
   left: number;
   top: number;
   maxHeight: number;
+  direction: string;
 };
 
 type UseWikiLinkCompletionOptions = {
@@ -68,12 +69,14 @@ export const useWikiLinkCompletion = (options: UseWikiLinkCompletionOptions) => 
   const [selectedIndex, setSelectedIndex] = createSignal(0);
   const [position, setPosition] = createSignal<WikiCompletionPosition | null>(null);
   let menu: HTMLDivElement | undefined;
+  let lockedVertical: "down" | "up" | null = null;
 
   const close = () => {
     setTrigger(null);
     setSuggestions([]);
     setSelectedIndex(0);
     setPosition(null);
+    lockedVertical = null;
   };
 
   const getCaretRect = () => {
@@ -109,7 +112,8 @@ export const useWikiLinkCompletion = (options: UseWikiLinkCompletionOptions) => 
     const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
     const spaceBelow = viewportHeight - caret.bottom - gap - margin;
     const spaceAbove = caret.top - headerBottom - gap;
-    const vertical = spaceBelow >= menuRect.height || spaceBelow >= spaceAbove ? "down" : "up";
+    const vertical = lockedVertical ?? (spaceBelow >= menuRect.height || spaceBelow >= spaceAbove ? "down" : "up");
+    lockedVertical = vertical;
     const spaceRight = viewportWidth - caret.left - margin;
     const spaceLeft = caret.right - margin;
     const horizontal = spaceRight >= menuRect.width || spaceRight >= spaceLeft ? "right" : "left";
@@ -119,6 +123,7 @@ export const useWikiLinkCompletion = (options: UseWikiLinkCompletionOptions) => 
     const effectiveMenuHeight = Math.min(menuRect.height, maxHeight);
 
     setPosition({
+      direction: `${vertical}-${horizontal}`,
       left: Math.max(margin, Math.min(left, viewportWidth - menuRect.width - margin)),
       top: vertical === "down" ? caret.bottom + gap : Math.max(headerBottom, caret.top - effectiveMenuHeight - gap),
       maxHeight,

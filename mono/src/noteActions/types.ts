@@ -25,6 +25,7 @@ export type ResolvedNoteAction = {
   action: NoteAction;
   context: NoteActionContext;
   label: string;
+  isAvailable: boolean;
 };
 
 export const getNoteActionLabel = (action: NoteAction, context: NoteActionContext) =>

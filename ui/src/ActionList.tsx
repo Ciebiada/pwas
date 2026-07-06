@@ -12,6 +12,7 @@ type ActionListItemProps = {
   icon?: JSX.Element;
   tone?: "default" | "blue" | "orange" | "pink" | "danger";
   danger?: boolean;
+  disabled?: boolean;
   class?: string;
   focused?: boolean;
   onClick?: () => void | Promise<void>;
@@ -23,6 +24,7 @@ export const ActionList = (props: ActionListProps) => <div class="action-list">{
 export const ActionListItem = (props: ActionListItemProps) => {
   const activatableRef = useActivatable();
   let handledPressStart = false;
+  const isDisabled = () => props.disabled ?? false;
 
   const handlePressStart = (event: MouseEvent | TouchEvent) => {
     if (!props.onPressStart) return;
@@ -45,7 +47,7 @@ export const ActionListItem = (props: ActionListItemProps) => {
 
   return (
     <button
-      ref={activatableRef}
+      ref={isDisabled() ? undefined : activatableRef}
       type="button"
       class="action-list-item"
       classList={{
@@ -54,7 +56,9 @@ export const ActionListItem = (props: ActionListItemProps) => {
         "action-list-item-focused": props.focused,
         [props.class!]: !!props.class,
       }}
+      disabled={isDisabled()}
       aria-label={props.title}
+      aria-disabled={isDisabled()}
       onMouseDown={handlePressStart}
       onTouchStart={handlePressStart}
       onClick={handleClick}

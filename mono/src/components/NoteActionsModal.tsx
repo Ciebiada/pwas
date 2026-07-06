@@ -16,7 +16,7 @@ import { Modal, ModalPage, useModal } from "ui/Modal";
 import { isIOS } from "ui/platform";
 import { useIOSKeyboardFocus } from "ui/useIOSKeyboardFocus";
 import { SHEET_ANIMATION_DURATION } from "ui/useSheetDrag";
-import { getApplicableNoteActions } from "../noteActions";
+import { getNoteActions } from "../noteActions";
 import type { NoteActionContext, ResolvedNoteAction } from "../noteActions/types";
 import { incrementNoteActionUsage } from "../noteActions/usage";
 import { db } from "../services/db";
@@ -66,6 +66,16 @@ const getActionSubtitle = (actionId: string) => {
       return "Press Shift+Tab on list items";
     case "remove-checked-tasks":
       return "Remove checked - [x] items";
+    case "turn-regular":
+      return "Remove - or - [ ] prefix";
+    case "copy-note":
+      return "Copy note to clipboard";
+    case "copy-section":
+      return "Copy the section under the current header";
+    case "select-all":
+      return "Select all text";
+    case "select-section":
+      return "Select the section under the current header";
     default:
       return undefined;
   }
@@ -252,7 +262,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
 
   const actionItems = createMemo(() => {
     const context = getActionContext();
-    return context ? getApplicableNoteActions(context) : [];
+    return context ? getNoteActions(context) : [];
   });
 
   const matchesSearch = (value: string) => searchMatches(value, searchQuery());
@@ -316,9 +326,13 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
       // post-await path.
       const ran = action.run(context);
       const result = ran instanceof Promise ? await ran : ran;
-      if (!result) return;
 
       incrementNoteActionUsage(action.id);
+      if (!result) {
+        await close(true);
+        return;
+      }
+
       editorApi.focus();
       editorApi.applyEdit(result);
       await close(true);
@@ -398,6 +412,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
               subtitle={getActionSubtitle(item.action.id)}
               class={`note-action-${item.action.id}`}
               focused={focusedActionKey() === item.action.id}
+              disabled={!item.isAvailable}
               onClick={() => void handleAction(item)(close)}
             />
           )}

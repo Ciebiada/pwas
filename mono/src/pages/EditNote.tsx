@@ -75,13 +75,17 @@ export const EditNote = () => {
 
   const debouncedSave = debounce(async (snapshot: { id: number; content: string }) => {
     const { name, content: body } = splitNote(snapshot.content);
-    const nextName = name.trim() ? allocateUniqueNoteNameFromNotes(name.trim(), linkableNotes.data, snapshot.id) : "";
+    const trimmedName = name.trim();
+    const nextName = trimmedName ? allocateUniqueNoteNameFromNotes(trimmedName, linkableNotes.data, snapshot.id) : "";
     await db.notes.update(snapshot.id, {
       name: nextName,
       content: body,
       status: "pending",
       lastModified: Date.now(),
     });
+    if (nextName && nextName !== trimmedName) {
+      editorApi?.replaceContent(nextName, body);
+    }
     syncNote(snapshot.id);
   }, 500);
 

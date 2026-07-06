@@ -11,6 +11,7 @@ type TestNote = {
 type NoteActionExpectation = {
   visible?: string[];
   hidden?: string[];
+  disabled?: string[];
 };
 
 type ActionScenario = {
@@ -140,11 +141,16 @@ const selectBodyText = async (page: Page, name: string, start: number, end: numb
 
 const expectActionVisibility = async (page: Page, expectations: NoteActionExpectation = {}) => {
   for (const name of expectations.visible ?? []) {
-    await expect(page.getByRole("button", { name })).toBeVisible();
+    await expect(page.getByRole("button", { name, exact: true })).toBeVisible();
   }
 
   for (const name of expectations.hidden ?? []) {
     await expect(page.getByRole("button", { name })).toHaveCount(0);
+  }
+
+  for (const name of expectations.disabled ?? []) {
+    await expect(page.getByRole("button", { name })).toBeVisible();
+    await expect(page.getByRole("button", { name })).toBeDisabled();
   }
 };
 
@@ -157,7 +163,7 @@ const runActionScenario = async (page: Page, scenario: ActionScenario) => {
 
   await openNoteActions(page);
   await expectActionVisibility(page, scenario.expectations);
-  await page.getByRole("button", { name: scenario.action }).click();
+  await page.getByRole("button", { name: scenario.action, exact: true }).click();
   await scenario.afterAction?.(page);
 
   await expectSingleStoredNote(page, {
@@ -175,7 +181,7 @@ const actionScenarios: ActionScenario[] = [
     selection: [0, "hello".length],
     expectations: {
       visible: ["Bold", "Italic"],
-      hidden: ["Remove Checked Tasks"],
+      disabled: ["Remove Checked Tasks"],
     },
   },
   {
@@ -186,7 +192,7 @@ const actionScenarios: ActionScenario[] = [
     selection: ["hello ".length, "hello world".length],
     expectations: {
       visible: ["Bold", "Italic"],
-      hidden: ["Remove Checked Tasks"],
+      disabled: ["Remove Checked Tasks"],
     },
   },
   {
@@ -197,7 +203,6 @@ const actionScenarios: ActionScenario[] = [
     selection: ["**".length, "**hello".length],
     expectations: {
       visible: ["Regular", "Italic"],
-      hidden: ["Bold"],
     },
   },
   {
@@ -208,7 +213,6 @@ const actionScenarios: ActionScenario[] = [
     selection: ["*".length, "*hello".length],
     expectations: {
       visible: ["Regular", "Bold"],
-      hidden: ["Italic"],
     },
   },
   {
@@ -355,7 +359,7 @@ test("keeps the modal height stable while an action press blurs search", async (
   expect(Math.abs(heightDuringPress - initialHeight)).toBeLessThan(4);
 });
 
-test("hides the current heading level action and keeps the other heading options", async ({ page }) => {
+test("disables the current heading level action and keeps the other heading options", async ({ page }) => {
   const note = {
     name: "Formatting",
     content: "## hello world",
@@ -365,7 +369,8 @@ test("hides the current heading level action and keeps the other heading options
   await openNoteActions(page);
 
   await expect(page.locator(".note-action-title-heading")).toBeVisible();
-  await expect(page.locator(".note-action-heading-level-2")).toHaveCount(0);
+  await expect(page.locator(".note-action-heading-level-2")).toBeVisible();
+  await expect(page.locator(".note-action-heading-level-2")).toBeDisabled();
   await expect(page.locator(".note-action-subheading")).toBeVisible();
   await page.locator(".note-action-subheading").click();
 

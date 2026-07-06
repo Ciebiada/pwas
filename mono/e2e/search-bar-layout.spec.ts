@@ -56,5 +56,5 @@ test("collapsed search bar fits placeholder via field-sizing", async ({ page }) 
     metrics!.inputClientWidth + 1,
   );
 
-  expect(metrics!.barPaddingRight, "padding-right wrong").toBe(16);
+  expect(metrics!.barPaddingRight, "padding-right wrong").toBe(14);
 });

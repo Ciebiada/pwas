@@ -132,3 +132,24 @@
 .action-list-item-danger .action-list-title {
   color: var(--danger-color);
 }
+
+.action-list-item:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.action-list-item:disabled.action-list-item-focused {
+  background-color: transparent;
+}
+
+.action-list-item:disabled:hover {
+  background-color: transparent;
+}
+
+.action-list-item:disabled .action-list-title {
+  color: var(--text-secondary-color);
+}
+
+.action-list-item:disabled.action-list-item-danger .action-list-title {
+  color: var(--text-secondary-color);
+}

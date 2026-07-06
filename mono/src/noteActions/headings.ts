@@ -3,7 +3,7 @@ import type { NoteActionContext, NoteActionResult } from "./types";
 
 export type HeadingLevel = 1 | 2 | 3;
 
-const HEADING_PATTERN = /^(#{1,3})\s/;
+export const HEADING_PATTERN = /^(#{1,3})\s/;
 
 export const getHeadingLevelAtSelection = ({ content, selection }: NoteActionContext): HeadingLevel | null => {
   const line = getLineRange(content, selection.start).line;

@@ -29,6 +29,7 @@ export const WikiLinkCompletionMenu = (props: WikiLinkCompletionMenuProps) => {
           props.setRef(el);
         }}
         class="wiki-link-completion"
+        data-direction={props.position()?.direction}
         style={{
           left: `${props.position()?.left ?? 0}px`,
           top: `${props.position()?.top ?? 0}px`,

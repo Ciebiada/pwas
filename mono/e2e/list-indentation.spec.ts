@@ -190,7 +190,8 @@ test("note actions turn the current bullet item into a todo and back", async ({ 
 
   await openNoteActions(page);
   await expect(page.getByRole("button", { name: "Turn Todo", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Turn Bullet", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Turn Bullet", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Turn Bullet", exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "Turn Todo", exact: true }).click();
 
   await expectStoredNotes(page, [
