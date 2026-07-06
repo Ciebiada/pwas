@@ -130,8 +130,8 @@ test("keeps wiki link autocomplete attached to the caret while filtering", async
 
   expect(placement.direction).toBe("down-right");
   expect(placement.menuTop).toBeGreaterThanOrEqual(placement.caretBottom);
-  expect(placement.menuLeft).toBeGreaterThanOrEqual(0);
-  expect(Math.abs(placement.menuLeft - placement.caretLeft)).toBeLessThan(200);
+  expect(placement.menuLeft).toBeGreaterThanOrEqual(8);
+  expect(placement.menuLeft).toBeLessThanOrEqual(placement.caretLeft + 16);
 
   await page.keyboard.type("g");
   await expect(page.locator(".wiki-link-completion button", { hasText: "Target" })).toBeVisible();
@@ -195,8 +195,8 @@ test("keeps an upward wiki link autocomplete anchored to the caret as results sh
 
   expect(before.direction).toBe("up-right");
   expect(before.menuBottom).toBeLessThanOrEqual(before.caretTop);
-  expect(before.menuLeft).toBeGreaterThanOrEqual(0);
-  expect(Math.abs(before.menuLeft - before.caretLeft)).toBeLessThan(200);
+  expect(before.menuLeft).toBeGreaterThanOrEqual(8);
+  expect(before.menuLeft).toBeLessThanOrEqual(before.caretLeft + 16);
 
   await page.keyboard.type("rget");
   await expect(page.locator(".wiki-link-completion button", { hasText: "Target" })).toBeVisible();
@@ -218,8 +218,8 @@ test("keeps an upward wiki link autocomplete anchored to the caret as results sh
 
   expect(after.menuBottom).toBeLessThanOrEqual(after.caretTop);
   expect(after.menuTop).toBeGreaterThan(before.menuTop);
-  expect(after.menuLeft).toBeGreaterThanOrEqual(0);
-  expect(Math.abs(after.menuLeft - after.caretLeft)).toBeLessThan(200);
+  expect(after.menuLeft).toBeGreaterThanOrEqual(8);
+  expect(after.menuLeft).toBeLessThanOrEqual(after.caretLeft + 16);
 });
 
 test("opens an existing note from a wiki link", async ({ page }) => {

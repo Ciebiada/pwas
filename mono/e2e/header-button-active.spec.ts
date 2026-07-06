@@ -29,10 +29,7 @@ test("three-dot header buttons clear their active state after opening modals on 
   await listMoreButton.tap();
 
   await expect(page.getByText("Settings")).toBeVisible();
-  await expect(async () => {
-    const hasClass = await listMoreButton.evaluate((el) => el.classList.contains("activated"));
-    expect(hasClass).toBe(false);
-  }).toPass();
+  await expect.poll(() => listMoreButton.evaluate((el) => el.classList.contains("activated"))).toBe(false);
   await page.locator(".modal-fixed-header .header-button").tap();
   await expect(page.getByText("Settings")).toHaveCount(0);
 
@@ -45,10 +42,7 @@ test("three-dot header buttons clear their active state after opening modals on 
 
   const search = page.getByRole("searchbox", { name: "Search actions" });
   await expect(search).toBeVisible();
-  await expect(async () => {
-    const hasClass = await noteMoreButton.evaluate((el) => el.classList.contains("activated"));
-    expect(hasClass).toBe(false);
-  }).toPass();
+  await expect.poll(() => noteMoreButton.evaluate((el) => el.classList.contains("activated"))).toBe(false);
   await expect(search).not.toBeFocused();
   await expectModalHeightRatio(page, 0.45, 0.55);
   await search.tap();
