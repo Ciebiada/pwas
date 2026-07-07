@@ -4,8 +4,8 @@ import { isIOS } from "./platform";
 const KEYBOARD_OPEN_THRESHOLD = 100;
 
 // Manages iOS keyboard viewport compensation. Sets two CSS variables:
-// --keyboard-offset on the scroll container (Editor's bottom padding) and
-// --visual-bottom-gap on :root (root-level fixed bars like SearchBar). Also:
+// --keyboard-scroll-padding on the scroll container and --visual-bottom-gap on
+// :root (root-level fixed bars like SearchBar). Also:
 // - Prevents the layout from sliding up on keyboard type switches (text ↔
 //   emoji) by snapping window.scrollY back to 0 while the keyboard is open.
 // - Dispatches a "keyboard-closed" event when the keyboard closes without a
@@ -49,7 +49,7 @@ export const useIOSKeyboardViewport = (getScrollRef: () => HTMLDivElement | unde
       // pinned to the actual visual bottom (just above the keyboard when up).
       const visualBottomGap = `${Math.max(0, offset - offsetTop)}px`;
       const [keyboard, gap] = isIOS ? [keyboardValue, visualBottomGap] : ["0px", "0px"];
-      scrollRef.style.setProperty("--keyboard-offset", keyboard);
+      scrollRef.style.setProperty("--keyboard-scroll-padding", keyboard);
       document.documentElement.style.setProperty("--visual-bottom-gap", gap);
     };
 

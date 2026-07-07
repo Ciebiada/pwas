@@ -446,7 +446,7 @@ export const NoteActionsModal = (props: NoteActionsModalProps) => {
         open={props.open}
         setOpen={props.setOpen}
         title="Note Actions"
-        restingHeightRatio={isIOS && searchKeyboardRequested() ? 0.75 : 0.5}
+        restingHeightRatio={isIOS && searchKeyboardRequested() ? 0.85 : 0.5}
         header={
           <label class="note-actions-search" onMouseDown={handleSearchPress} onTouchStart={handleSearchPress}>
             <span class="note-actions-search-icon" aria-hidden="true">

@@ -288,7 +288,7 @@ body.modal-open {
   height: 100%;
   box-sizing: border-box;
   padding-top: var(--modal-header-height);
-  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--visual-bottom-gap, 0px) + 16px + env(safe-area-inset-bottom));
   scroll-padding-top: var(--modal-header-height);
 }
 
