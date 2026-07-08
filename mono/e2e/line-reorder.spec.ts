@@ -77,6 +77,13 @@ const getPrettyCaretLeft = async (page: Page) =>
     return parseFloat(window.getComputedStyle(caret).left);
   });
 
+const isNativeCaretTransparent = async (page: Page) =>
+  await page.evaluate(() => {
+    const editor = document.querySelector<HTMLElement>(".editor");
+    if (!editor) throw new Error("Expected editor");
+    return ["transparent", "rgba(0, 0, 0, 0)"].includes(window.getComputedStyle(editor).caretColor);
+  });
+
 const installVisualViewportMock = async (page: Page) =>
   await page.addInitScript(() => {
     const target = new EventTarget();
@@ -288,9 +295,11 @@ test("positions the hidden pretty caret before iOS editor focus", async ({ page,
   const thirdLine = page.locator(".md-text").filter({ hasText: "Third line" });
   await expect(thirdLine).toBeVisible();
   await expect.poll(() => getPrettyCaretLeft(page)).not.toBeNaN();
+  await expect.poll(() => isNativeCaretTransparent(page)).toBe(true);
   const hiddenLeft = await getPrettyCaretLeft(page);
 
   await focusLineAtOffset(thirdLine, "Third".length);
+  await expect.poll(() => isNativeCaretTransparent(page)).toBe(true);
   const focusedLeft = await getPrettyCaretLeft(page);
   await page.waitForTimeout(150);
   const settledLeft = await getPrettyCaretLeft(page);

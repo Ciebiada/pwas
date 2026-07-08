@@ -38,6 +38,7 @@ export const usePrettyCaret = (
     const caret = document.createElement("div");
     caret.className = "custom-caret";
     container.appendChild(caret);
+    editor.style.caretColor = "transparent";
 
     let blinkTimeout: number | undefined;
     let focusSettleFrame: number | undefined;
@@ -151,7 +152,6 @@ export const usePrettyCaret = (
       focusSettleToken += 1;
       isFocusSettling = false;
       clearFocusSettleFrame();
-      editor.style.caretColor = "var(--main-color)";
       concealCaret();
     };
 
@@ -250,6 +250,7 @@ export const usePrettyCaret = (
       window.removeEventListener("resize", handleResize);
       editor.removeEventListener("blur", handleBlur);
       editor.removeEventListener("focus", handleFocus);
+      editor.style.caretColor = "";
       caret.remove();
     });
   });
