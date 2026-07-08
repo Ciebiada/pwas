@@ -86,6 +86,14 @@ export const usePrettyCaret = (
       return range;
     };
 
+    const hasEditorSelection = () => {
+      if (document.activeElement !== editor) return false;
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) return false;
+      const range = selection.getRangeAt(0);
+      return editor.contains(range.commonAncestorContainer) && (!range.collapsed || selection.toString().length > 0);
+    };
+
     const getRectForVisibleContent = (range: Range): DOMRect => {
       const rect = range.getBoundingClientRect();
       if (rect.height > 0) return rect;
@@ -148,10 +156,11 @@ export const usePrettyCaret = (
       caret.classList.remove("blinking");
     };
 
-    const hideCaret = () => {
+    const hideCaret = (showNativeSelection = false) => {
       focusSettleToken += 1;
       isFocusSettling = false;
       clearFocusSettleFrame();
+      editor.style.caretColor = showNativeSelection ? "var(--main-color)" : "transparent";
       concealCaret();
     };
 
@@ -167,7 +176,7 @@ export const usePrettyCaret = (
         if (token !== focusSettleToken) return;
 
         if (!getValidCollapsedRange()) {
-          hideCaret();
+          hideCaret(hasEditorSelection());
           return;
         }
 
@@ -188,7 +197,7 @@ export const usePrettyCaret = (
     const handleSelectionChange = () => {
       const range = getValidCollapsedRange(false);
       if (!range) {
-        hideCaret();
+        hideCaret(hasEditorSelection());
         return;
       }
 
@@ -228,7 +237,7 @@ export const usePrettyCaret = (
     };
 
     const handleResize = () => updateCaretPosition();
-    const handleBlur = () => requestAnimationFrame(hideCaret);
+    const handleBlur = () => requestAnimationFrame(() => hideCaret());
     const handleVisibilityChange = () => (document.hidden ? hideCaret() : scheduleSelectionChange());
 
     document.addEventListener("selectionchange", scheduleSelectionChange);

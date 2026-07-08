@@ -60,6 +60,29 @@ const focusLineAtOffset = async (line: Locator, offset: number) => {
   }, offset);
 };
 
+const selectLineRange = async (line: Locator, start: number, end: number) => {
+  await line.evaluate(
+    (element, selectionRange) => {
+      const editor = document.querySelector<HTMLElement>(".editor");
+      if (!editor) throw new Error("Expected editor");
+
+      const textNode = Array.from(element.childNodes).find((node) => node.nodeType === Node.TEXT_NODE);
+      if (!textNode) throw new Error("Expected line text node");
+
+      const selection = window.getSelection();
+      if (!selection) throw new Error("Expected selection");
+
+      const range = document.createRange();
+      range.setStart(textNode, selectionRange.start);
+      range.setEnd(textNode, selectionRange.end);
+      editor.focus();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    },
+    { start, end },
+  );
+};
+
 const getSelectedText = async (page: Page) => await page.evaluate(() => window.getSelection()?.toString() ?? "");
 
 const isEditorFocused = async (page: Page) =>
@@ -306,6 +329,13 @@ test("positions the hidden pretty caret before iOS editor focus", async ({ page,
 
   expect(Math.abs(focusedLeft - hiddenLeft)).toBeLessThan(1);
   expect(Math.abs(settledLeft - hiddenLeft)).toBeLessThan(1);
+
+  await page.locator(".editor").evaluate((editor: HTMLElement) => editor.blur());
+  await expect.poll(() => isNativeCaretTransparent(page)).toBe(true);
+
+  await selectLineRange(thirdLine, 0, "Third".length);
+  await expect.poll(() => getSelectedText(page)).toBe("Third");
+  await expect.poll(() => isNativeCaretTransparent(page)).toBe(false);
 });
 
 test("dragging the active-line handle near the visible bottom edge scrolls", async ({ page, browserName }) => {
