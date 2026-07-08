@@ -15,6 +15,18 @@
   --dot-grid-color: color-mix(in srgb, var(--text-color) 18%, transparent);
   --safe-area-inline-left: env(safe-area-inset-left);
   --safe-area-inline-right: env(safe-area-inset-right);
+  --safe-bottom-padding: 16px;
+  --visual-bottom-padding: var(--safe-bottom-padding);
+}
+
+@media (display-mode: standalone) {
+  :root {
+    --safe-bottom-padding: max(16px, env(safe-area-inset-bottom));
+  }
+}
+
+:root.keyboard-open {
+  --visual-bottom-padding: 0px;
 }
 
 html {

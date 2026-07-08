@@ -19,7 +19,7 @@
 
 .notes-search-wrapper {
   position: fixed;
-  bottom: calc(env(safe-area-inset-bottom) + 16px);
+  bottom: var(--visual-bottom-padding);
   left: 0;
   right: 0;
   box-sizing: border-box;
@@ -65,7 +65,7 @@
   --search-ease: cubic-bezier(0.32, 0.72, 0, 1);
   --search-dur: 0.3s;
   opacity: 0;
-  transform: translateY(calc(100% + 40px + env(safe-area-inset-bottom) + 16px));
+  transform: translateY(calc(100% + 40px + var(--visual-bottom-padding)));
   transition:
     transform var(--search-dur) var(--search-ease),
     opacity var(--search-dur) var(--search-ease),

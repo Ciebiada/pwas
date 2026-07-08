@@ -99,7 +99,7 @@
 }
 
 .notes-list-content {
-  padding-bottom: calc(var(--keyboard-scroll-padding, 0px) + 76px + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--keyboard-scroll-padding, 0px) + 60px + var(--visual-bottom-padding));
 }
 
 .notes-list-sentinel {

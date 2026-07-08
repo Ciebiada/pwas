@@ -40,8 +40,7 @@ export const useIOSKeyboardViewport = (getScrollRef: () => HTMLDivElement | unde
         window.scrollTo(0, 0);
         offsetTop = 0;
       }
-      const padding = 64; // adding just the keyboard height as a bottom padding is enough to be able to scroll to the bottom
-      const keyboardValue = `${offset + padding}px`;
+      const keyboardValue = `${offset}px`;
       // Distance from layout viewport bottom to visual viewport bottom. When iOS
       // scrolls the page on input focus, the layout viewport bottom falls below
       // the visible area; fixed-positioned bars that use `bottom: 0` follow the
@@ -51,6 +50,9 @@ export const useIOSKeyboardViewport = (getScrollRef: () => HTMLDivElement | unde
       const [keyboard, gap] = isIOS ? [keyboardValue, visualBottomGap] : ["0px", "0px"];
       scrollRef.style.setProperty("--keyboard-scroll-padding", keyboard);
       document.documentElement.style.setProperty("--visual-bottom-gap", gap);
+      if (isIOS) {
+        document.documentElement.classList.toggle("keyboard-open", keyboardOpen);
+      }
     };
 
     // Safety net: if iOS scrolls the window while the keyboard is open (e.g. the
@@ -97,6 +99,7 @@ export const useIOSKeyboardViewport = (getScrollRef: () => HTMLDivElement | unde
       if (isIOS) {
         window.removeEventListener("scroll", preventLayoutScroll);
         document.removeEventListener("visibilitychange", handleVisibilityChange);
+        document.documentElement.classList.remove("keyboard-open");
       }
     });
   });

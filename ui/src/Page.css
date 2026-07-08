@@ -13,4 +13,5 @@
 .page-content {
   height: 100%;
   padding: 16px;
+  padding-bottom: var(--visual-bottom-padding);
 }
