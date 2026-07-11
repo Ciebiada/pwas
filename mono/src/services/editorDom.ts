@@ -42,7 +42,8 @@ export const getScrollParent = (node: Node | null): HTMLElement | null => {
 export const isElementHidden = (element: Element) =>
   element instanceof HTMLElement && window.getComputedStyle(element).display === "none";
 
-export const getVisibleBoundaryRect = (node: Node, atEnd: boolean): DOMRect | null => {
+export const getVisibleBoundaryRect = (node: Node | null | undefined, atEnd: boolean): DOMRect | null => {
+  if (!node) return null;
   if (node instanceof Element && isElementHidden(node)) return null;
 
   if (node.nodeType !== Node.TEXT_NODE) {
@@ -66,4 +67,15 @@ export const getVisibleBoundaryRect = (node: Node, atEnd: boolean): DOMRect | nu
 
   const rect = range.getBoundingClientRect();
   return rect.height > 0 ? rect : null;
+};
+
+export const getCaretRect = (range: Range): DOMRect => {
+  const rect = range.getBoundingClientRect();
+  if (rect.height > 0) return rect;
+
+  const container = range.startContainer;
+  const offset = range.startOffset;
+  const previousNode = container.nodeType === Node.TEXT_NODE ? container : container.childNodes[offset - 1];
+  const nextNode = container.nodeType === Node.TEXT_NODE ? container : container.childNodes[offset];
+  return getVisibleBoundaryRect(previousNode, true) ?? getVisibleBoundaryRect(nextNode, false) ?? rect;
 };

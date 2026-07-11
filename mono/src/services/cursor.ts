@@ -1,5 +1,6 @@
 import {
   countWithoutZeroWidthSpaces,
+  getCaretRect,
   getNodeTextLength,
   getOffsetInNode,
   getScrollParent,
@@ -187,10 +188,11 @@ export const scrollCursorIntoView = (selection: Selection, behavior: ScrollBehav
   if (!viewport) return;
 
   const range = selection.getRangeAt(0);
-  const rect = range.getBoundingClientRect();
+  const rect = getCaretRect(range);
 
-  const viewportTop = document.querySelector<HTMLElement>(".header")!.offsetHeight;
-  const viewportBottom = viewport.height - 24;
+  const headerBottom = document.querySelector<HTMLElement>(".header")!.getBoundingClientRect().bottom;
+  const viewportTop = Math.max(headerBottom, viewport.offsetTop);
+  const viewportBottom = viewport.offsetTop + viewport.height - 24;
 
   let delta = 0;
   if (rect.top < viewportTop) {

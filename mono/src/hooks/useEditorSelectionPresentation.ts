@@ -1,6 +1,6 @@
 import { onCleanup, onMount } from "solid-js";
 import { fixCursorPositionForZeroWidthSpace, getSelection } from "../services/cursor";
-import { getOffsetInNode } from "../services/editorDom";
+import { getCaretRect, getOffsetInNode, getScrollParent } from "../services/editorDom";
 
 const syncActiveElement = (
   current: HTMLElement | null,
@@ -150,11 +150,22 @@ export const useEditorSelectionPresentation = (options: UseEditorSelectionPresen
 
     const selection = getCollapsedSelection(editor);
     const anchor = selection?.anchor;
-    activeInlineFormat = syncActiveElement(
-      activeInlineFormat,
-      anchor?.closest<HTMLElement>(".md-inline-format") ?? null,
-      "is-active-inline-format",
-    );
+    const nextInlineFormat = anchor?.closest<HTMLElement>(".md-inline-format") ?? null;
+    const preserveCaretPosition = options.isIOS && activeInlineFormat !== nextInlineFormat;
+    const domSelection = preserveCaretPosition ? window.getSelection() : null;
+    const range = domSelection?.rangeCount ? domSelection.getRangeAt(0) : null;
+    const scrollParent = range ? getScrollParent(anchor ?? null) : null;
+    const caretTop = range ? getCaretRect(range).top : null;
+
+    activeInlineFormat = syncActiveElement(activeInlineFormat, nextInlineFormat, "is-active-inline-format");
+
+    if (range && scrollParent && caretTop !== null) {
+      const delta = getCaretRect(range).top - caretTop;
+      if (Math.abs(delta) >= 1) {
+        scrollParent.scrollTo({ top: scrollParent.scrollTop + delta, behavior: "instant" });
+      }
+    }
+
     activeLine = syncActiveElement(activeLine, selection?.line ?? null, "is-active-line");
     const headingPrefixLine = isHeadingPrefixActive(selection?.line ?? null, selection?.offsetInLine ?? null)
       ? (selection?.line ?? null)

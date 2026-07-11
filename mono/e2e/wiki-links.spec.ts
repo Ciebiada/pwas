@@ -91,6 +91,45 @@ test("replaces an edited wiki link without duplicating closing brackets", async 
   ]);
 });
 
+test("moves into a wiki link when deleting its trailing separator", async ({ page }) => {
+  await createStoredNote(page, { name: "Target", content: "linked note" });
+  const sourceId = await createStoredNote(page, { name: "Source", content: "[[Target]] " });
+
+  await page.goto(`/note/${sourceId}`);
+  await page.waitForURL(new RegExp(`/note/${sourceId}$`));
+
+  const editor = page.locator(".editor");
+  const delimiters = page.locator(".md-wiki-link .markdown-delimiter");
+  await editor.focus();
+  await page
+    .locator(".md-line")
+    .last()
+    .evaluate((line) => {
+      const trailingText = line.lastChild;
+      if (!(trailingText instanceof Text)) throw new Error("Expected trailing text");
+
+      const selection = window.getSelection();
+      if (!selection) throw new Error("Expected selection");
+
+      const range = document.createRange();
+      range.setStart(trailingText, trailingText.length);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    });
+
+  await page.keyboard.press("Backspace");
+
+  await expect(delimiters.first()).toBeVisible();
+  await expect(delimiters.nth(1)).toBeVisible();
+
+  await page.keyboard.type("X");
+  await expectStoredNotes(page, [
+    { name: "Target", content: "linked note" },
+    { name: "Source", content: "[[TargetX]]" },
+  ]);
+});
+
 test("keeps wiki link autocomplete attached to the caret while filtering", async ({ page }) => {
   await createStoredNote(page, { name: "Target", content: "linked note" });
 

@@ -123,6 +123,7 @@ export const Editor = (_props: EditorProps) => {
   const syncSelectionPresentation = () => {
     selectionPresentation.sync();
     syncLineReorderHandle();
+    syncPrettyCaret();
   };
 
   const { ignoreNextBlurForReorder: ignoreIOSKeyboardBlurForReorder } = useIOSKeyboardDismiss({
@@ -159,9 +160,7 @@ export const Editor = (_props: EditorProps) => {
 
   const applySelection = (selection: EditorSelection) => {
     lastSelection = selection;
-    const appliedSelection = setSelection(editor, selection.start, { end: selection.end });
-    syncPrettyCaret();
-    return appliedSelection;
+    return setSelection(editor, selection.start, { end: selection.end });
   };
 
   const toSelection = (selection: number | EditorSelection): EditorSelection =>
@@ -181,7 +180,7 @@ export const Editor = (_props: EditorProps) => {
     emitChange();
     if (scroll) {
       requestAnimationFrame(() => {
-        scrollCursorIntoView(window.getSelection()!, "smooth");
+        scrollCursorIntoView(window.getSelection()!, isIOS ? "instant" : "smooth");
       });
     }
     refreshWikiCompletionHandle(nextSelection);

@@ -132,15 +132,27 @@ const WikiLink = (props: { title: string; handlers?: WikiLinkHandlers }) => {
   const href = createMemo(
     () => props.handlers?.getHref?.(props.title) || `/new?name=${encodeURIComponent(props.title)}`,
   );
+  let openedFromPointer = false;
+
+  const open = () => props.handlers?.onClick?.(props.title, href());
 
   return (
     <a
       href={href()}
       class="md-link md-wiki-link md-inline-format"
       onMouseDown={(e) => e.preventDefault()}
+      onPointerUp={(e) => {
+        if (e.pointerType === "mouse") return;
+
+        e.preventDefault();
+        e.stopPropagation();
+        openedFromPointer = true;
+        open();
+        setTimeout(() => (openedFromPointer = false));
+      }}
       onClick={(e) => {
         e.preventDefault();
-        props.handlers?.onClick?.(props.title, href());
+        if (!openedFromPointer) open();
       }}
     >
       <span class="markdown-delimiter">[[</span>

@@ -42,6 +42,44 @@ test("shows strong delimiters only while the cursor is inside the formatted text
   await expect(delimiters.nth(1)).toBeHidden();
 });
 
+test("moves into formatted text when deleting its trailing separator", async ({ page }) => {
+  const noteId = await createStoredNote(page, {
+    name: "Formatting",
+    content: "**bold** ",
+  });
+
+  await page.goto(`/note/${noteId}`);
+  await page.waitForURL(new RegExp(`/note/${noteId}$`));
+
+  const editor = page.locator(".editor");
+  const delimiters = page.locator("strong .markdown-delimiter");
+  await editor.focus();
+  await page
+    .locator(".md-line")
+    .last()
+    .evaluate((line) => {
+      const trailingText = line.lastChild;
+      if (!(trailingText instanceof Text)) throw new Error("Expected trailing text");
+
+      const selection = window.getSelection();
+      if (!selection) throw new Error("Expected selection");
+
+      const range = document.createRange();
+      range.setStart(trailingText, trailingText.length);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    });
+
+  await page.keyboard.press("Backspace");
+
+  await expect(delimiters.first()).toBeVisible();
+  await expect(delimiters.nth(1)).toBeVisible();
+
+  await page.keyboard.type("X");
+  await expectStoredNotes(page, [{ name: "Formatting", content: "**boldX**" }]);
+});
+
 test("keeps empty inline code delimiters visible until content is typed inside", async ({ page }) => {
   await page.goto("/new");
   await page.waitForURL(/\/note\/\d+$/);

@@ -12,6 +12,8 @@ interface InlineFormatTokenSpan {
   end: number;
 }
 
+const INLINE_CLOSING_CHARS = new Set(["*", "_", "~", "`", "]"]);
+
 const findAllInlineFormatTokens = (text: string): InlineFormatTokenSpan[] => {
   const tokens: InlineFormatTokenSpan[] = [];
   const triggerChars = new Set(["`", "*", "_", "~"]);
@@ -40,6 +42,35 @@ const findAllInlineFormatTokens = (text: string): InlineFormatTokenSpan[] => {
   }
 
   return tokens;
+};
+
+const findInlineContentEndAt = (content: string, end: number): number | null => {
+  if (!INLINE_CLOSING_CHARS.has(content[end - 1])) return null;
+
+  let lineStart = 0;
+  for (const line of tokenizeLines(content)) {
+    const lineEnd = lineStart + line.prefix.length + line.content.length;
+    if (end <= lineEnd) {
+      if (line.disableInlineMarkdown) return null;
+
+      const contentStart = lineStart + line.prefix.length;
+      for (let index = contentStart; index < end; index += 1) {
+        const inlineFormat = matchInlineCodeAt(content, index) ?? matchInlineFormatAt(content, index);
+        if (inlineFormat && index + inlineFormat.raw.length === end) return inlineFormat.contentEnd;
+
+        if (content[index] === "[") {
+          const wikiLink = content.slice(index, end).match(/^\[\[([^\]\n]+)\]\]$/);
+          if (wikiLink) return index + 2 + wikiLink[1].length;
+        }
+      }
+
+      return null;
+    }
+
+    lineStart = lineEnd + 1;
+  }
+
+  return null;
 };
 
 const handleSelectionWithFormatCleanup = (
@@ -180,6 +211,16 @@ export const processBeforeInput = (
       if (end > start) {
         return deleteSelection();
       } else if (start > 0) {
+        if (/\s/.test(content[start - 1])) {
+          const inlineContentEnd = findInlineContentEndAt(content, start - 1);
+          if (inlineContentEnd !== null) {
+            return {
+              content: insert(content, start - 1, start, ""),
+              cursor: inlineContentEnd,
+            };
+          }
+        }
+
         const afterDelete = insert(content, start - 1, start, "");
         return renumberOrderedList(afterDelete, start - 1);
       }
