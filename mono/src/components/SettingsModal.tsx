@@ -14,7 +14,7 @@ import {
 } from "../services/preferences";
 import { disconnectDropbox } from "../services/sync/dropbox";
 import { DropboxProvider } from "../services/sync/dropboxProvider";
-import { disconnectGoogleDrive, getAuthUrl as getGoogleAuthUrl } from "../services/sync/googleDrive";
+import { disconnectGoogleDrive } from "../services/sync/googleDrive";
 import { GoogleDriveProvider } from "../services/sync/googleDriveProvider";
 import { DropboxIcon, GoogleDriveIcon } from "./Icons";
 import "./SettingsModal.css";
@@ -73,7 +73,7 @@ const SettingsModalContent = () => {
       disconnectDropbox();
       setIsDropboxConnected(false);
     }
-    window.location.href = await getGoogleAuthUrl();
+    window.location.href = await GoogleDriveProvider.getAuthUrl();
   };
 
   const handleGoogleDisconnect = () => {

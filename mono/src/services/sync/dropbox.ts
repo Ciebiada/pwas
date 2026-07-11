@@ -138,15 +138,23 @@ export const listFiles = async (path: string = ""): Promise<DropboxFile[]> => {
   }
 
   return withRetryOnAuth(async () => {
-    const response = await dbx.filesListFolder({
-      path: path || "",
-      recursive: false,
-      include_media_info: false,
-      include_deleted: false,
-      include_has_explicit_shared_members: false,
-    });
+    let result = (
+      await dbx.filesListFolder({
+        path: path || "",
+        recursive: false,
+        include_media_info: false,
+        include_deleted: false,
+        include_has_explicit_shared_members: false,
+      })
+    ).result;
+    const entries = [...result.entries];
 
-    return response.result.entries.map((entry) => {
+    while (result.has_more) {
+      result = (await dbx.filesListFolderContinue({ cursor: result.cursor })).result;
+      entries.push(...result.entries);
+    }
+
+    return entries.map((entry) => {
       const file = entry as {
         id: string;
         name: string;

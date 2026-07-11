@@ -29,6 +29,7 @@ export const EditNote = () => {
   let noteActionsModalApi: NoteActionsModalAPI | undefined;
   let lastSeenSync = 0;
   let initializedNoteId: number | undefined;
+  let lastQueuedCursor: number | undefined;
 
   const note = createDexieSignalQuery(() => db.notes.get(noteId()));
   const [editorNote, setEditorNote] = createSignal<Note>();
@@ -37,6 +38,26 @@ export const EditNote = () => {
   );
 
   const handleFocusSync = () => syncNote(noteId());
+
+  const debouncedSave = debounce(async (snapshot: { id: number; content: string }) => {
+    const { name, content: body } = splitNote(snapshot.content);
+    const trimmedName = name.trim();
+    const nextName = trimmedName ? allocateUniqueNoteNameFromNotes(trimmedName, linkableNotes.data, snapshot.id) : "";
+    await db.notes.update(snapshot.id, {
+      name: nextName,
+      content: body,
+      status: "pending",
+      lastModified: Date.now(),
+    });
+    if (nextName && nextName !== trimmedName && noteId() === snapshot.id) {
+      editorApi?.replaceContent(nextName, body);
+    }
+    syncNote(snapshot.id);
+  }, 500);
+
+  const debouncedCursorSave = debounce((snapshot: { id: number; cursor: number }) => {
+    return db.notes.update(snapshot.id, { cursor: snapshot.cursor });
+  }, 500);
 
   onMount(async () => {
     syncNote(noteId());
@@ -48,6 +69,8 @@ export const EditNote = () => {
 
   onCleanup(() => {
     window.removeEventListener("focus", handleFocusSync);
+    debouncedSave.flush();
+    debouncedCursorSave.flush();
   });
 
   createEffect(() => {
@@ -55,9 +78,12 @@ export const EditNote = () => {
     if (!n) return;
 
     if (editorNote()?.id !== n.id) {
+      debouncedSave.flush();
+      debouncedCursorSave.flush();
       editorApi = undefined;
       setEditorNote(n);
       lastSeenSync = n.lastRemoteUpdate || 0;
+      lastQueuedCursor = n.cursor;
     }
 
     if (initializedNoteId !== n.id) {
@@ -73,26 +99,8 @@ export const EditNote = () => {
     }
   });
 
-  const debouncedSave = debounce(async (snapshot: { id: number; content: string }) => {
-    const { name, content: body } = splitNote(snapshot.content);
-    const trimmedName = name.trim();
-    const nextName = trimmedName ? allocateUniqueNoteNameFromNotes(trimmedName, linkableNotes.data, snapshot.id) : "";
-    await db.notes.update(snapshot.id, {
-      name: nextName,
-      content: body,
-      status: "pending",
-      lastModified: Date.now(),
-    });
-    if (nextName && nextName !== trimmedName) {
-      editorApi?.replaceContent(nextName, body);
-    }
-    syncNote(snapshot.id);
-  }, 500);
-
-  const handleNoteChange = () => {
-    const state = editorApi?.getState();
-    if (!state) return;
-    debouncedSave({ id: noteId(), content: state.content });
+  const handleNoteChange = (content: string) => {
+    debouncedSave({ id: noteId(), content });
   };
 
   const getWikiLinkHref = (title: string) => {
@@ -106,8 +114,10 @@ export const EditNote = () => {
 
   const handleWikiLinkOpen = (_title: string, href: string) => navigate(href);
 
-  const handleCursorChange = async (cursor: number) => {
-    await db.notes.update(noteId(), { cursor });
+  const handleCursorChange = (cursor: number) => {
+    if (cursor === lastQueuedCursor) return;
+    lastQueuedCursor = cursor;
+    debouncedCursorSave({ id: noteId(), cursor });
   };
 
   const prepareOpenNoteActions = () => {

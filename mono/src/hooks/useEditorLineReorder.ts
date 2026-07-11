@@ -1,7 +1,7 @@
 import { type Accessor, createEffect, createSignal, onCleanup } from "solid-js";
+import { triggerHaptic } from "ui/haptic";
 import { getScrollParent } from "../services/editorDom";
 import { isLineDropMove, type LineRange, type LineReorderEdit, moveLineRange } from "../services/editorLineReorder";
-import { triggerHaptic } from "./useHaptic";
 
 const AUTO_SCROLL_BOTTOM_EDGE_PX = 24;
 const AUTO_SCROLL_MAX_PX = 18;

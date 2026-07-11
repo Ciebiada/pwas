@@ -8,26 +8,14 @@ import {
   moveFile,
   uploadFile,
 } from "./dropbox";
-import type { RemoteFile, SyncProvider, UploadResponse } from "./syncProvider";
+import type { SyncProvider, UploadResponse } from "./syncProvider";
 
 export const DropboxProvider: SyncProvider = {
   name: "dropbox",
   isAuthenticated: isDropboxInitialized,
-  getAuthUrl: getAuthUrl,
-  listFiles: async (path: string): Promise<RemoteFile[]> => {
-    const files = await listFiles(path);
-    return files.map((f) => ({
-      ...f,
-      // Ensure properties match RemoteFile
-    }));
-  },
-  getFileMetadata: async (path: string): Promise<RemoteFile | null> => {
-    const file = await getFileMetadata(path);
-    if (!file) return null;
-    return {
-      ...file,
-    };
-  },
+  getAuthUrl,
+  listFiles,
+  getFileMetadata,
   uploadFile: async (path: string, content: string): Promise<UploadResponse> => {
     const res = await uploadFile(path, content);
     return {
@@ -39,8 +27,5 @@ export const DropboxProvider: SyncProvider = {
   },
   downloadFile: downloadFile,
   deleteFile: deleteFile,
-  moveFile: async (fromPath: string, toPath: string): Promise<RemoteFile> => {
-    const res = await moveFile(fromPath, toPath);
-    return res;
-  },
+  moveFile,
 };

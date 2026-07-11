@@ -254,12 +254,25 @@ export const listFiles = async (additionalQuery: string = ""): Promise<GoogleDri
     q += " and name contains '.md'";
   }
 
-  const fields = "files(id, name, mimeType, modifiedTime, size)";
-  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=${encodeURIComponent(fields)}`;
+  const fields = "nextPageToken,incompleteSearch,files(id,name,mimeType,modifiedTime,size)";
+  const files: GoogleDriveFile[] = [];
+  let pageToken: string | undefined;
 
-  const res = await fetchWithAuth(url);
-  const data = await res.json();
-  return data.files || [];
+  do {
+    const params = new URLSearchParams({ q, fields });
+    if (pageToken) params.set("pageToken", pageToken);
+    const res = await fetchWithAuth(`https://www.googleapis.com/drive/v3/files?${params.toString()}`);
+    const data = (await res.json()) as {
+      files?: GoogleDriveFile[];
+      nextPageToken?: string;
+      incompleteSearch?: boolean;
+    };
+    if (data.incompleteSearch) throw new Error("Google Drive returned an incomplete file listing");
+    files.push(...(data.files || []));
+    pageToken = data.nextPageToken;
+  } while (pageToken);
+
+  return files;
 };
 
 export const getFileMetadata = async (fileId: string): Promise<GoogleDriveFile | null> => {
@@ -320,6 +333,17 @@ export const uploadFile = async (
   });
 
   return await res.json();
+};
+
+export const renameFile = async (fileId: string, name: string): Promise<GoogleDriveFile> => {
+  const fields = "id,name,mimeType,modifiedTime,size";
+  const url = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=${encodeURIComponent(fields)}`;
+  const res = await fetchWithAuth(url, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  return res.json();
 };
 
 export const deleteFile = async (fileId: string) => {

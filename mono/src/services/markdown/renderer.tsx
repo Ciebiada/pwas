@@ -1,6 +1,6 @@
 import { createMemo, Index, type JSX, on } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import { triggerHaptic } from "../../hooks/useHaptic";
+import { triggerHaptic } from "ui/haptic";
 import { matchInlineFormatAt } from "./inlineFormat";
 import { CODE_FENCE, type LineToken, tokenizeLines } from "./tokenize";
 

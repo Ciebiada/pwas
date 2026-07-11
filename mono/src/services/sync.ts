@@ -13,11 +13,18 @@ type SyncResult =
   | { status: "skipped"; reason: string }
   | { status: "error"; error: Error };
 
-const getLatestNote = async (id: number): Promise<Note | undefined> => {
-  return await db.notes.get(id);
+type NoteSyncState = {
+  rerunRequested: boolean;
+  promise: Promise<SyncResult>;
 };
 
-const syncLocks = new Map<number, Promise<SyncResult>>();
+const noteSyncStates = new Map<number, NoteSyncState>();
+
+const getActiveProvider = (): SyncProvider | undefined => {
+  if (DropboxProvider.isAuthenticated()) return DropboxProvider;
+  if (GoogleDriveProvider.isAuthenticated()) return GoogleDriveProvider;
+  return undefined;
+};
 
 // Helper to determine the correct ID field based on provider
 const getRemoteId = (note: Note, providerName: string): string | undefined => {
@@ -35,38 +42,38 @@ export const wasSynced = (note: Note): boolean => {
   return !!(note.dropboxId || note.googleDriveId);
 };
 
-export const syncNote = async (
-  noteId: number,
-  provider?: SyncProvider,
-  onContentUpdate?: (name: string, content: string) => void,
-): Promise<SyncResult> => {
-  let activeProvider = provider;
-  if (!activeProvider) {
-    if (DropboxProvider.isAuthenticated()) activeProvider = DropboxProvider;
-    else if (GoogleDriveProvider.isAuthenticated()) activeProvider = GoogleDriveProvider;
-  }
+export const syncNote = (noteId: number, provider?: SyncProvider): Promise<SyncResult> => {
+  const activeProvider = provider || getActiveProvider();
 
   if (!activeProvider) {
-    return { status: "skipped", reason: "No active sync provider" };
+    return Promise.resolve({ status: "skipped", reason: "No active sync provider" });
   }
 
-  const previous = syncLocks.get(noteId) || Promise.resolve({ status: "success", action: "none" } as SyncResult);
-  const current: Promise<SyncResult> = previous
-    .then(() => performSync(noteId, activeProvider!, onContentUpdate))
+  const existingState = noteSyncStates.get(noteId);
+  if (existingState) {
+    existingState.rerunRequested = true;
+    return existingState.promise;
+  }
+
+  const state: NoteSyncState = {
+    rerunRequested: false,
+    promise: Promise.resolve({ status: "success", action: "none" }),
+  };
+  state.promise = (async () => {
+    let result: SyncResult;
+    do {
+      state.rerunRequested = false;
+      result = await performSync(noteId, activeProvider);
+    } while (state.rerunRequested);
+    return result;
+  })()
     .catch((err): SyncResult => {
-      console.error(`Error in sync chain for note ${noteId}:`, err);
-      return {
-        status: "error",
-        error: err instanceof Error ? err : new Error(String(err)),
-      };
+      console.error(`Error syncing note ${noteId}:`, err);
+      return { status: "error", error: err instanceof Error ? err : new Error(String(err)) };
     })
-    .finally(() => {
-      if (syncLocks.get(noteId) === current) {
-        syncLocks.delete(noteId);
-      }
-    });
-  syncLocks.set(noteId, current);
-  return current;
+    .finally(() => noteSyncStates.delete(noteId));
+  noteSyncStates.set(noteId, state);
+  return state.promise;
 };
 
 const uploadAndUpdateState = async (
@@ -76,7 +83,7 @@ const uploadAndUpdateState = async (
   provider: SyncProvider,
 ): Promise<SyncAction> => {
   const response = await provider.uploadFile(path, contentToUpload);
-  const currentNote = await getLatestNote(noteId);
+  const currentNote = await db.notes.get(noteId);
   if (!currentNote) return "none";
 
   const contentChangedDuringUpload = currentNote.content !== contentToUpload;
@@ -92,16 +99,12 @@ const uploadAndUpdateState = async (
   return "uploaded";
 };
 
-const performSync = async (
-  noteId: number,
-  provider: SyncProvider,
-  onContentUpdate?: (name: string, content: string) => void,
-): Promise<SyncResult> => {
+const performSync = async (noteId: number, provider: SyncProvider): Promise<SyncResult> => {
   if (!provider.isAuthenticated()) {
     return { status: "skipped", reason: "Provider not initialized" };
   }
 
-  const note = await getLatestNote(noteId);
+  const note = await db.notes.get(noteId);
   if (!note) {
     return { status: "skipped", reason: "Note not found" };
   }
@@ -164,7 +167,7 @@ const performSync = async (
       return await handleLocalChanges(note, remoteMetadata, provider);
     }
 
-    return await handleRemoteChanges(note, remoteMetadata, remoteModified, provider, onContentUpdate);
+    return await handleRemoteChanges(note, remoteMetadata, remoteModified, provider);
   } catch (error) {
     console.error(`Error syncing note ${noteId}:`, error);
     return {
@@ -250,7 +253,6 @@ const handleRemoteChanges = async (
   remoteMetadata: RemoteFile,
   remoteModified: number,
   provider: SyncProvider,
-  onContentUpdate?: (name: string, content: string) => void,
 ): Promise<SyncResult> => {
   console.log(`Remote changes detected on ${provider.name} for: ${note.name}`);
   const remoteContent = await provider.downloadFile(remoteMetadata.id); // Use ID
@@ -279,7 +281,6 @@ const handleRemoteChanges = async (
         lastModified: remoteModified,
         lastRemoteUpdate: Date.now(),
       });
-      onContentUpdate?.(newName, remoteContent);
       return { status: "success", action: "downloaded" };
     }
 
@@ -301,7 +302,6 @@ const handleRemoteChanges = async (
       lastRemoteUpdate: Date.now(),
     });
 
-    onContentUpdate?.(currentNote.name, mergedContent);
     return { status: "success", action: "merged" };
   });
 };
@@ -333,10 +333,7 @@ export const sync = async (): Promise<void> => {
     return;
   }
 
-  // Determine active provider
-  let provider: SyncProvider | undefined;
-  if (DropboxProvider.isAuthenticated()) provider = DropboxProvider;
-  else if (GoogleDriveProvider.isAuthenticated()) provider = GoogleDriveProvider;
+  const provider = getActiveProvider();
 
   if (!provider) {
     console.log("No sync provider initialized, skipping sync");
@@ -418,15 +415,6 @@ const importRemoteNotes = async (
       if (provider.name === "googledrive") newNote.googleDriveId = file.id;
 
       await db.notes.add(newNote);
-    } else {
-      const currentRemoteId = getRemoteId(existingNote, provider.name);
-      if (!currentRemoteId) {
-        console.log(`Linking existing note to ${provider.name}: ${existingNote.name}`);
-        await setRemoteId(existingNote.id, provider.name, file.id);
-        await db.notes.update(existingNote.id, {
-          status: "pending",
-        });
-      }
     }
   }
 

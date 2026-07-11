@@ -62,7 +62,7 @@ type EditorProps = {
   initialCursor?: number;
   autoFocus?: boolean;
   onReady?: (api: EditorAPI) => void;
-  onChange?: (name: string, content: string) => void;
+  onChange?: (content: string) => void;
   onCursorChange?: (cursor: number) => void;
   getWikiLinkSuggestions?: (query: string) => string[];
   onWikiLinkOpen?: (title: string, href: string) => void;
@@ -144,8 +144,7 @@ export const Editor = (_props: EditorProps) => {
   };
 
   const emitChange = () => {
-    const { name, content: noteContent } = splitNote(content());
-    props.onChange?.(name, noteContent);
+    props.onChange?.(content());
   };
 
   const getCurrentSelection = () => {

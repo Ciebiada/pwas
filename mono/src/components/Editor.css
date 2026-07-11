@@ -19,7 +19,7 @@
 
 .editor[contenteditable="true"] {
   min-height: 100%;
-  padding-bottom: calc(var(--keyboard-scroll-padding, 0px) + var(--visual-bottom-padding));
+  padding-bottom: calc(var(--keyboard-scroll-padding, 0px) + var(--visual-bottom-padding) + 24px);
 }
 
 .editor.dot-grid {

@@ -1,9 +1,11 @@
 import {
   deleteFile,
   downloadFile,
+  getAuthUrl,
   getFileMetadata,
   isGoogleDriveInitialized,
   listFiles,
+  renameFile,
   uploadFile,
 } from "./googleDrive";
 import type { RemoteFile, SyncProvider, UploadResponse } from "./syncProvider";
@@ -11,9 +13,7 @@ import type { RemoteFile, SyncProvider, UploadResponse } from "./syncProvider";
 export const GoogleDriveProvider: SyncProvider = {
   name: "googledrive",
   isAuthenticated: isGoogleDriveInitialized,
-  getAuthUrl: async () => {
-    return "";
-  },
+  getAuthUrl,
   listFiles: async (_path: string): Promise<RemoteFile[]> => {
     const files = await listFiles();
     return files.map((f) => ({
@@ -28,7 +28,8 @@ export const GoogleDriveProvider: SyncProvider = {
   getFileMetadata: async (path: string): Promise<RemoteFile | null> => {
     if (path.startsWith("/")) {
       const name = path.substring(1);
-      const files = await listFiles(`name = '${name}' and trashed = false`);
+      const escapedName = name.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+      const files = await listFiles(`name = '${escapedName}'`);
       if (files.length > 0) {
         const f = files[0];
         return {
@@ -72,15 +73,13 @@ export const GoogleDriveProvider: SyncProvider = {
       server_modified: res.modifiedTime || new Date().toISOString(),
     };
   },
-  downloadFile: async (path: string): Promise<string> => {
-    return await downloadFile(path);
-  },
+  downloadFile,
   deleteFile: async (path: string): Promise<void> => {
     await deleteFile(path);
   },
   moveFile: async (fromPath: string, toPath: string): Promise<RemoteFile> => {
     const name = toPath.startsWith("/") ? toPath.substring(1) : toPath;
-    const res = await uploadFile(name, "", fromPath);
+    const res = await renameFile(fromPath, name);
 
     return {
       id: res.id,
