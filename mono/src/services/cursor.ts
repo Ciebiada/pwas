@@ -234,33 +234,39 @@ export const scrollByDelta = (selection: Selection, delta: number, behavior: Scr
   }
 };
 
-export const scrollWhenViewportStable = (run: () => void, maxWaitMs = 1000) => {
+const VIEWPORT_STABLE_MS = 50;
+
+// iOS delivers viewport changes in bursts with pauses while the keyboard
+// animates. Wait for a real quiet period — two identical frame samples can
+// occur mid-animation — before running the final scroll.
+export const scrollWhenViewportStable = (run: () => void, maxWaitMs = 1500) => {
   const viewport = window.visualViewport;
   requestAnimationFrame(run);
   if (!viewport) return;
 
   let lastHeight = viewport.height;
   let lastTop = viewport.offsetTop;
-  let stable = 0;
   let changed = false;
   const start = performance.now();
+  let lastChange = start;
 
   const tick = () => {
+    const now = performance.now();
     const height = viewport.height;
     const top = viewport.offsetTop;
 
-    if (Math.abs(height - lastHeight) < 1 && Math.abs(top - lastTop) < 1) {
-      if (changed) stable += 1;
-    } else {
+    if (Math.abs(height - lastHeight) >= 1 || Math.abs(top - lastTop) >= 1) {
       changed = true;
-      stable = 0;
       lastHeight = height;
       lastTop = top;
+      lastChange = now;
     }
 
-    if (changed && stable >= 2) return run();
-    if (changed && performance.now() - start > maxWaitMs) return run();
-    if (performance.now() - start > maxWaitMs) return;
+    if (changed && now - lastChange >= VIEWPORT_STABLE_MS) return run();
+    if (now - start >= maxWaitMs) {
+      if (changed) run();
+      return;
+    }
 
     requestAnimationFrame(tick);
   };
