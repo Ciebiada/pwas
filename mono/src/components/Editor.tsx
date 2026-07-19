@@ -1,4 +1,4 @@
-import { createMemo, createSignal, mergeProps, onMount, Show } from "solid-js";
+import { createMemo, createSignal, mergeProps, onCleanup, onMount, Show } from "solid-js";
 import { isIOS } from "ui/platform";
 import { useEditorHistory } from "../hooks/useEditorHistory";
 import { useEditorLineReorder } from "../hooks/useEditorLineReorder";
@@ -12,8 +12,8 @@ import {
   calculateCursorPosition,
   getSelection,
   scrollCursorIntoView,
-  scrollWhenViewportStable,
   setSelection,
+  trackViewportChanges,
 } from "../services/cursor";
 import { processBeforeInput } from "../services/editorInput";
 import { toggleCheckbox } from "../services/markdown/features/todoList";
@@ -87,6 +87,7 @@ export const Editor = (_props: EditorProps) => {
 
   let editor: HTMLDivElement;
   let container: HTMLDivElement | undefined;
+  let cancelFocusScroll: (() => void) | undefined;
   let iosReplacementText = "";
   let suppressNextFocusScroll = false;
   let lastSelection: EditorSelection = {
@@ -139,9 +140,13 @@ export const Editor = (_props: EditorProps) => {
   const { recordBaseline: recordKeyboardBaseline } = useIOSKeyboardHeightScroll(() => editor);
 
   const handleEditorBlur = () => {
+    cancelFocusScroll?.();
+    cancelFocusScroll = undefined;
     syncSelectionPresentation();
     closeWikiCompletionHandle();
   };
+
+  onCleanup(() => cancelFocusScroll?.());
 
   const emitChange = () => {
     props.onChange?.(content());
@@ -412,10 +417,14 @@ export const Editor = (_props: EditorProps) => {
           }
           editor.focus({ preventScroll: true });
           syncSelectionPresentation();
-          scrollWhenViewportStable(() => {
-            scrollCursorIntoView(window.getSelection()!, "smooth");
-            recordKeyboardBaseline();
-          });
+          cancelFocusScroll?.();
+          cancelFocusScroll = trackViewportChanges(
+            () => scrollCursorIntoView(window.getSelection()!, "smooth"),
+            () => {
+              cancelFocusScroll = undefined;
+              recordKeyboardBaseline();
+            },
+          );
         }}
         onBlur={handleEditorBlur}
         onBeforeInput={handleBeforeInput}

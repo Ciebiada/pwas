@@ -9,8 +9,8 @@ const SETTLE_MS = 50;
 // switch), scroll by the height delta so the caret stays at the same distance
 // from the keyboard. Symmetric — scrolls up when the keyboard grows (emoji is
 // taller) and down when it shrinks (back to text). The initial open is handled
-// by the editor's onFocus via scrollWhenViewportStable; call recordBaseline()
-// from that callback to set the baseline this hook measures deltas from.
+// by the editor's onFocus viewport tracker, which records the baseline after
+// its final correction.
 export const useIOSKeyboardHeightScroll = (getEditor: () => HTMLElement | undefined) => {
   let lastOffset = 0;
   let baselineSet = false;
@@ -47,7 +47,7 @@ export const useIOSKeyboardHeightScroll = (getEditor: () => HTMLElement | undefi
       }
 
       // Skip all events until recordBaseline has been called with a settled
-      // post-open offset (from onFocus → scrollWhenViewportStable). Without this,
+      // post-open offset by the focus viewport tracker. Without this,
       // the multiple resize events iOS fires during the open animation would
       // trigger an unwanted delta scroll on top of scrollCursorIntoView.
       if (!baselineSet) return;

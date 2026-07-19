@@ -234,44 +234,39 @@ export const scrollByDelta = (selection: Selection, delta: number, behavior: Scr
   }
 };
 
-const VIEWPORT_STABLE_MS = 50;
-
-// iOS delivers viewport changes in bursts with pauses while the keyboard
-// animates. Wait for a real quiet period — two identical frame samples can
-// occur mid-animation — before running the final scroll.
-export const scrollWhenViewportStable = (run: () => void, maxWaitMs = 1500) => {
+export const trackViewportChanges = (run: () => void, onComplete: () => void, maxWaitMs = 1500) => {
   const viewport = window.visualViewport;
-  requestAnimationFrame(run);
-  if (!viewport) return;
+  let animationFrame = requestAnimationFrame(run);
+  let viewportChanged = false;
 
-  let lastHeight = viewport.height;
-  let lastTop = viewport.offsetTop;
-  let changed = false;
-  const start = performance.now();
-  let lastChange = start;
-
-  const tick = () => {
-    const now = performance.now();
-    const height = viewport.height;
-    const top = viewport.offsetTop;
-
-    if (Math.abs(height - lastHeight) >= 1 || Math.abs(top - lastTop) >= 1) {
-      changed = true;
-      lastHeight = height;
-      lastTop = top;
-      lastChange = now;
-    }
-
-    if (changed && now - lastChange >= VIEWPORT_STABLE_MS) return run();
-    if (now - start >= maxWaitMs) {
-      if (changed) run();
-      return;
-    }
-
-    requestAnimationFrame(tick);
+  const schedule = () => {
+    viewportChanged = true;
+    cancelAnimationFrame(animationFrame);
+    animationFrame = requestAnimationFrame(run);
   };
 
-  requestAnimationFrame(tick);
+  const removeListeners = () => {
+    viewport?.removeEventListener("resize", schedule);
+    viewport?.removeEventListener("scroll", schedule);
+  };
+
+  viewport?.addEventListener("resize", schedule);
+  viewport?.addEventListener("scroll", schedule);
+
+  const completeTimer = window.setTimeout(() => {
+    removeListeners();
+    cancelAnimationFrame(animationFrame);
+    animationFrame = requestAnimationFrame(() => {
+      if (viewportChanged) run();
+      onComplete();
+    });
+  }, maxWaitMs);
+
+  return () => {
+    removeListeners();
+    clearTimeout(completeTimer);
+    cancelAnimationFrame(animationFrame);
+  };
 };
 
 export const getSelection = (element: HTMLElement): CursorPosition => {
